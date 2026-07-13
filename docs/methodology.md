@@ -67,7 +67,7 @@ _Generated from `config/scoring.yaml`. Do not edit by hand._
 | Macro / beta | 30 | `beta` | resilient (β near 1) | `lower_better` |
 
 ## Hard vetoes (force Avoid)
-- **going_concern** — Going-concern doubt confirmed (`going_concern`)
+- **going_concern** — Going-concern doubt confirmed (`going_concern == True`)
 - **distress_corroborated** — Corroborated financial distress (`altman_z < 1.8 and debt_eq > 2`)
 - **critical_red_flag** — Critical accounting / fraud flag (`red_flags_critical > 0`)
 

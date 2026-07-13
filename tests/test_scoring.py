@@ -71,18 +71,40 @@ def test_reproducible():
 # ---- veto / soft-gate firing -------------------------------------------------
 
 def test_going_concern_veto_forces_avoid():
-    """Regression: the going-concern hard veto must fire on its own (previously a
-    YAML `true` typo made it a silent no-op)."""
+    """Regression: the going-concern hard veto must fire on its own. Two prior
+    bugs: (1) a YAML `true` typo -> NameError, and (2) the store persists the bool
+    as 1.0, so a bare `going_concern` expr returns 1.0 which fails the engine's
+    `is True` check. We use the STORED numeric form (1) here so the test exercises
+    the real data path, not a Python bool that would mask the second bug."""
     cfg = load_config()
-    r = score_ticker(cfg, _SEC, _strong_metrics(going_concern=True), _MED, _SETTINGS)
+    r = score_ticker(cfg, _SEC, _strong_metrics(going_concern=1), _MED, _SETTINGS)
     assert r["verdict"] == "Avoid"
     assert any(v["id"] == "going_concern" for v in r["vetoes"])
 
 
 def test_no_going_concern_is_not_vetoed():
     cfg = load_config()
-    r = score_ticker(cfg, _SEC, _strong_metrics(going_concern=False), _MED, _SETTINGS)
+    r = score_ticker(cfg, _SEC, _strong_metrics(going_concern=0), _MED, _SETTINGS)
     assert not any(v["id"] == "going_concern" for v in r["vetoes"])
+
+
+def test_going_concern_veto_through_store():
+    """Full path: set_metric(True) is persisted as 1.0; metrics_for -> scoring
+    must still fire the veto (guards the bool->float->`is True` pitfall)."""
+    import tempfile, os
+    from fairentry.store.db import Store
+    cfg = load_config()
+    db = tempfile.mktemp(suffix=".db"); s = Store(db)
+    s.upsert_security("GC", "GoingConcern Co", "Technology")
+    for fid, val in {"price": 10, "target_price": 30, "gross_margin": 60,
+                     "oper_margin": 30, "roic": 20, "going_concern": True}.items():
+        s.set_metric("GC", fid, val, "test")
+    s.commit()
+    assert s.metrics_for("GC")["going_concern"]["value"] == 1.0   # stored as float
+    r = score_ticker(cfg, s.securities()[0], s.metrics_for("GC"), _MED, _SETTINGS)
+    s.close(); os.remove(db)
+    assert r["verdict"] == "Avoid"
+    assert any(v["id"] == "going_concern" for v in r["vetoes"])
 
 
 def test_critical_red_flag_veto():
