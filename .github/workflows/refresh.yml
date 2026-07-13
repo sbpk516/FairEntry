@@ -1,0 +1,62 @@
+name: FairEntry — refresh + deploy
+
+# Twice daily (05:00 / 14:00 ET ≈ 09:00 / 18:00 UTC) + manual dispatch.
+on:
+  schedule:
+    - cron: "0 9 * * *"
+    - cron: "0 18 * * *"
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Run the LLM reasoning layer (needs DEEPSEEK_API_KEY + balance)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: fairentry-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      FINVIZ_API_KEY: ${{ secrets.FINVIZ_API_KEY }}
+      FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+      SEC_CONTACT_EMAIL: ${{ secrets.SEC_CONTACT_EMAIL }}
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install deps
+        run: pip install -r requirements.txt
+      - name: Validate config
+        run: python -m fairentry.config
+      - name: Build (refresh -> screen -> score -> export)
+        run: python scripts/build_all.py --refresh ${{ github.event.inputs.reason == 'true' && '--reason' || '' }}
+      - name: Upload master.db artifact (regenerable; not committed)
+        uses: actions/upload-artifact@v4
+        with:
+          name: fairentry-db
+          path: data/fairentry.db
+          retention-days: 7
+      - name: Upload Pages artifact (the web app + board.json)
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

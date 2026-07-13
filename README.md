@@ -1,0 +1,47 @@
+# FairEntry
+
+A transparent, data-first stock-decision platform. Pull data once into a
+canonical store; every screener reads from the store; a config-driven, fully
+transparent scoring model produces **Buy / Watch / Avoid** with drill-down from
+verdict → category → item → raw value. Two strategies: **Deep Value** and
+**Quality Growth Entry**. Personal tool. Not financial advice.
+
+## Quick start
+
+```bash
+pip install -r requirements.txt
+cp .env.example .env          # add FINVIZ_API_KEY (+ FINNHUB / DEEPSEEK later)
+
+python scripts/refresh.py             # pull the universe into data/fairentry.db
+python scripts/build_all.py           # screen -> score -> export web/data/board.json
+python scripts/build_all.py --refresh --reason   # full run incl. LLM reasoning
+
+# view the app
+cd web && python -m http.server 8795   # open http://localhost:8795
+```
+
+## How it works
+
+```
+config/*.yaml → catalog refresh (adapters) → SQLite store
+             → screeners (store-only) → scoring engine (config-driven)
+             → reasoning (DeepSeek, shortlist-only) → board.json → web UI
+```
+
+- **`config/`** — the only place to change things: `catalog.yaml` (fields to
+  pull), `sectors.yaml`, `scoring.yaml` (categories/weights/rules/vetoes/gates),
+  `defaults.yaml` (user settings). Validated on load.
+- **`fairentry/`** — `store/` (SQLite + provenance + history), `adapters/`
+  (the only code that fetches), `catalog/` (cadence-aware refresh), `screeners/`,
+  `scoring/` (transparent Layer A), `reasoning/` (Layer B, provider-abstracted),
+  `pipeline/` (build + export).
+- **`web/`** — the progressive-disclosure UI; reads `web/data/board.json`.
+
+## Status
+
+Deterministic core (data → store → screen → score → UI) is complete and runs on
+real data. The DeepSeek reasoning layer is wired and activates when the account
+has balance. SEC/insider/news enrichment adapters port from BagHunter v1 next.
+
+See `docs/IMPLEMENTATION_PLAN.md` for the full plan and traceability matrix, and
+`docs/methodology.md` (generated from config) for the live scoring model.
