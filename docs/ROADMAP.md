@@ -8,7 +8,7 @@ Legend: **effort** Low / Med · **impact** on verdict quality.
 
 ---
 
-> **Progress:** Phase A ✅ done · Phase B ✅ done · Phase C — remaining.
+> **Progress:** Phase A ✅ done · Phase B ✅ done · Phase C ✅ done. All roadmap phases complete.
 
 ## Phase A — Decision quality (makes Buy / Watch / Avoid more correct)  ✅ DONE
 *Highest-value work. Start here.*
@@ -27,19 +27,18 @@ Legend: **effort** Low / Med · **impact** on verdict quality.
 | B2 (#6) | **Wire recommendation tracking + paper-portfolio + degradation alerts** | Follow verdicts over time; flag when a held name's score drops. Module exists, needs wiring. | Low-Med |
 | B3 (#5) | **Backtest harness** | Validate/tune weights with evidence. Build now; value accrues as `metrics_history` grows. | Med |
 
-## Phase C — Data breadth & research
+## Phase C — Data breadth & research  ✅ DONE
 
-| # | Item | Why | Effort |
+| # | Item | Why | Status |
 |---|---|---|---|
-| C1 (#8a) | **Finnhub raw-news adapter** | Gives the LLM real news to reason over (today: metrics only); unlocks catalyst/expansion labels. | Med |
-| C2 (#8b) | **13F institutional adapter** | Replace the Finviz `inst_trans` proxy with real institutional flow. | Med |
-| C3 (#1) | **Watchlist intelligence** (§7B — analysts/investors/social sources to follow) | Research-direction feature; LLM-discovered, cached. | Med |
-| C4 (#3b/#4) | **Remaining taxonomy items + UI labels** — estimate revisions, "more customers / expansion", holding-period, followed-source count | Completes req §9's label set. | Med |
+| C1 (#8a) | **Finnhub news → reasoning** | The LLM now reads real recent headlines (60-day, shortlist-only, cached) instead of metrics alone. Stance stays with the LLM; the adapter only tags catalyst *category*, never polarity (avoids the v1 keyword bug). | ✅ `3581848` |
+| C2 (#8b) | **13F smart-money adapter** | Replaces the shallow Finviz `inst_trans` proxy with aggregated 13F-HR holdings of a curated manager set (config/managers.yaml). Cost-flat in the universe; high-precision "held by N funds; 2 new, 1 added". | ✅ `1eec2e0` |
+| C3 (#1) | **Watchlist intelligence** (§7B) | Up to 5 real sources to follow per name (analyst/filing/data/publication/community), folded into the cached thesis call (no extra cost). Anti-hallucination clause. | ✅ `fc1eaea` |
+| C4 (#3b/#4) | **Estimate-revisions item + §9 labels** | Estimate-revision catalysts item computed from analyst-target history; horizon / "Expanding" / "N sources to follow" labels. | ✅ `6d3da34` |
 
-### Data-blocked items (need a mechanism first)
-- **Estimate-revisions** scoring items → need a daily analyst-snapshot history (port v1 `analyst_revisions.py`).
-- **Customer / expansion** labels → LLM extraction from filings/news, i.e. after C1.
-- Fold both into Phase C.
+### Data-blocked items — resolved
+- **Estimate-revisions** → computed directly from `metrics_history` (daily target snapshots already captured); no separate `analyst_revisions.py` port needed. Activates as history deepens.
+- **Customer / expansion** labels → derived from LLM catalyst cues + news categories (enabled by C1).
 
 ---
 
