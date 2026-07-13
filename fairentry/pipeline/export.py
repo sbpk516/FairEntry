@@ -181,7 +181,9 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
     return {"meta": {"generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                      "sectors": [s["id"] for s in cfg.enabled_sectors],
                      "config_version": cfg.scoring.get("version"), "count": len(stocks),
-                     "reasoning": reasoning_summary},
+                     "reasoning": reasoning_summary,
+                     "presets": cfg.scoring.get("presets", {}),
+                     "default_weights": {cid: c["weight"] for cid, c in cfg.categories.items()}},
             "stocks": stocks}
 
 

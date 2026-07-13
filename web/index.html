@@ -297,6 +297,12 @@ var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){re
 var DEFAULTS={ weights:{quality:16,survival:18,growth:14,valuation:18,confirmation:11,catalysts:9,risk:14},
   buyBand:72, watchBand:50, mos:15, target:30 };
 var S=JSON.parse(JSON.stringify(DEFAULTS));
+var PRESETS={};                       // filled from board.json meta
+var SKEY='fairentry_settings_v1';
+function saveS(){ try{ localStorage.setItem(SKEY, JSON.stringify(S)); }catch(e){} }
+function restoreS(){ try{ var raw=localStorage.getItem(SKEY); if(raw){ var o=JSON.parse(raw);
+  if(o&&o.weights){ S=Object.assign(JSON.parse(JSON.stringify(DEFAULTS)), o);
+    S.weights=Object.assign({}, DEFAULTS.weights, o.weights); } } }catch(e){} }
 var MODE='deepvalue';
 
 var CATS=[['quality','Business Quality'],['survival','Financial Strength & Survival'],['growth','Growth & Momentum'],
@@ -561,6 +567,10 @@ function slider(key,label,min,max,val,def,impact){ return '<div class="setgrp"><
   '<input type="range" min="'+min+'" max="'+max+'" value="'+val+'" data-set="'+key+'"><div class="impact">'+impact+'</div></div>'; }
 function renderSettings(){
   var body='<div class="changed" id="changed-note"></div>';
+  body+='<div class="sub-h">Preset</div>';
+  body+='<select id="preset-pick" style="width:100%;font-size:13px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:8px 11px;margin-bottom:14px">'+
+    '<option value="">— apply a preset —</option><option value="__default">Recommended defaults</option>'+
+    Object.keys(PRESETS).map(function(p){ return '<option value="'+p+'">'+p.replace(/_/g,' ')+'</option>'; }).join('')+'</select>';
   body+='<div class="sub-h">Category weights</div>';
   CATS.forEach(function(c){ body+=slider('w.'+c[0], c[1], 0, 30, S.weights[c[0]], DEFAULTS.weights[c[0]], 'How much '+c[1]+' moves the base score.'); });
   body+='<div class="sub-h">Verdict & entry</div>';
@@ -602,18 +612,27 @@ $('#themebtn').addEventListener('click',function(){ var r=document.documentEleme
 $('#s-body').addEventListener('input',function(e){ var inp=e.target.closest('[data-set]'); if(!inp)return;
   var key=inp.dataset.set, val=+inp.value; if(key.indexOf('w.')===0){ S.weights[key.slice(2)]=val; } else { S[key]=val; }
   var cur=$('#cur-'+key.replace('.','\\.')); var curEl=document.getElementById('cur-'+key); if(curEl)curEl.textContent=val;
-  updateChanged(); renderBoard(); if($('#detail').classList.contains('on')){ /* keep detail in sync */ var t=$('#d-title').textContent.trim().split(' ')[0]; openDetail(t); }
+  updateChanged(); saveS(); renderBoard(); if($('#detail').classList.contains('on')){ /* keep detail in sync */ var t=$('#d-title').textContent.trim().split(' ')[0]; openDetail(t); }
 });
-$('#s-body').addEventListener('click',function(e){ if(e.target.id==='resetbtn'){ S=JSON.parse(JSON.stringify(DEFAULTS)); renderSettings(); renderBoard();
+$('#s-body').addEventListener('change',function(e){ if(e.target.id!=='preset-pick') return; var v=e.target.value;
+  if(v==='__default'){ S.weights=JSON.parse(JSON.stringify(DEFAULTS.weights)); }
+  else if(v&&PRESETS[v]){ S.weights=Object.assign(JSON.parse(JSON.stringify(DEFAULTS.weights)), PRESETS[v]); }
+  else return;
+  saveS(); renderSettings(); renderBoard();
+  if($('#detail').classList.contains('on')){ var t=$('#d-title').textContent.trim().split(' ')[0]; openDetail(t); } });
+$('#s-body').addEventListener('click',function(e){ if(e.target.id==='resetbtn'){ S=JSON.parse(JSON.stringify(DEFAULTS));
+  try{ localStorage.removeItem(SKEY); }catch(err){} renderSettings(); renderBoard();
   if($('#detail').classList.contains('on')){ var t=$('#d-title').textContent.trim().split(' ')[0]; openDetail(t); } } });
 
 /* ---------- init: load real data from the pipeline export ---------- */
+restoreS();          // restore the user's saved weights/thresholds
 renderSettings();
 fetch('data/board.json', {cache:'no-store'}).then(function(r){ return r.json(); }).then(function(b){
   STOCKS = b.stocks || [];
+  var m=b.meta||{}; PRESETS=m.presets||{}; renderSettings();   // now includes preset options
   var secs=Array.from(new Set(STOCKS.map(function(s){return s.sector;}))).sort();
   $('#sector').innerHTML='<option value="all">All sectors</option>'+secs.map(function(x){return '<option>'+esc(x)+'</option>';}).join('');
-  var m=b.meta||{}; var tag=document.querySelector('.brand .tag');
+  var tag=document.querySelector('.brand .tag');
   if(tag) tag.textContent='working name · '+(m.count||STOCKS.length)+' stocks · '+((m.generated_at||'').slice(0,10));
   renderBoard();
 }).catch(function(e){ $('#board').innerHTML='<div style="padding:30px;color:var(--ink-faint)">Could not load <code>data/board.json</code> — run <code>python scripts/build_all.py</code> first.</div>'; });
