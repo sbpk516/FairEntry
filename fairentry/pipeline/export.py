@@ -64,6 +64,31 @@ def _map(rec, strategies, strategy_key):
                   "score": 50, "label": "not shortlisted",
                   "summary": "Deterministic score only (reasoning runs on the shortlist).",
                   "situation": [], "kill": "", "provider": "—"}
+    # Growth-entry plan (for Quality Growth names): fair-price cases + entry zone
+    # + upside now vs at the entry zone + the buy-now/wait decision.
+    growth_entry = None
+    if "growth" in strategies:
+        base, buyz, price = fv["fair_base"], fv["buy_zone"], rec["price"]
+        up_now = round(fv["upside_pct"]) if fv["upside_pct"] is not None else None
+        up_entry = round((base / buyz - 1) * 100) if (base and buyz) else None
+        ev = (th.get("entry_view") if th else None)
+        if not ev:  # deterministic fallback from verdict + price-vs-zone
+            if rec["verdict"] == "Buy":
+                ev = "buy_now"
+            elif base and price and buyz and price > buyz:
+                ev = "wait_for_pullback"
+            else:
+                ev = "watch"
+        growth_entry = {
+            "price": price,
+            "fair_conservative": fv["fair_low"], "fair_base": base, "fair_optimistic": fv["fair_high"],
+            "buy_below": buyz, "mos_pct": fv["margin_of_safety_pct"],
+            "upside_at_current": up_now, "upside_at_entry": up_entry,
+            "entry_view": ev,
+            "required_growth": (th.get("required_growth_to_justify_price") if th else None),
+            "durability": (th.get("durability") if th else None),
+            "kill": (th.get("kill_switch") if th else ""),
+        }
     return {
         "ticker": rec["ticker"], "company": rec["company"], "sector": rec["sector"],
         "strategy": strategies, "price": rec["price"],
@@ -76,6 +101,7 @@ def _map(rec, strategies, strategy_key):
         "thesis": thesis,
         "valuation": {"low": fv["fair_low"], "base": fv["fair_base"], "high": fv["fair_high"],
                       "upside": round(fv["upside_pct"]), "label": fv["valuation_label"]},
+        "growth_entry": growth_entry,
         "vetoes": [v["reason"] for v in rec["vetoes"]],
         "soft": [g["reason"] for g in rec["soft_gates"]],
         "labels": _labels(rec), "action": _action(rec),

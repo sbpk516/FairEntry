@@ -478,6 +478,32 @@ function situationHTML(s){ if(!s.thesis.situation||!s.thesis.situation.length) r
   return '<div class="sub-h">Why is it down? — situation checklist</div><div class="sit">'+rows+'</div>'+
     '<div style="font-size:12.5px;color:var(--ink-soft);margin-top:10px;line-height:1.5"><b>Kill-switch:</b> '+esc(s.thesis.kill)+'</div>'; }
 
+// Growth entry plan — for Quality Growth names: fair-price cases, entry zone,
+// upside now vs at entry, and the buy-now/wait decision.
+var EV_LABEL={buy_now:['Buy Now','good'],starter:['Starter','info'],wait_for_pullback:['Wait for Pullback','warn'],
+  wait_for_confirmation:['Wait for Confirmation','warn'],watch:['Watch','warn'],avoid:['Avoid','bad']};
+function num$(x){ return (x==null)?'—':('$'+x); }
+function growthEntryHTML(s){ var g=s.growth_entry; if(!g) return '';
+  var ev=EV_LABEL[g.entry_view]||['Watch','warn'];
+  var uc=g.upside_at_current, hue=HUET(uc>=30?80:uc>=12?55:30);
+  var cases='<div class="vg-nums">'+
+    '<div class="vg-num"><div class="l">Conservative</div><div class="v">'+num$(g.fair_conservative)+'</div></div>'+
+    '<div class="vg-num"><div class="l">Fair (base)</div><div class="v">'+num$(g.fair_base)+'</div></div>'+
+    '<div class="vg-num"><div class="l">Optimistic</div><div class="v">'+num$(g.fair_optimistic)+'</div></div>'+
+    '<div class="vg-num"><div class="l">Buy below ('+g.mos_pct+'% MoS)</div><div class="v">'+num$(g.buy_below)+'</div></div></div>';
+  var upside='<div class="vg-legend" style="margin-top:10px">'+
+    '<span>Upside at <b>current</b> ('+num$(g.price)+'): <b style="color:'+hue+'">'+(uc>=0?'+':'')+uc+'%</b></span>'+
+    (g.upside_at_entry!=null?'<span>Upside at <b>entry zone</b> ('+num$(g.buy_below)+'): <b style="color:var(--buy-text)">+'+g.upside_at_entry+'%</b></span>':'')+'</div>';
+  var extra='';
+  if(g.required_growth) extra+='<div style="font-size:14px;margin-top:12px"><b>Required growth to justify price:</b> '+esc(g.required_growth)+'</div>';
+  if(g.durability) extra+='<div style="font-size:13px;color:var(--ink-soft);margin-top:4px"><b>Growth durability:</b> '+esc(g.durability)+'</div>';
+  if(g.kill) extra+='<div style="font-size:13px;color:var(--ink-soft);margin-top:4px"><b>Kill-switch:</b> '+esc(g.kill)+'</div>';
+  return '<div class="sub-h">Growth entry plan</div>'+
+    '<div class="vg-explain" style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">'+
+      '<span class="lab '+ev[1]+'" style="font-size:14px;padding:5px 13px">'+ev[0]+'</span>'+
+      '<span>Enter at or below <b>'+num$(g.buy_below)+'</b> for your '+g.mos_pct+'% margin of safety.</span></div>'+
+    cases+upside+extra; }
+
 function valHTML(s){ var v=s.valuation, price=s.price;
   var buyBelow=+(v.base*(1-S.mos/100)).toFixed(1);
   var lo=Math.min(v.low, price)*0.9, hi=Math.max(v.high, price)*1.08, span=(hi-lo)||1;
@@ -517,7 +543,7 @@ function openDetail(tk){ var s=STOCKS.find(function(x){return x.ticker===tk;}); 
     .map(function(a){return '<div class="acard"><div class="l">'+a[0]+'</div><div class="v">'+esc(a[1])+'</div></div>';}).join('')+'</div>';
   var mathSec='<div class="sub-h">How the '+Math.round(c.prelim)+' was computed</div>'+scoreMathHTML(s,c);
   var scorecard='<div class="sub-h">Scorecard — click a category for its arithmetic, then any item for expected vs actual</div>'+s.cats.map(catHTML).join('');
-  $('#d-body').innerHTML=hero+mathSec+scorecard+valHTML(s)+situationHTML(s)+action;
+  $('#d-body').innerHTML=hero+mathSec+scorecard+valHTML(s)+growthEntryHTML(s)+situationHTML(s)+action;
   openDrawer('#detail');
 }
 
