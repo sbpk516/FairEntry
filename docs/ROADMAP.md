@@ -8,7 +8,9 @@ Legend: **effort** Low / Med · **impact** on verdict quality.
 
 ---
 
-## Phase A — Decision quality (makes Buy / Watch / Avoid more correct)
+> **Progress:** Phase A ✅ done · Phase B ✅ done · Phase C — remaining.
+
+## Phase A — Decision quality (makes Buy / Watch / Avoid more correct)  ✅ DONE
 *Highest-value work. Start here.*
 
 | # | Item | Why it matters | Effort | Reuse / notes |
@@ -17,7 +19,7 @@ Legend: **effort** Low / Med · **impact** on verdict quality.
 | A2 (#9) | **`share_count_yoy` dilution** | Feeds survival + risk; quick win. | Low | Compute from SEC XBRL shares YoY (already in the forensic fetch) |
 | A3 (#3a) | **Taxonomy items using existing data** — margin expansion, peer-relative valuation | More discriminating category scores. Peer-relative unlocks after A1. | Med | config edits + engine |
 
-## Phase B — Make it a usable daily tool
+## Phase B — Make it a usable daily tool  ✅ DONE
 
 | # | Item | Why | Effort |
 |---|---|---|---|
