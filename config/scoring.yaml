@@ -55,9 +55,10 @@ categories:
     label: Market Confirmation
     weight: 11
     items:
-      - {id: near_200wma,    label: "200-week MA proximity", weight: 30, metric: dist_200wma_pct, expected: "within ±15% = near", rule: {type: band, bands: [{max: 5, min: -15, score: 85}, {max: 15, min: -30, score: 55}, {max: 100, min: -100, score: 25}]}}
-      - {id: trend,          label: "Above 200-day MA",     weight: 30, metric: sma200, expected: "price > 200DMA", rule: {type: higher_better, full_at: 5, floor_at: -20}}
-      - {id: inst_flow,      label: "Institutional flow",   weight: 40, metric: inst_trans, expected: "net buying", rule: {type: higher_better, full_at: 2, floor_at: -3}}
+      - {id: near_200wma,    label: "200-week MA proximity", weight: 25, metric: dist_200wma_pct, expected: "within ±15% = near", rule: {type: band, bands: [{max: 5, min: -15, score: 85}, {max: 15, min: -30, score: 55}, {max: 100, min: -100, score: 25}]}}
+      - {id: trend,          label: "Above 200-day MA",     weight: 20, metric: sma200, expected: "price > 200DMA", rule: {type: higher_better, full_at: 5, floor_at: -20}}
+      - {id: inst_flow,      label: "Institutional flow",   weight: 25, metric: inst_trans, expected: "net buying", rule: {type: higher_better, full_at: 2, floor_at: -3}}
+      - {id: insider_buying, label: "Insider buying",       weight: 30, metric: insider_score, expected: "fresh / cluster / top-exec buys", rule: {type: passthrough}}
   catalysts:
     label: Catalysts & Narrative
     weight: 9

@@ -59,7 +59,7 @@ fields:
   - {id: share_count_yoy,  entity: company,  source: "SEC EDGAR", adapter: sec_edgar, cadence: filing_based, unit: pct,   transform: dilution_yoy, freshness_limit_h: 720, required_for: [survival, risk], cost_tier: expensive}
 
   # ---- events (insider / news) ----------------------------------------------
-  - {id: insider_buys,     entity: company,  source: "SEC Form 4", adapter: form4,   cadence: event_based, unit: text, transform: insider_summary, freshness_limit_h: 48, required_for: [market_confirmation, risk], cost_tier: medium}
+  - {id: insider_score,    entity: company,  source: "SEC Form 4", adapter: form4,   cadence: event_based, unit: ratio, transform: insider_materiality, freshness_limit_h: 48, required_for: [confirmation], cost_tier: medium}
   - {id: company_news,     entity: company,  source: Finnhub,      adapter: finnhub, cadence: twice_daily,  unit: text, raw_path: news, freshness_limit_h: 24, required_for: [catalysts], cost_tier: medium}
 
   # ---- institutional ---------------------------------------------------------

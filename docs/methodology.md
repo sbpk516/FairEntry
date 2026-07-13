@@ -43,9 +43,10 @@ _Generated from `config/scoring.yaml`. Do not edit by hand._
 
 | Item | Weight | Metric | Expected | Rule |
 |---|--:|---|---|---|
-| 200-week MA proximity | 30 | `dist_200wma_pct` | within ±15% = near | `band` |
-| Above 200-day MA | 30 | `sma200` | price > 200DMA | `higher_better` |
-| Institutional flow | 40 | `inst_trans` | net buying | `higher_better` |
+| 200-week MA proximity | 25 | `dist_200wma_pct` | within ±15% = near | `band` |
+| Above 200-day MA | 20 | `sma200` | price > 200DMA | `higher_better` |
+| Institutional flow | 25 | `inst_trans` | net buying | `higher_better` |
+| Insider buying | 30 | `insider_score` | fresh / cluster / top-exec buys | `passthrough` |
 
 ### Catalysts & Narrative — weight 9
 

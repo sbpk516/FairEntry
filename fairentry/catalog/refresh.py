@@ -103,8 +103,27 @@ def refresh(cfg, store, run_id=None, wma_tickers=None, sec_tickers=None, verbose
             store.log_fetch(run_id, "sec_edgar", False, 0, time.time() - t0, str(e))
             summary["sources"]["sec_edgar"] = {"ok": False, "error": str(e)}
 
+        # --- Form 4 insiders (same candidate set) ----------------------------
+        t0 = time.time()
+        try:
+            m = form4.fetch(cfg, set(by_adapter.get("form4", [])), targets, market_caps=caps)
+            n = 0
+            for tkr, vals in m.items():
+                for fid, val in vals.items():
+                    if val is not None:
+                        store.set_metric(tkr, fid, val, "form4")
+                        n += 1
+            store.commit()
+            store.log_fetch(run_id, "form4", True, len(m), time.time() - t0)
+            summary["sources"]["form4"] = {"ok": True, "tickers": len(m), "values": n}
+            if verbose:
+                print(f"  form4: {len(m)} tickers insiders ({time.time()-t0:.0f}s)")
+        except Exception as e:
+            store.log_fetch(run_id, "form4", False, 0, time.time() - t0, str(e))
+            summary["sources"]["form4"] = {"ok": False, "error": str(e)}
+
     # --- other enrichers (interfaces live; return {} until ported) -----------
-    for name in ("finnhub", "form4", "thirteenf"):
+    for name in ("finnhub", "thirteenf"):
         mod = ENRICHERS[name]
         if getattr(mod, "IMPLEMENTED", False):
             t0 = time.time()
