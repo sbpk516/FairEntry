@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FairEntry — prototype</title>
+<style>
+  :root{
+    --bg:#eef1f6; --panel:#ffffff; --panel-2:#f4f6fb; --sunk:#e8ecf4;
+    --ink:#171b23; --ink-soft:#4a5262; --ink-faint:#5c6474;
+    --line:#dde2ec; --line-soft:#e9edf4;
+    --accent:#4a5ee0; --accent-soft:#e7eafd; --accent-ink:#3345b8;
+    --buy:#1f9d55; --buy-bg:#e2f4e9; --buy-line:#8fd3a9; --buy-text:#0f6e3a;
+    --watch:#b07d13; --watch-bg:#f7eed6; --watch-line:#e2c274; --watch-text:#835d10;
+    --avoid:#cf3a54; --avoid-bg:#fbe4e8; --avoid-line:#eaa2ae; --avoid-text:#b81d39;
+    --mono:ui-monospace,"Cascadia Code","JetBrains Mono","SF Mono",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){ :root{
+    --bg:#0d1016; --panel:#161b23; --panel-2:#1b212b; --sunk:#11151c;
+    --ink:#e7ebf2; --ink-soft:#b3bccb; --ink-faint:#8b95a8;
+    --line:#28303c; --line-soft:#1f2630;
+    --accent:#8496ff; --accent-soft:#1c2440; --accent-ink:#aab6ff;
+    --buy:#43c47a; --buy-bg:#11291b; --buy-line:#2c6a45; --buy-text:#5ad78d;
+    --watch:#e0ad42; --watch-bg:#2a2410; --watch-line:#6d5a22; --watch-text:#eeba55;
+    --avoid:#eb6a80; --avoid-bg:#2c1620; --avoid-line:#743241; --avoid-text:#f38ba0;
+  }}
+  :root[data-theme="light"]{
+    --bg:#eef1f6; --panel:#ffffff; --panel-2:#f4f6fb; --sunk:#e8ecf4;
+    --ink:#171b23; --ink-soft:#4a5262; --ink-faint:#5c6474;
+    --line:#dde2ec; --line-soft:#e9edf4;
+    --accent:#4a5ee0; --accent-soft:#e7eafd; --accent-ink:#3345b8;
+    --buy:#1f9d55; --buy-bg:#e2f4e9; --buy-line:#8fd3a9; --buy-text:#0f6e3a;
+    --watch:#b07d13; --watch-bg:#f7eed6; --watch-line:#e2c274; --watch-text:#835d10;
+    --avoid:#cf3a54; --avoid-bg:#fbe4e8; --avoid-line:#eaa2ae; --avoid-text:#b81d39;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0d1016; --panel:#161b23; --panel-2:#1b212b; --sunk:#11151c;
+    --ink:#e7ebf2; --ink-soft:#b3bccb; --ink-faint:#8b95a8;
+    --line:#28303c; --line-soft:#1f2630;
+    --accent:#8496ff; --accent-soft:#1c2440; --accent-ink:#aab6ff;
+    --buy:#43c47a; --buy-bg:#11291b; --buy-line:#2c6a45; --buy-text:#5ad78d;
+    --watch:#e0ad42; --watch-bg:#2a2410; --watch-line:#6d5a22; --watch-text:#eeba55;
+    --avoid:#eb6a80; --avoid-bg:#2c1620; --avoid-line:#743241; --avoid-text:#f38ba0;
+  }
+  *{box-sizing:border-box;} body{margin:0;}
+  .app{ background:var(--bg); color:var(--ink); font-family:var(--sans); min-height:100vh; font-size:15px; -webkit-font-smoothing:antialiased; }
+  .tnum{ font-variant-numeric:tabular-nums; }
+  button{ font-family:inherit; cursor:pointer; }
+
+  /* top bar */
+  .topbar{ position:sticky; top:0; z-index:30; background:var(--panel); border-bottom:1px solid var(--line);
+    display:flex; align-items:center; gap:16px; padding:12px 20px; flex-wrap:wrap; }
+  .brand{ display:flex; align-items:baseline; gap:9px; }
+  .brand .logo{ font-weight:800; font-size:19px; letter-spacing:-.02em; }
+  .brand .logo b{ color:var(--accent); }
+  .brand .tag{ font-size:11px; color:var(--ink-faint); font-family:var(--mono); }
+  .modes{ display:flex; background:var(--sunk); border-radius:10px; padding:3px; gap:2px; }
+  .modes button{ border:none; background:transparent; color:var(--ink-soft); font-weight:600; font-size:13px;
+    padding:7px 14px; border-radius:8px; }
+  .modes button.on{ background:var(--panel); color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.12); }
+  .spacer{ flex:1; }
+  .iconbtn{ border:1px solid var(--line); background:var(--panel); color:var(--ink-soft); border-radius:9px;
+    padding:8px 12px; font-size:13px; font-weight:600; display:inline-flex; gap:7px; align-items:center; }
+  .iconbtn:hover{ border-color:var(--accent); color:var(--accent); }
+
+  /* controls */
+  .controls{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:14px 20px 6px; }
+  .controls select, .controls input{ font-family:inherit; font-size:13px; background:var(--panel); color:var(--ink);
+    border:1px solid var(--line); border-radius:9px; padding:8px 11px; }
+  .controls input{ min-width:200px; }
+  .seg{ display:flex; background:var(--sunk); border-radius:9px; padding:3px; }
+  .seg button{ border:none; background:transparent; color:var(--ink-soft); font-size:12.5px; font-weight:600; padding:6px 11px; border-radius:7px; }
+  .seg button.on{ background:var(--panel); color:var(--ink); }
+  .count{ font-size:12.5px; color:var(--ink-faint); font-family:var(--mono); margin-left:auto; }
+
+  /* board */
+  .board{ display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:14px; padding:14px 20px 60px; }
+  .tile{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:0; overflow:hidden;
+    cursor:pointer; transition:border-color .15s, transform .1s; position:relative; }
+  .tile:hover{ border-color:var(--accent); transform:translateY(-1px); }
+  .tile .vstripe{ height:4px; }
+  .tile-in{ padding:14px 15px 15px; }
+  .tile-top{ display:flex; align-items:flex-start; gap:10px; }
+  .tick{ font-family:var(--mono); font-weight:700; font-size:17px; letter-spacing:-.01em; }
+  .co{ font-size:12px; color:var(--ink-faint); margin-top:1px; }
+  .verdict{ margin-left:auto; text-align:right; }
+  .vpill{ font-size:12px; font-weight:800; letter-spacing:.02em; padding:4px 10px; border-radius:20px; display:inline-block; }
+  .action-lbl{ font-size:11px; color:var(--ink-faint); font-family:var(--mono); margin-top:4px; }
+  .scorebar-wrap{ display:flex; align-items:center; gap:9px; margin:13px 0 11px; }
+  .scoreval{ font-family:var(--mono); font-weight:800; font-size:20px; min-width:30px; }
+  .scoreval span{ font-size:11px; color:var(--ink-faint); font-weight:600; }
+  .track{ flex:1; height:7px; background:var(--sunk); border-radius:5px; overflow:hidden; }
+  .track i{ display:block; height:100%; border-radius:5px; }
+  .kv{ display:flex; gap:5px 14px; flex-wrap:wrap; font-size:12px; color:var(--ink-soft); margin-bottom:11px; }
+  .kv b{ color:var(--ink); font-family:var(--mono); font-weight:700; }
+  .labels{ display:flex; flex-wrap:wrap; gap:5px; }
+  .lab{ font-size:11px; padding:3px 8px; border-radius:6px; background:var(--panel-2); border:1px solid var(--line-soft); color:var(--ink-soft); font-weight:600; }
+  .lab.good{ color:var(--buy-text); background:var(--buy-bg); border-color:transparent; }
+  .lab.warn{ color:var(--watch-text); background:var(--watch-bg); border-color:transparent; }
+  .lab.bad{ color:var(--avoid-text); background:var(--avoid-bg); border-color:transparent; }
+  .lab.info{ color:var(--accent-ink); background:var(--accent-soft); border-color:transparent; }
+
+  .v-buy{ color:var(--buy-text);} .bg-buy{ background:var(--buy-bg);} .st-buy{ background:var(--buy);}
+  .v-watch{ color:var(--watch-text);} .bg-watch{ background:var(--watch-bg);} .st-watch{ background:var(--watch);}
+  .v-avoid{ color:var(--avoid-text);} .bg-avoid{ background:var(--avoid-bg);} .st-avoid{ background:var(--avoid);}
+
+  /* drawer + modal */
+  .scrim{ position:fixed; inset:0; background:rgba(10,13,20,.5); backdrop-filter:blur(2px); z-index:40; display:none; }
+  .scrim.on{ display:block; }
+  .drawer{ position:fixed; top:0; right:0; height:100%; width:min(720px,96vw); background:var(--panel); color:var(--ink); z-index:50;
+    transform:translateX(100%); transition:transform .22s ease; box-shadow:-8px 0 30px rgba(0,0,0,.2); display:flex; flex-direction:column; }
+  .drawer.on{ transform:translateX(0); }
+  .drawer.left{ right:auto; left:0; width:min(460px,96vw); transform:translateX(-100%); box-shadow:8px 0 30px rgba(0,0,0,.2); }
+  .drawer.left.on{ transform:translateX(0); }
+  .dhead{ display:flex; align-items:center; gap:12px; padding:16px 20px; border-bottom:1px solid var(--line); }
+  .dhead h2{ margin:0; font-size:18px; letter-spacing:-.01em; }
+  .dhead .x{ margin-left:auto; border:1px solid var(--line); background:var(--panel-2); color:var(--ink-soft); border-radius:8px; width:32px; height:32px; font-size:17px; }
+  .dbody{ overflow-y:auto; padding:18px 20px 60px; }
+
+  /* detail */
+  .verdict-hero{ border-radius:13px; padding:15px 17px; border:1px solid var(--line); margin-bottom:16px; }
+  .vh-top{ display:flex; align-items:center; gap:12px; }
+  .vh-pill{ font-size:14px; font-weight:800; padding:5px 13px; border-radius:22px; }
+  .vh-score{ margin-left:auto; font-family:var(--mono); font-weight:800; font-size:26px; }
+  .vh-score span{ font-size:12px; color:var(--ink-faint); }
+  .vh-why{ font-size:13px; color:var(--ink-soft); margin-top:10px; line-height:1.5; }
+  .vh-math{ font-family:var(--mono); font-size:11.5px; color:var(--ink-faint); margin-top:8px; }
+
+  .sub-h{ font-size:11px; text-transform:uppercase; letter-spacing:.09em; color:var(--ink-faint); font-weight:700; margin:22px 0 9px; }
+  .action-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .acard{ background:var(--panel-2); border:1px solid var(--line-soft); border-radius:10px; padding:10px 12px; }
+  .acard .l{ font-size:11px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.05em; }
+  .acard .v{ font-size:13.5px; font-weight:600; margin-top:3px; }
+
+  /* drill rows */
+  .cat{ border:1px solid var(--line); border-radius:11px; margin-bottom:8px; overflow:hidden; background:var(--panel); }
+  .row{ display:flex; align-items:center; gap:11px; padding:12px 14px; width:100%; border:none; background:transparent; text-align:left; color:var(--ink); }
+  .row:hover{ background:var(--panel-2); }
+  .chev{ font-family:var(--mono); color:var(--ink-faint); transition:transform .15s; font-size:13px; }
+  .open>.row .chev{ transform:rotate(90deg); }
+  .rname{ font-weight:650; font-size:14px; }
+  .rmeta{ margin-left:auto; display:flex; align-items:center; gap:10px; }
+  .wchip{ font-family:var(--mono); font-size:11px; color:var(--ink-faint); }
+  .mini{ width:66px; height:6px; background:var(--sunk); border-radius:4px; overflow:hidden; }
+  .mini i{ display:block; height:100%; }
+  .rscore{ font-family:var(--mono); font-weight:700; font-size:13px; min-width:26px; text-align:right; }
+  .detail{ display:grid; grid-template-rows:0fr; transition:grid-template-rows .22s ease; }
+  .open>.detail{ grid-template-rows:1fr; }
+  .detail-in{ overflow:hidden; }
+  .item{ border-top:1px solid var(--line-soft); }
+  .item .row{ padding:10px 14px 10px 34px; }
+  .item .rname{ font-weight:550; font-size:13px; }
+  .metricbox{ padding:2px 16px 14px 34px; font-size:12.5px; }
+  .metricbox .reason{ color:var(--ink-soft); margin:2px 0 9px; line-height:1.5; }
+  .mrow{ display:flex; gap:8px; flex-wrap:wrap; }
+  .mtag{ font-family:var(--mono); font-size:11px; background:var(--panel-2); border:1px solid var(--line-soft); border-radius:6px; padding:2px 8px; color:var(--ink-soft); }
+  .mtag b{ color:var(--ink); }
+
+  /* situation checklist */
+  .sit{ border:1px solid var(--line); border-radius:11px; padding:4px 15px; }
+  .sit-row{ padding:12px 0; border-top:1px solid var(--line-soft); }
+  .sit-row:first-child{ border-top:none; }
+  .sit-q{ font-weight:600; font-size:13.5px; }
+  .sit-tags{ display:flex; flex-wrap:wrap; gap:6px; margin-top:7px; }
+  .stg{ font-family:var(--mono); font-size:11px; padding:2px 8px; border-radius:20px; border:1px solid var(--line); color:var(--ink-soft); }
+  .stg.active{ color:var(--watch-text); background:var(--watch-bg); border-color:transparent; }
+  .stg.improving{ color:var(--buy-text); background:var(--buy-bg); border-color:transparent; }
+  .stg.worsening,.stg.structural{ color:var(--avoid-text); background:var(--avoid-bg); border-color:transparent; }
+
+  /* valuation panel */
+  .valbar{ position:relative; height:46px; margin:14px 0 6px; }
+  .valtrack{ position:absolute; top:20px; left:0; right:0; height:6px; background:var(--sunk); border-radius:4px; }
+  .valzone{ position:absolute; top:18px; height:10px; background:var(--buy-bg); border:1px solid var(--buy-line); border-radius:5px; }
+  .valmark{ position:absolute; top:8px; width:2px; height:30px; }
+  .valmark.price{ background:var(--accent); } .valmark.fair{ background:var(--ink-faint); }
+  .valmark .cap{ position:absolute; top:-14px; left:50%; transform:translateX(-50%); font-size:10px; font-family:var(--mono); white-space:nowrap; }
+  .vgrid{ display:flex; gap:16px; flex-wrap:wrap; font-size:12.5px; color:var(--ink-soft); margin-top:4px; }
+  .vgrid b{ color:var(--ink); font-family:var(--mono); }
+
+  /* settings sliders */
+  .setgrp{ margin-bottom:20px; }
+  .slabel{ display:flex; align-items:baseline; gap:8px; font-size:13px; margin-bottom:6px; }
+  .slabel .nm{ font-weight:600; } .slabel .cur{ font-family:var(--mono); color:var(--accent); font-weight:700; margin-left:auto; }
+  .slabel .def{ font-family:var(--mono); font-size:11px; color:var(--ink-faint); }
+  input[type=range]{ width:100%; accent-color:var(--accent); }
+  .impact{ font-size:11.5px; color:var(--ink-faint); margin-top:3px; }
+  .changed{ background:var(--accent-soft); border:1px solid var(--accent); border-radius:9px; padding:9px 12px; font-size:12.5px; margin-bottom:16px; color:var(--accent-ink); }
+  .resetbtn{ border:1px solid var(--line); background:var(--panel-2); color:var(--ink-soft); border-radius:8px; padding:8px 14px; font-size:12.5px; font-weight:600; width:100%; }
+
+  .note-banner{ font-size:11.5px; color:var(--ink-faint); text-align:center; padding:8px; font-family:var(--mono); }
+
+  /* ---- #detail as a CENTERED MODAL (overrides drawer defaults, id beats class) ---- */
+  #detail{ top:50%; left:50%; right:auto; height:auto; width:min(880px,94vw); max-height:90vh;
+    border-radius:16px; box-shadow:0 24px 70px rgba(0,0,0,.38);
+    transform:translate(-50%,-50%) scale(.97); visibility:hidden; pointer-events:none;
+    transition:transform .18s ease; }
+  #detail.on{ transform:translate(-50%,-50%) scale(1); visibility:visible; pointer-events:auto; }
+  /* larger, more readable detail typography */
+  #detail .dbody{ font-size:16px; padding:20px 24px 64px; }
+  #detail .rname{ font-size:15.5px; } #detail .item .rname{ font-size:14.5px; }
+  #detail .sit-q{ font-size:15px; } #detail .acard .v{ font-size:15px; } #detail .acard .l{ font-size:11.5px; }
+  #detail .metricbox{ font-size:14px; } #detail .sub-h{ font-size:12px; }
+  #detail .rscore{ font-size:15px; } #detail .dhead h2{ font-size:20px; }
+
+  /* ---- score-math table (how the number adds up) ---- */
+  .mathbox{ background:var(--panel-2); border:1px solid var(--line); border-radius:12px; padding:4px 15px 10px; margin:6px 0 4px; }
+  .mtable{ width:100%; border-collapse:collapse; font-size:13.5px; }
+  .mtable th{ text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-faint); font-weight:700; padding:8px 6px 6px; border-bottom:1px solid var(--line); }
+  .mtable td{ padding:7px 6px; border-bottom:1px solid var(--line-soft); }
+  .mtable td.n,.mtable th.n{ text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums; }
+  .mtable .contrib{ color:var(--accent-ink); font-weight:700; }
+  .mtable tfoot td{ border-top:2px solid var(--line); border-bottom:none; font-weight:700; }
+  .mformula{ font-family:var(--mono); font-size:12px; color:var(--ink-soft); margin-top:8px; line-height:1.6; word-break:break-word; }
+  .mformula b{ color:var(--ink); }
+
+  /* ---- per-item expected/actual/rule grid ---- */
+  .ea{ display:grid; grid-template-columns:auto 1fr; gap:6px 14px; margin:4px 0 10px; align-items:baseline; }
+  .ea .k{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-faint); font-weight:700; }
+  .ea .v{ font-size:14px; }
+  .ea .v.act{ font-weight:700; } .ea .v.exp{ color:var(--ink-soft); }
+  .scoreline{ display:flex; align-items:center; gap:10px; margin-top:6px; }
+  .scoreline .big{ font-family:var(--mono); font-weight:800; font-size:17px; }
+  .scoreline .why{ font-size:12.5px; color:var(--ink-soft); }
+
+  /* ---- valuation gauge (redesigned) ---- */
+  .vgauge{ margin:10px 0 4px; }
+  .vg-nums{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin-bottom:16px; }
+  .vg-num{ background:var(--panel-2); border:1px solid var(--line-soft); border-radius:11px; padding:11px 13px; }
+  .vg-num .l{ font-size:11px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.04em; }
+  .vg-num .v{ font-family:var(--mono); font-weight:800; font-size:20px; margin-top:3px; }
+  .vg-line{ position:relative; height:62px; margin:6px 4px 2px; }
+  .vg-zones{ position:absolute; top:26px; left:0; right:0; height:14px; border-radius:7px; overflow:hidden; display:flex; }
+  .vg-zones i{ height:100%; } .vg-zones .z-cheap{ background:var(--buy); } .vg-zones .z-fair{ background:var(--watch); } .vg-zones .z-exp{ background:var(--avoid); opacity:.75; }
+  .vg-mark{ position:absolute; top:16px; width:3px; height:34px; border-radius:2px; }
+  .vg-mark.price{ background:var(--ink); } .vg-mark.fair{ background:var(--panel); border:1.5px solid var(--ink-soft); width:4px; }
+  .vg-cap{ position:absolute; top:-2px; transform:translateX(-50%); font-family:var(--mono); font-size:11px; font-weight:700; white-space:nowrap; }
+  .vg-scale{ position:absolute; bottom:-2px; font-family:var(--mono); font-size:10px; color:var(--ink-faint); }
+  .vg-legend{ display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color:var(--ink-soft); margin-top:12px; }
+  .vg-legend span{ display:inline-flex; align-items:center; gap:6px; }
+  .vg-legend .sw{ width:12px; height:12px; border-radius:3px; display:inline-block; }
+  .vg-explain{ font-size:14px; color:var(--ink); line-height:1.55; margin-top:12px; background:var(--accent-soft); border:1px solid var(--accent); border-radius:11px; padding:12px 15px; }
+  .vg-explain b{ font-family:var(--mono); }
+
+  @media (max-width:520px){ .action-grid{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <div class="topbar">
+    <div class="brand"><span class="logo">Fair<b>Entry</b></span><span class="tag">working name · prototype</span></div>
+    <div class="modes" id="modes">
+      <button data-mode="deepvalue" class="on">Deep Value</button>
+      <button data-mode="growth">Quality Growth Entry</button>
+    </div>
+    <span class="spacer"></span>
+    <button class="iconbtn" id="tunebtn">⚙ Tune weights</button>
+    <button class="iconbtn" id="themebtn">◐ Theme</button>
+  </div>
+
+  <div class="controls">
+    <input id="search" placeholder="Search ticker or company…">
+    <select id="sector"><option value="all">All sectors</option></select>
+    <div class="seg" id="vfilter">
+      <button data-v="all" class="on">All</button>
+      <button data-v="Buy">Buy</button>
+      <button data-v="Watch">Watch</button>
+      <button data-v="Avoid">Avoid</button>
+    </div>
+    <select id="sort">
+      <option value="score">Sort: Score</option>
+      <option value="upside">Sort: Upside</option>
+      <option value="verdict">Sort: Verdict</option>
+    </select>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="board" id="board"></div>
+  <div class="note-banner">Sample data — illustrative only, not investment advice. Every number here is fictional and drills to a mock source.</div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="detail"><div class="dhead"><h2 id="d-title">—</h2><button class="x" id="d-close">×</button></div><div class="dbody" id="d-body"></div></aside>
+<aside class="drawer left" id="settings">
+  <div class="dhead"><h2>Tune the model</h2><button class="x" id="s-close">×</button></div>
+  <div class="dbody" id="s-body"></div>
+</aside>
+
+<script>
+(function(){
+"use strict";
+var $=function(s,r){return (r||document).querySelector(s);};
+var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
+
+/* ---------- default settings (user-editable) ---------- */
+var DEFAULTS={ weights:{quality:16,survival:18,growth:14,valuation:18,confirmation:11,catalysts:9,risk:14},
+  buyBand:72, watchBand:50, mos:15, target:30 };
+var S=JSON.parse(JSON.stringify(DEFAULTS));
+var MODE='deepvalue';
+
+var CATS=[['quality','Business Quality'],['survival','Financial Strength & Survival'],['growth','Growth & Momentum'],
+ ['valuation','Valuation & Margin of Safety'],['confirmation','Market Confirmation'],['catalysts','Catalysts & Narrative'],['risk','Risk & Red Flags']];
+var CATLBL={}; CATS.forEach(function(c){CATLBL[c[0]]=c[1];});
+var HUE=function(sc){ return sc>=67?'var(--buy)':sc>=45?'var(--watch)':'var(--avoid)'; };       // fills (bars/stripes)
+var HUET=function(sc){ return sc>=67?'var(--buy-text)':sc>=45?'var(--watch-text)':'var(--avoid-text)'; }; // readable text
+
+/* ---------- sample data ---------- */
+/* item(label, weight, score, actual, expected, rule, source) — every score is justified:
+   actual vs expected, the rule that maps them, and the source. Category score is the
+   weighted average of its items; base score the weighted average of the 7 categories. */
+function item(l,w,s,a,e,r,src){ return {label:l,weight:w,score:s,actual:a,expected:e,rule:r,source:src||'store'}; }
+function cat(id,items){ var den=0,num=0; items.forEach(function(i){den+=i.weight;num+=i.weight*i.score;});
+  return {id:id,label:CATLBL[id],score:Math.round(num/den),raw:num/den,items:items}; }
+
+var STOCKS=[
+ { ticker:'AVNT', company:'Avanti Micro', sector:'Technology', strategy:['deepvalue'], price:29.4,
+   cats:[
+     cat('quality',[item('Gross margin vs sector',30,72,'48%','≥ sector median (41%)','+7pp above sector → strong margins held through the downturn','fundamentals'),item('ROIC vs sector',35,64,'14%','≥ sector (12%)','above sector and not leverage-driven','fundamentals'),item('Customer concentration',35,80,'top customer 9%','< 15% = diversified','well diversified → near-full','10-K')]),
+     cat('survival',[item('Altman-Z',30,78,'3.1','> 2.6 = safe zone','comfortably out of distress','risk_model'),item('Interest coverage',25,70,'6.2x','> 6x = comfortable','debt easily serviced','fundamentals'),item('FCF margin',25,66,'+11%','> 0 and stable','cash-generative through the dip','fundamentals'),item('Dilution trend',20,74,'−1.2% shares YoY','≤ 0 (no dilution)','slight buyback','XBRL')]),
+     cat('growth',[item('Revenue growth vs sector',30,42,'−4% YoY','≥ sector (−3%)','slightly below sector, still declining','fundamentals'),item('Sequential trend',30,58,'q/q +2%','> 0 = bottoming','first sequential uptick after two down quarters','fundamentals'),item('Analyst revisions',40,55,'stabilizing','net up-revisions','down-revisions have stopped','analyst_revisions')]),
+     cat('valuation',[item('Intrinsic-value gap',40,86,'31% below fair','≥ 12% below = margin of safety','deep discount to conservative fair value','intrinsic_overlay'),item('FCF yield',30,78,'8.4%','> 6% = cheap','cheap on cash flow','fundamentals'),item('Peer-relative',30,72,'−22% vs peers','≤ quality-matched peers','cheaper than comparable peers','peers')]),
+     cat('confirmation',[item('200-week MA proximity',30,70,'−6% from 200WMA','within ±15% = near','sitting on its 4-year support line','yfinance'),item('Insider cluster buy',40,88,'3 buys / 21 days','a fresh cluster','CFO + 2 directors buying → high-value signal','Form 4'),item('Institutional flow',30,60,'net +0.8%','> 0','mild accumulation','13F')]),
+     cat('catalysts',[item('News sentiment (LLM)',40,68,'improving','positive stance','coverage turning constructive','news_judge'),item('Earnings setup',30,62,'reports in 3 wks','beat/raise likely','possible positive surprise','calendar'),item('Sector tailwind',30,55,'AI capex cycle','a clear tailwind','broad demand backdrop','sector')]),
+     cat('risk',[item('Accounting flags',30,90,'clean','no forensic flags','clean earnings quality → full','red_flags'),item('Insider selling',25,84,'none','no selling','no distribution','Form 4'),item('Litigation',20,80,'none material','none material','clear','filings'),item('Short interest',25,66,'7% of float','< 10% = low','modest short interest','flow')])
+   ],
+   thesis:{ type:'recovery', score:78, label:'Temporary & improving',
+     summary:'Down on a cyclical margin dip that is already resolving; balance sheet safe, insiders buying, and it sits on its 200-week support.',
+     situation:[
+       ['Revenue dipped two quarters on a cyclical demand air-pocket','active','high','temporary','~1–2 quarters','10-Q, mgmt call'],
+       ['Gross margin compressed on input costs','improving','medium','temporary','next print','commodity trend, call'],
+       ['Sector-wide de-rating (not company-specific)','active','medium','cyclical','macro-led','peer prices'] ],
+     kill:'A third straight revenue decline with no margin recovery breaks the "temporary" thesis.' },
+   valuation:{ low:34, base:42.5, high:52, upside:45, label:'cheap' },
+   vetoes:[], soft:[], riskPenalty:0,
+   labels:[['Recovery: temporary','good'],['Insider cluster buy','good'],['At 200-week MA','info'],['Margin dip resolving','good']],
+   action:{ action:'Buy Now', size:'3% (starter → full on confirm)', entry:'Cheap, safe, insiders buying, at support — reward outweighs the cyclical risk.', add:'A sequential revenue re-acceleration lets you add.', stop:'Third revenue decline or a margin miss.', review:'Next earnings (~3 wks)' } },
+
+ { ticker:'LUMA', company:'Lumina Cloud', sector:'Technology', strategy:['growth'], price:214.0,
+   cats:[
+     cat('quality',[item('Gross margin vs sector',30,92,'79%','≥ sector (62%)','best-in-class SaaS margins','fundamentals'),item('ROIC vs sector',35,80,'22%','≥ sector (15%)','excellent capital returns','fundamentals'),item('Customer concentration',35,84,'top customer 4%','< 15% = diversified','highly diversified base','10-K')]),
+     cat('survival',[item('Altman-Z',30,88,'6.4','> 2.6 = safe','fortress balance sheet','risk_model'),item('Interest coverage',25,95,'net cash','positive net cash','no debt to service','fundamentals'),item('FCF margin',25,86,'+27%','> 0 and stable','strong free cash flow','fundamentals'),item('Dilution trend',20,58,'+2.4% shares (SBC)','≤ 2% ideal','stock-comp dilution a touch high','XBRL')]),
+     cat('growth',[item('Revenue growth vs sector',30,90,'+31% YoY','≥ sector (14%)','well above sector','fundamentals'),item('Sequential trend',30,78,'q/q +7%','> 0','re-accelerating','fundamentals'),item('Analyst revisions',40,82,'up-revisions','net up','estimates rising','analyst_revisions')]),
+     cat('valuation',[item('Intrinsic-value gap',40,34,'12% ABOVE fair','≥ 12% below = margin of safety','priced ahead of conservative fair value','intrinsic_overlay'),item('FCF yield',30,40,'2.1%','> 6% = cheap','rich on cash flow','fundamentals'),item('Peer-relative',30,52,'in line with peers','≤ quality-matched peers','fairly valued vs peers, not cheap','peers')]),
+     cat('confirmation',[item('Trend (50 > 200 DMA)',30,88,'strong uptrend','50 > 200','firmly trending','flow'),item('Relative strength',35,84,'top decile','> market','clear market leader','flow'),item('Institutional flow',35,80,'net +2.1%','> 0','institutions accumulating','13F')]),
+     cat('catalysts',[item('News sentiment (LLM)',40,78,'positive','positive stance','new product well received','news_judge'),item('Product / expansion',30,82,'new adjacent market','expansion evidence','entering an adjacent segment','calls'),item('Sector tailwind',30,80,'AI adoption','a clear tailwind','secular demand','sector')]),
+     cat('risk',[item('Accounting flags',30,88,'clean','no forensic flags','clean','red_flags'),item('Insider selling',25,60,'routine 10b5-1','no discretionary selling','scheduled selling only','Form 4'),item('Litigation',20,84,'none','none material','clear','filings'),item('Valuation fragility',25,50,'high multiple','moderate','de-rate risk if growth slips','flow')])
+   ],
+   thesis:{ type:'growth', score:74, label:'Great business, stretched entry',
+     summary:'Excellent compounder growing 31% with rising estimates — but today\'s price already bakes in the base case. Upside from here is thin until a pullback.',
+     situation:[], kill:'Two quarters of decelerating growth would break the premium.' },
+   valuation:{ low:170, base:191, high:225, upside:12, label:'fair→expensive' },
+   vetoes:[], soft:['upsideBelowTarget'], riskPenalty:0,
+   labels:[['Quality: excellent','good'],['Growth +31%','good'],['Entry: stretched','warn'],['Wait for pullback','warn']],
+   action:{ action:'Wait For Pullback', size:'starter only (1%)', entry:'Business is a Buy; the price is not. Upside is ~12%, below your 30% target.', add:'Pullback into the $170–185 entry zone.', stop:'Growth decelerates two straight quarters.', review:'Next earnings' } },
+
+ { ticker:'DRFT', company:'Driftwood Retail', sector:'Consumer Cyclical', strategy:['deepvalue'], price:8.1,
+   cats:[
+     cat('quality',[item('Gross margin vs sector',30,34,'22% & falling','≥ sector (30%)','below sector and eroding','fundamentals'),item('ROIC vs sector',35,28,'4%','≥ sector (11%)','weak, declining returns','fundamentals'),item('Customer concentration',35,40,'2 chains = 38%','< 15% = diversified','dangerously concentrated','10-K')]),
+     cat('survival',[item('Altman-Z',30,22,'1.4','> 2.6 safe · < 1.8 = distress','in the distress zone','risk_model'),item('Interest coverage',25,26,'1.3x','> 6x','barely covers interest','fundamentals'),item('FCF margin',25,30,'−3%','> 0','burning cash','fundamentals'),item('Dilution trend',20,24,'+9% shares YoY','≤ 0','heavy dilution','XBRL')]),
+     cat('growth',[item('Revenue growth vs sector',30,20,'−17% YoY','≥ sector','multi-year secular decline','fundamentals'),item('Sequential trend',30,25,'still falling','> 0','no bottom in sight','fundamentals'),item('Analyst revisions',40,22,'down-revisions','net up','estimates cut again','analyst_revisions')]),
+     cat('valuation',[item('Intrinsic-value gap',40,60,'"cheap" on P/B','≥ 12% below fair','optically cheap — but on a shrinking base','intrinsic_overlay'),item('FCF yield',30,20,'negative','> 6%','no free cash flow to yield','fundamentals'),item('Peer-relative',30,55,'−40% vs peers','≤ peers','cheap for a reason','peers')]),
+     cat('confirmation',[item('200-week MA proximity',30,18,'−58% (broken)','within ±15%','far below — no support','yfinance'),item('Insider buying',40,30,'none','a fresh cluster','no insiders stepping in','Form 4'),item('Institutional flow',30,28,'net −3.1%','> 0','institutions exiting','13F')]),
+     cat('catalysts',[item('News sentiment (LLM)',40,25,'negative','positive stance','"reasons to sell" coverage','news_judge'),item('Earnings setup',30,30,'guidance just cut','beat/raise','negative setup','calendar'),item('Sector tailwind',30,35,'none','a tailwind','no tailwind','sector')]),
+     cat('risk',[item('Going concern',35,20,'auditor flagged','none','going-concern language added → veto','red_flags'),item('Customer loss',35,20,'lost anchor client','none','structural blow to the model → veto','8-K'),item('Short interest',30,40,'28% of float','< 10%','heavily shorted','flow')])
+   ],
+   thesis:{ type:'recovery', score:24, label:'Structural decline',
+     summary:'Cheap on the screen, but the cheapness reflects a shrinking, cash-burning business that just lost an anchor customer and drew going-concern language. This is a falling knife.',
+     situation:[
+       ['Lost anchor customer (≈18% of revenue)','structural','critical','structural','permanent','8-K'],
+       ['Revenue in multi-year secular decline','worsening','high','structural','ongoing','10-K trend'],
+       ['Going-concern language added by auditor','active','critical','structural','unresolved','10-K'] ],
+     kill:'This one is already invalidated — the recovery chain breaks at "why should fundamentals recover?"' },
+   valuation:{ low:5, base:7, high:9, upside:-13, label:'value trap' },
+   vetoes:['Going-concern language confirmed','Major customer loss breaks the model'], soft:[], riskPenalty:0,
+   labels:[['Value trap','bad'],['Going-concern veto','bad'],['Lost anchor customer','bad'],['Institutions exiting','bad']],
+   action:{ action:'Avoid', size:'—', entry:'Two hard vetoes fire. No score can rescue a going-concern + broken model.', add:'—', stop:'—', review:'—' } },
+
+ { ticker:'NEXG', company:'NexGen Health', sector:'Communication Services', strategy:['growth'], price:61.5,
+   cats:[
+     cat('quality',[item('Gross margin vs sector',30,74,'61%','≥ sector (50%)','healthy margins','fundamentals'),item('ROIC vs sector',35,70,'17%','≥ sector (12%)','good returns','fundamentals'),item('Customer concentration',35,72,'top customer 11%','< 15% = diversified','reasonably diversified','10-K')]),
+     cat('survival',[item('Altman-Z',30,72,'3.4','> 2.6 = safe','safe','risk_model'),item('Interest coverage',25,74,'8x','> 6x','strong coverage','fundamentals'),item('FCF margin',25,70,'+14%','> 0 and stable','cash-generative','fundamentals'),item('Dilution trend',20,66,'flat','≤ 0','no dilution','XBRL')]),
+     cat('growth',[item('Revenue growth vs sector',30,76,'+24% YoY','≥ sector (12%)','above sector','fundamentals'),item('Sequential trend',30,66,'steady','> 0','consistent','fundamentals'),item('Analyst revisions',40,72,'edging up','net up','estimates rising slightly','analyst_revisions')]),
+     cat('valuation',[item('Intrinsic-value gap',40,70,'18% below fair','≥ 12% below = margin of safety','below conservative fair value','intrinsic_overlay'),item('FCF yield',30,64,'4.6%','> 6% = cheap','reasonable','fundamentals'),item('Peer-relative',30,72,'−15% vs peers','≤ peers','cheaper than peers','peers')]),
+     cat('confirmation',[item('Trend (50 > 200 DMA)',30,68,'uptrend','50 > 200','trending up','flow'),item('Relative strength',35,64,'above average','> market','outperforming','flow'),item('Institutional flow',35,66,'net +1.1%','> 0','light accumulation','13F')]),
+     cat('catalysts',[item('News sentiment (LLM)',40,66,'positive','positive stance','constructive','news_judge'),item('Product / expansion',30,70,'EU launch','expansion evidence','expanding into Europe','calls'),item('Earnings setup',30,60,'reports in 5 wks','beat/raise','solid setup','calendar')]),
+     cat('risk',[item('Accounting flags',30,84,'clean','no forensic flags','clean','red_flags'),item('Insider selling',25,72,'minimal','none','little selling','Form 4'),item('Litigation',20,78,'none material','none material','clear','filings'),item('Valuation fragility',25,66,'moderate','low','not stretched','flow')])
+   ],
+   thesis:{ type:'growth', score:71, label:'Quality growth at a fair entry',
+     summary:'Growing 24% with clean books and an 18% discount to fair value — expected upside clears your 30% target and it\'s trending up. A genuine buyable growth entry.',
+     situation:[], kill:'Growth slips below ~15% or the EU expansion stalls.' },
+   valuation:{ low:56, base:72, high:88, upside:33, label:'fair→cheap' },
+   vetoes:[], soft:[], riskPenalty:0,
+   labels:[['Growth +24%','good'],['18% below fair value','good'],['Upside 33%','good'],['Entry: acceptable','info']],
+   action:{ action:'Buy Now', size:'3%', entry:'Quality high, ~33% upside above your 30% target, trending up — enter now.', add:'Add on the next earnings confirmation.', stop:'Growth < 15% or EU expansion stalls.', review:'Next earnings (~5 wks)' } }
+];
+
+/* ---------- verdict engine (mirrors the scoring-model formula) ---------- */
+function baseScore(s){ var num=0,den=0; s.cats.forEach(function(c){ var w=S.weights[c.id]; num+=w*c.score; den+=w; }); return num/den; }
+function thesisMod(s){ var t=s.thesis.score; return t>=80?6:t>=65?3:t>=50?0:t>=35?-5:-10; }
+function softGates(s){ var g=[]; if(s.soft.indexOf('expensive')>=0)g.push('Valuation is expensive');
+  var surv=s.cats.find(function(c){return c.id==='survival';}); if(surv&&surv.score<30)g.push('Survival score < 30');
+  if(s.valuation.upside < S.target) g.push('Upside '+s.valuation.upside+'% < target '+S.target+'%'); return g; }
+function compute(s){ var base=baseScore(s), mod=thesisMod(s), prelim=base+mod-(s.riskPenalty||0);
+  var out={base:base, mod:mod, prelim:prelim, gates:[], vetoed:false};
+  if(s.vetoes.length){ out.verdict='Avoid'; out.vetoed=true; return out; }
+  out.gates=softGates(s);
+  var v = prelim>=S.buyBand?'Buy':prelim>=S.watchBand?'Watch':'Avoid';
+  if(v==='Buy' && out.gates.length){ v='Watch'; out.capped=true; }
+  out.verdict=v; return out; }
+
+/* ---------- board render ---------- */
+function bar(sc){ return '<div class="track"><i style="width:'+sc+'%;background:'+HUE(sc)+'"></i></div>'; }
+function tileHTML(s){ var c=compute(s), vk=c.verdict.toLowerCase();
+  var kv='<div class="kv"><span>Upside <b>'+(s.valuation.upside>=0?'+':'')+s.valuation.upside+'%</b></span>'+
+    '<span>Fair gap <b>'+s.valuation.label+'</b></span>'+
+    '<span>Thesis <b>'+esc(s.thesis.label.split(' ').slice(0,2).join(' '))+'</b></span></div>';
+  var labs=s.labels.slice(0,4).map(function(l){return '<span class="lab '+l[1]+'">'+esc(l[0])+'</span>';}).join('');
+  return '<div class="tile" data-t="'+s.ticker+'"><div class="vstripe st-'+vk+'"></div><div class="tile-in">'+
+    '<div class="tile-top"><div><div class="tick">'+s.ticker+'</div><div class="co">'+esc(s.company)+' · '+esc(s.sector)+'</div></div>'+
+    '<div class="verdict"><span class="vpill bg-'+vk+' v-'+vk+'">'+c.verdict+'</span><div class="action-lbl">'+esc(s.action.action)+'</div></div></div>'+
+    '<div class="scorebar-wrap"><span class="scoreval tnum" style="color:'+HUET(c.prelim)+'">'+Math.round(c.prelim)+'<span>/100</span></span>'+bar(Math.round(c.prelim))+'</div>'+
+    kv+'<div class="labels">'+labs+'</div></div></div>'; }
+
+function currentList(){
+  var q=$('#search').value.trim().toLowerCase(), sec=$('#sector').value, vf=$('#vfilter .on').dataset.v, sort=$('#sort').value;
+  var list=STOCKS.filter(function(s){ return s.strategy.indexOf(MODE)>=0; })
+    .map(function(s){ return {s:s, c:compute(s)}; })
+    .filter(function(o){ if(sec!=='all'&&o.s.sector!==sec)return false; if(vf!=='all'&&o.c.verdict!==vf)return false;
+      if(q&&(o.s.ticker.toLowerCase().indexOf(q)<0&&o.s.company.toLowerCase().indexOf(q)<0))return false; return true; });
+  var rank={Buy:0,Watch:1,Avoid:2};
+  list.sort(function(a,b){ if(sort==='upside')return b.s.valuation.upside-a.s.valuation.upside;
+    if(sort==='verdict')return rank[a.c.verdict]-rank[b.c.verdict]||b.c.prelim-a.c.prelim; return b.c.prelim-a.c.prelim; });
+  return list;
+}
+function renderBoard(){ var list=currentList();
+  $('#board').innerHTML=list.map(function(o){return tileHTML(o.s);}).join('')||'<div style="color:var(--ink-faint);padding:30px">No stocks match.</div>';
+  var byv={Buy:0,Watch:0,Avoid:0}; list.forEach(function(o){byv[o.c.verdict]++;});
+  $('#count').textContent=list.length+' shown · '+byv.Buy+' Buy · '+byv.Watch+' Watch · '+byv.Avoid+' Avoid';
+}
+
+/* ---------- detail drill-down ---------- */
+function pctbar(sc){ return '<span class="mini"><i style="width:'+sc+'%;background:'+HUE(sc)+'"></i></span>'; }
+// leaf metric: expected vs actual, the rule that maps them, and the resulting score
+function metricHTML(it){ return '<div class="metricbox"><div class="ea">'+
+  '<span class="k">Expected</span><span class="v exp">'+esc(it.expected)+'</span>'+
+  '<span class="k">Actual</span><span class="v act">'+esc(it.actual)+'</span>'+
+  '<span class="k">How</span><span class="v">'+esc(it.rule)+'</span></div>'+
+  '<div class="scoreline"><span class="big" style="color:'+HUET(it.score)+'">'+it.score+'<span style="font-size:11px;color:var(--ink-faint);font-weight:600">/100</span></span>'+
+  pctbar(it.score)+'<span class="why">weight '+it.weight+' · source '+esc(it.source)+' · fetched 2026-07-12</span></div></div>'; }
+function itemHTML(it){ return '<div class="item" data-exp><button class="row"><span class="chev">›</span><span class="rname">'+esc(it.label)+
+  '</span><span class="rmeta"><span class="wchip tnum">w '+it.weight+'</span>'+pctbar(it.score)+'<span class="rscore tnum" style="color:'+HUET(it.score)+'">'+it.score+'</span></span></button>'+
+  '<div class="detail"><div class="detail-in">'+metricHTML(it)+'</div></div></div>'; }
+// category: shows the weighted-average arithmetic, then each item
+function catHTML(c){
+  var terms=c.items.map(function(i){return i.weight+'×'+i.score;}).join(' + ');
+  var wsum=c.items.reduce(function(a,i){return a+i.weight;},0);
+  var num=c.items.reduce(function(a,i){return a+i.weight*i.score;},0);
+  var math='<div class="mathbox" style="margin:12px 14px"><div class="mformula"><b>'+c.score+'</b> = ('+terms+') ÷ '+wsum+
+    ' = '+(num/wsum).toFixed(1)+'  <span style="color:var(--ink-faint)">— weighted average of '+c.items.length+' items · click each for expected vs actual</span></div></div>';
+  return '<div class="cat" data-exp><button class="row"><span class="chev">›</span><span class="rname">'+esc(c.label)+
+    '</span><span class="rmeta"><span class="wchip tnum">weight '+S.weights[c.id]+'</span>'+pctbar(c.score)+'<span class="rscore tnum" style="color:'+HUET(c.score)+'">'+c.score+'</span></span></button>'+
+    '<div class="detail"><div class="detail-in">'+math+c.items.map(itemHTML).join('')+'</div></div></div>'; }
+// overall: the category-contribution table that produces the base score
+function scoreMathHTML(s,c){
+  var rows=s.cats.map(function(cat){ var w=S.weights[cat.id]; return '<tr><td>'+esc(cat.label)+'</td><td class="n">'+w+'</td><td class="n">'+cat.score+'</td><td class="n contrib">'+(w*cat.score)+'</td></tr>'; }).join('');
+  var wsum=CATS.reduce(function(a,k){return a+S.weights[k[0]];},0);
+  var num=s.cats.reduce(function(a,cat){return a+S.weights[cat.id]*cat.score;},0);
+  var band=c.prelim>=S.buyBand?'Buy (≥'+S.buyBand+')':c.prelim>=S.watchBand?'Watch (≥'+S.watchBand+')':'Avoid (<'+S.watchBand+')';
+  return '<div class="mathbox"><table class="mtable"><thead><tr><th>Category</th><th class="n">Weight</th><th class="n">Score</th><th class="n">Weight×Score</th></tr></thead>'+
+    '<tbody>'+rows+'</tbody><tfoot><tr><td>Totals</td><td class="n">'+wsum+'</td><td></td><td class="n">'+num+'</td></tr></tfoot></table>'+
+    '<div class="mformula">Base = '+num+' ÷ '+wsum+' = <b>'+c.base.toFixed(1)+'</b> &nbsp;·&nbsp; thesis modifier <b>'+(c.mod>=0?'+':'')+c.mod+'</b> (recovery/growth '+s.thesis.score+'/100) &nbsp;·&nbsp; = preliminary <b>'+c.prelim.toFixed(1)+'</b> &nbsp;→&nbsp; <b>'+band+'</b></div></div>'; }
+
+function situationHTML(s){ if(!s.thesis.situation||!s.thesis.situation.length) return '';
+  var rows=s.thesis.situation.map(function(r){ return '<div class="sit-row"><div class="sit-q">'+esc(r[0])+'</div>'+
+    '<div class="sit-tags"><span class="stg '+r[1]+'">status: '+r[1]+'</span><span class="stg">severity: '+r[2]+'</span>'+
+    '<span class="stg '+(r[3]==='structural'?'structural':'')+'">'+r[3]+'</span><span class="stg">~'+esc(r[4])+'</span><span class="stg">evidence: '+esc(r[5])+'</span></div></div>'; }).join('');
+  return '<div class="sub-h">Why is it down? — situation checklist</div><div class="sit">'+rows+'</div>'+
+    '<div style="font-size:12.5px;color:var(--ink-soft);margin-top:10px;line-height:1.5"><b>Kill-switch:</b> '+esc(s.thesis.kill)+'</div>'; }
+
+function valHTML(s){ var v=s.valuation, price=s.price;
+  var buyBelow=+(v.base*(1-S.mos/100)).toFixed(1);
+  var lo=Math.min(v.low, price)*0.9, hi=Math.max(v.high, price)*1.08, span=(hi-lo)||1;
+  var pos=function(x){ return Math.max(0,Math.min(100,(x-lo)/span*100)); };
+  var upside=Math.round((v.base/price-1)*100);
+  var zCheap=pos(buyBelow), zFairEnd=pos(v.high);
+  var upHue=HUET(upside>=30?80:upside>=12?55:30);
+  var nums='<div class="vg-nums">'+
+    '<div class="vg-num"><div class="l">Current price</div><div class="v">$'+price+'</div></div>'+
+    '<div class="vg-num"><div class="l">Fair value (base)</div><div class="v">$'+v.base+'</div></div>'+
+    '<div class="vg-num"><div class="l">Upside to fair</div><div class="v" style="color:'+upHue+'">'+(upside>=0?'+':'')+upside+'%</div></div>'+
+    '<div class="vg-num"><div class="l">Buy below ('+S.mos+'% MoS)</div><div class="v">$'+buyBelow+'</div></div></div>';
+  var line='<div class="vg-line">'+
+    '<div class="vg-zones"><i class="z-cheap" style="width:'+zCheap+'%"></i><i class="z-fair" style="width:'+(zFairEnd-zCheap)+'%"></i><i class="z-exp" style="width:'+(100-zFairEnd)+'%"></i></div>'+
+    '<div class="vg-mark price" style="left:'+pos(price)+'%"><span class="vg-cap" style="color:var(--ink)">▼ you pay $'+price+'</span></div>'+
+    '<div class="vg-mark fair" style="left:'+pos(v.base)+'%"><span class="vg-cap" style="top:auto;bottom:-2px;color:var(--ink-soft)">fair $'+v.base+'</span></div></div>';
+  var legend='<div class="vg-legend"><span><span class="sw" style="background:var(--buy)"></span>Buy zone (≤ $'+buyBelow+')</span>'+
+    '<span><span class="sw" style="background:var(--watch)"></span>Fair ($'+buyBelow+'–$'+v.high+')</span>'+
+    '<span><span class="sw" style="background:var(--avoid);opacity:.75"></span>Expensive (&gt; $'+v.high+')</span></div>';
+  var zoneWord = price<=buyBelow?'inside your buy zone':price<=v.high?'fairly valued — just above your buy zone':'expensive';
+  var explain='<div class="vg-explain">You pay <b>$'+price+'</b> for something worth about <b>$'+v.base+'</b> — '+
+    (upside>=0?'<b>'+upside+'% upside</b> to fair value':'<b>'+Math.abs(upside)+'% above</b> fair value')+
+    '. At your '+S.mos+'% margin of safety you\'d buy below <b>$'+buyBelow+'</b>, so today it is <b>'+zoneWord+'</b>.</div>';
+  return '<div class="sub-h">Valuation &amp; entry</div><div class="vgauge">'+nums+line+legend+explain+'</div>'; }
+
+function openDetail(tk){ var s=STOCKS.find(function(x){return x.ticker===tk;}); if(!s)return; var c=compute(s), vk=c.verdict.toLowerCase();
+  $('#d-title').innerHTML=s.ticker+' <span style="font-size:13px;color:var(--ink-faint);font-weight:500">'+esc(s.company)+'</span>';
+  var vetoHTML=c.vetoed?'<div style="margin-top:10px"><span class="lab bad">VETO</span> '+s.vetoes.map(esc).join(' · ')+'</div>':'';
+  var gateHTML=(c.gates&&c.gates.length)?'<div style="margin-top:8px;font-size:12px;color:var(--watch)">Soft gate'+(c.capped?' (capped Buy→Watch)':'')+': '+c.gates.map(esc).join(' · ')+'</div>':'';
+  var hero='<div class="verdict-hero bg-'+vk+'" style="border-color:var(--'+vk+'-line)"><div class="vh-top">'+
+    '<span class="vh-pill bg-'+vk+' v-'+vk+'">'+c.verdict+'</span><span class="lab '+(vk==='buy'?'good':vk==='watch'?'warn':'bad')+'">'+esc(s.action.action)+'</span>'+
+    '<span class="vh-score tnum" style="color:var(--'+vk+'-text)">'+Math.round(c.prelim)+'<span>/100</span></span></div>'+
+    '<div class="vh-why">'+esc(s.thesis.summary)+'</div>'+
+    vetoHTML+gateHTML+'</div>';
+  var action='<div class="sub-h">Action plan</div><div class="action-grid">'+
+    [['Action',s.action.action],['Position size',s.action.size],['Add trigger',s.action.add],['Invalidation / stop',s.action.stop],['Entry logic',s.action.entry],['Review',s.action.review]]
+    .map(function(a){return '<div class="acard"><div class="l">'+a[0]+'</div><div class="v">'+esc(a[1])+'</div></div>';}).join('')+'</div>';
+  var mathSec='<div class="sub-h">How the '+Math.round(c.prelim)+' was computed</div>'+scoreMathHTML(s,c);
+  var scorecard='<div class="sub-h">Scorecard — click a category for its arithmetic, then any item for expected vs actual</div>'+s.cats.map(catHTML).join('');
+  $('#d-body').innerHTML=hero+mathSec+scorecard+valHTML(s)+situationHTML(s)+action;
+  openDrawer('#detail');
+}
+
+/* ---------- settings ---------- */
+function slider(key,label,min,max,val,def,impact){ return '<div class="setgrp"><div class="slabel"><span class="nm">'+label+
+  '</span><span class="def">def '+def+'</span><span class="cur tnum" id="cur-'+key+'">'+val+'</span></div>'+
+  '<input type="range" min="'+min+'" max="'+max+'" value="'+val+'" data-set="'+key+'"><div class="impact">'+impact+'</div></div>'; }
+function renderSettings(){
+  var body='<div class="changed" id="changed-note"></div>';
+  body+='<div class="sub-h">Category weights</div>';
+  CATS.forEach(function(c){ body+=slider('w.'+c[0], c[1], 0, 30, S.weights[c[0]], DEFAULTS.weights[c[0]], 'How much '+c[1]+' moves the base score.'); });
+  body+='<div class="sub-h">Verdict & entry</div>';
+  body+=slider('buyBand','Buy band (score ≥)',50,90,S.buyBand,DEFAULTS.buyBand,'Preliminary score needed for Buy.');
+  body+=slider('watchBand','Watch band (score ≥)',30,70,S.watchBand,DEFAULTS.watchBand,'Below this = Avoid.');
+  body+=slider('mos','Margin of safety %',0,50,S.mos,DEFAULTS.mos,'Discount to fair value required for the buy zone.');
+  body+=slider('target','Target upside %',10,60,S.target,DEFAULTS.target,'Below this, a Buy is soft-gated to Watch.');
+  body+='<button class="resetbtn" id="resetbtn">↺ Reset all to recommended defaults</button>';
+  $('#s-body').innerHTML=body; updateChanged();
+}
+function updateChanged(){ var n=0; CATS.forEach(function(c){ if(S.weights[c[0]]!==DEFAULTS.weights[c[0]])n++; });
+  ['buyBand','watchBand','mos','target'].forEach(function(k){ if(S[k]!==DEFAULTS[k])n++; });
+  var note=$('#changed-note'); if(!note)return;
+  if(n===0){ note.style.display='none'; } else { note.style.display='block';
+    note.innerHTML='<b>'+n+'</b> setting'+(n>1?'s':'')+' changed from defaults — the board reflects your model live.'; } }
+
+/* ---------- events ---------- */
+function openDrawer(sel){ $('#scrim').classList.add('on'); $(sel).classList.add('on'); }
+function closeAll(){ $('#scrim').classList.remove('on'); $('#detail').classList.remove('on'); $('#settings').classList.remove('on'); }
+
+document.addEventListener('click',function(e){
+  var tile=e.target.closest('.tile'); if(tile){ openDetail(tile.dataset.t); return; }
+  var exp=e.target.closest('[data-exp]'); if(exp && e.target.closest('.row')){ exp.classList.toggle('open'); return; }
+});
+$('#board').addEventListener('click',function(){});
+$('#modes').addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b)return;
+  $('#modes .on').classList.remove('on'); b.classList.add('on'); MODE=b.dataset.mode; renderBoard(); });
+$('#vfilter').addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b)return;
+  $('#vfilter .on').classList.remove('on'); b.classList.add('on'); renderBoard(); });
+$('#search').addEventListener('input',renderBoard);
+$('#sector').addEventListener('change',renderBoard);
+$('#sort').addEventListener('change',renderBoard);
+$('#tunebtn').addEventListener('click',function(){ openDrawer('#settings'); });
+$('#d-close').addEventListener('click',closeAll); $('#s-close').addEventListener('click',closeAll); $('#scrim').addEventListener('click',closeAll);
+$('#themebtn').addEventListener('click',function(){ var r=document.documentElement;
+  var cur=r.getAttribute('data-theme'); var dark=cur? cur==='dark' : matchMedia('(prefers-color-scheme:dark)').matches;
+  r.setAttribute('data-theme', dark?'light':'dark'); });
+
+$('#s-body').addEventListener('input',function(e){ var inp=e.target.closest('[data-set]'); if(!inp)return;
+  var key=inp.dataset.set, val=+inp.value; if(key.indexOf('w.')===0){ S.weights[key.slice(2)]=val; } else { S[key]=val; }
+  var cur=$('#cur-'+key.replace('.','\\.')); var curEl=document.getElementById('cur-'+key); if(curEl)curEl.textContent=val;
+  updateChanged(); renderBoard(); if($('#detail').classList.contains('on')){ /* keep detail in sync */ var t=$('#d-title').textContent.trim().split(' ')[0]; openDetail(t); }
+});
+$('#s-body').addEventListener('click',function(e){ if(e.target.id==='resetbtn'){ S=JSON.parse(JSON.stringify(DEFAULTS)); renderSettings(); renderBoard();
+  if($('#detail').classList.contains('on')){ var t=$('#d-title').textContent.trim().split(' ')[0]; openDetail(t); } } });
+
+/* ---------- init ---------- */
+(function initSectors(){ var secs=Array.from(new Set(STOCKS.map(function(s){return s.sector;}))).sort();
+  $('#sector').innerHTML='<option value="all">All sectors</option>'+secs.map(function(x){return '<option>'+x+'</option>';}).join(''); })();
+renderSettings(); renderBoard();
+})();
+</script>
+</body>
+</html>

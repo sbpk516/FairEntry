@@ -1,0 +1,94 @@
+# FairEntry Scoring Config — the taxonomy, weights, rules, bands, vetoes, gates.
+# Categories -> items -> a rule that maps a metric to a 0-100 score.
+# Category score = weighted average of its items. Base score = weighted average
+# of categories. Everything here is tunable; the engine never hard-codes numbers.
+#
+# rule types (interpreted by fairentry/scoring/engine.py):
+#   higher_better {full_at, floor_at}      value>=full_at ->100 ; <=floor_at ->0 ; linear between
+#   lower_better  {full_at, floor_at}      value<=full_at ->100 ; >=floor_at ->0
+#   sector_rel    {full_delta, floor_delta, lower_better?}  score from (value - sector_median)
+#   band          [{max|min, score}...]    first matching bound wins
+#   bool_good     {good_score, bad_score}  truthy metric -> good_score else bad_score
+#   passthrough   {}                        metric already 0-100
+
+version: 1
+
+verdict_bands: {buy: 72, watch: 50}      # >=72 Buy, 50-71 Watch, <50 Avoid
+thesis_modifier:                          # recovery/growth score -> +/- to base (scoring model B4)
+  - {min: 80, mod: 6}
+  - {min: 65, mod: 3}
+  - {min: 50, mod: 0}
+  - {min: 35, mod: -5}
+  - {min: 0,  mod: -10}
+
+categories:
+  quality:
+    label: Business Quality
+    weight: 16
+    items:
+      - {id: gross_margin_vs_sector, label: "Gross margin vs sector", weight: 30, metric: gross_margin, expected: "≥ sector median", rule: {type: sector_rel, full_delta: 5, floor_delta: -15}}
+      - {id: roic_quality,           label: "ROIC vs sector",        weight: 35, metric: roic,        expected: "≥ sector median", rule: {type: sector_rel, full_delta: 4, floor_delta: -8}}
+      - {id: profitability,          label: "Operating margin",      weight: 35, metric: oper_margin, expected: "positive & healthy", rule: {type: higher_better, full_at: 20, floor_at: -5}}
+  survival:
+    label: Financial Strength & Survival
+    weight: 18
+    items:
+      - {id: altman_z,       label: "Altman-Z",         weight: 35, metric: altman_z,     expected: "> 2.6 = safe", rule: {type: band, bands: [{min: 2.6, score: 90}, {min: 1.8, score: 55}, {min: 0, score: 20}]}}
+      - {id: leverage,       label: "Debt / equity",    weight: 25, metric: debt_eq,      expected: "< 0.7 comfortable", rule: {type: lower_better, full_at: 0.3, floor_at: 2.0}}
+      - {id: liquidity,      label: "Current ratio",    weight: 20, metric: current_ratio, expected: "> 1.5", rule: {type: higher_better, full_at: 1.8, floor_at: 0.8}}
+      - {id: dilution,       label: "Share-count trend", weight: 20, metric: share_count_yoy, expected: "≤ 0 (no dilution)", rule: {type: lower_better, full_at: -1, floor_at: 10}}
+  growth:
+    label: Growth & Operating Momentum
+    weight: 14
+    items:
+      - {id: revenue_growth, label: "Revenue growth vs sector", weight: 40, metric: rev_growth_qoq, expected: "≥ sector median", rule: {type: sector_rel, full_delta: 10, floor_delta: -10}}
+      - {id: eps_growth,     label: "EPS growth (next yr)",     weight: 30, metric: eps_growth_next_y, expected: "≥ 15%", rule: {type: higher_better, full_at: 30, floor_at: -10}}
+      - {id: momentum,       label: "Price momentum (1y)",      weight: 30, metric: perf_year, expected: "positive vs market", rule: {type: higher_better, full_at: 40, floor_at: -40}}
+  valuation:
+    label: Valuation & Margin of Safety
+    weight: 18
+    items:
+      - {id: intrinsic_gap,  label: "Intrinsic-value gap",  weight: 40, metric: intrinsic_gap_pct, expected: "≥ 12% below fair", rule: {type: higher_better, full_at: 30, floor_at: -10}}
+      - {id: fcf_value,      label: "P/Free Cash Flow",     weight: 30, metric: pfcf_ratio, expected: "< 15 cheap", rule: {type: lower_better, full_at: 12, floor_at: 40}}
+      - {id: sales_value,    label: "P/S vs sector",        weight: 30, metric: ps_ratio, expected: "≤ sector median", rule: {type: sector_rel, full_delta: -1, floor_delta: 4, lower_better: true}}
+  confirmation:
+    label: Market Confirmation
+    weight: 11
+    items:
+      - {id: near_200wma,    label: "200-week MA proximity", weight: 30, metric: dist_200wma_pct, expected: "within ±15% = near", rule: {type: band, bands: [{max: 5, min: -15, score: 85}, {max: 15, min: -30, score: 55}, {max: 100, min: -100, score: 25}]}}
+      - {id: trend,          label: "Above 200-day MA",     weight: 30, metric: sma200, expected: "price > 200DMA", rule: {type: higher_better, full_at: 5, floor_at: -20}}
+      - {id: inst_flow,      label: "Institutional flow",   weight: 40, metric: inst_trans, expected: "net buying", rule: {type: higher_better, full_at: 2, floor_at: -3}}
+  catalysts:
+    label: Catalysts & Narrative
+    weight: 9
+    items:
+      - {id: news_sentiment, label: "News sentiment",   weight: 45, metric: news_sentiment_score, expected: "positive stance", rule: {type: passthrough}}
+      - {id: analyst,        label: "Analyst consensus", weight: 30, metric: analyst_recom, expected: "≤ 2 (Buy)", rule: {type: lower_better, full_at: 1.5, floor_at: 3.5}}
+      - {id: sqz_context,    label: "Short-squeeze fuel", weight: 25, metric: short_float, expected: "elevated but not extreme", rule: {type: band, bands: [{min: 15, max: 30, score: 70}, {min: 5, max: 15, score: 55}, {min: 0, max: 5, score: 45}]}}
+  risk:
+    label: Risk, Red Flags & Fragility
+    weight: 14
+    items:
+      - {id: forensic,       label: "Forensic / accounting", weight: 40, metric: red_flags_score, expected: "clean", rule: {type: passthrough}}
+      - {id: short_risk,     label: "Short interest (risk)", weight: 30, metric: short_float, expected: "< 10% = low", rule: {type: lower_better, full_at: 5, floor_at: 30}}
+      - {id: macro,          label: "Macro / beta",          weight: 30, metric: beta, expected: "resilient (β near 1)", rule: {type: lower_better, full_at: 0.8, floor_at: 2.2}}
+
+# Hard vetoes -> force Avoid regardless of score.
+vetoes:
+  - {id: going_concern,        when: "going_concern == true",         reason: "Going-concern doubt confirmed"}
+  - {id: distress_corroborated, when: "altman_z < 1.8 and debt_eq > 2", reason: "Corroborated financial distress"}
+  - {id: critical_red_flag,    when: "red_flags_critical > 0",        reason: "Critical accounting / fraud flag"}
+
+# Soft gates -> cap Buy to Watch.
+soft_gates:
+  - {id: survival_floor,   when: "category_survival < 30",  reason: "Survival score below floor"}
+  - {id: upside_below_target, when: "upside_pct < target_upside", reason: "Upside below target"}
+  - {id: no_confirmation,  when: "category_confirmation < 35", reason: "No market confirmation"}
+  - {id: expensive,        when: "valuation_label == 'expensive'", reason: "Valuation is expensive"}
+
+# Presets — bias the weights per strategy (user can pick / edit in the UI).
+presets:
+  conservative_deep_value: {survival: 22, valuation: 20, risk: 18, quality: 16, growth: 10, confirmation: 8, catalysts: 6}
+  aggressive_deep_value:   {catalysts: 14, confirmation: 16, valuation: 18, survival: 16, quality: 14, growth: 12, risk: 10}
+  quality_growth_entry:    {growth: 22, quality: 20, valuation: 16, confirmation: 12, survival: 14, catalysts: 8, risk: 8}
+  patient_entry:           {valuation: 22, confirmation: 16, survival: 18, quality: 14, risk: 12, growth: 10, catalysts: 8}

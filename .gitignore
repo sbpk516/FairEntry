@@ -1,0 +1,28 @@
+# secrets — never commit
+.env
+*.key
+
+# SQLite store — rebuilt each run, passed as CI artifact (binary, diffs poorly)
+data/*.db
+data/*.db-wal
+data/*.db-shm
+
+# caches — transient, regenerable
+data/cache/
+data/xbrl_cache/
+data/ten_k_cache/
+.fe_cache/
+
+# python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# os / editor
+.DS_Store
+Thumbs.db
+
+# regenerable UI data export (large; produced by build_all.py / CI)
+web/data/*.json

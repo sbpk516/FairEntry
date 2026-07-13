@@ -1,0 +1,28 @@
+# Default user-editable settings. The UI loads these on first launch and lets the
+# user change them (with recommended / impact / reset shown per setting).
+version: 1
+
+settings:
+  margin_of_safety_pct:
+    default: 15
+    range: [0, 50]
+    recommended: 15
+    impact: "Discount to fair value required before a name enters the buy zone."
+  target_upside_pct:
+    default: 30
+    range: [10, 60]
+    recommended: 30
+    impact: "A Buy is soft-gated to Watch if expected upside is below this."
+  holding_period_months:
+    default: 18
+    range: [6, 36]
+    recommended: 18
+    impact: "Intended hold — shapes fair-value horizon and growth-runway checks."
+  weights_scope:
+    default: per_strategy      # per_strategy | global
+    impact: "Whether edited weights apply to one strategy or all."
+
+# Which preset each strategy loads by default.
+strategy_presets:
+  deep_value: conservative_deep_value
+  quality_growth: quality_growth_entry

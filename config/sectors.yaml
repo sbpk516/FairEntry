@@ -1,0 +1,14 @@
+# Sector universe — add/modify sectors here; the scoring engine never hard-codes them.
+version: 1
+
+# Finviz sector names we screen. Start with three; expand freely later.
+sectors:
+  - {id: technology,     finviz: Technology,             label: Technology,            enabled: true}
+  - {id: comm_services,  finviz: "Communication Services", label: Communication Services, enabled: true}
+  - {id: consumer_cyclical, finviz: "Consumer Cyclical",  label: Consumer Cyclical,     enabled: true}
+
+# Liquidity / universe floor applied to every sector before screening.
+universe_filter:
+  market_cap_min_usd: 300_000_000     # $300M
+  price_min_usd: 1
+  avg_dollar_volume_min: 20_000_000   # ~$20M/day

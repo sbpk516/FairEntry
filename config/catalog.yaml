@@ -1,0 +1,65 @@
+# FairEntry Data Catalog — THE single place that declares every field to pull.
+# Add or change a metric here (+ its adapter if new). Nothing else references sources.
+#
+# field schema:
+#   id            unique field id (used by scoring rules + screeners)
+#   entity        company | security | sector | market
+#   source        human label of the origin
+#   adapter       module in fairentry/adapters that fetches it
+#   cadence       twice_daily | daily | weekly | filing_based | event_based
+#   unit          usd | pct | ratio | count | days | text | enum | bool
+#   raw_path      key/path in the adapter's raw payload (adapter-specific)
+#   transform     optional named transform in adapters (else identity)
+#   freshness_limit_h  hours after which the value is "stale"
+#   required_for  which scoring categories / gates consume it
+#   cost_tier     cheap | medium | expensive  (fetch cost, informs cadence)
+
+version: 1
+
+fields:
+  # ---- price / flow (fast) --------------------------------------------------
+  - {id: price,            entity: security, source: Finviz, adapter: finviz, cadence: twice_daily, unit: usd,   raw_path: Price,            freshness_limit_h: 8,  required_for: [valuation, market_confirmation], cost_tier: cheap}
+  - {id: rel_volume,       entity: security, source: Finviz, adapter: finviz, cadence: twice_daily, unit: ratio, raw_path: "Relative Volume", freshness_limit_h: 8, required_for: [market_confirmation], cost_tier: cheap}
+  - {id: perf_year,        entity: security, source: Finviz, adapter: finviz, cadence: twice_daily, unit: pct,   raw_path: "Performance (Year)", freshness_limit_h: 8, required_for: [market_confirmation], cost_tier: cheap}
+  - {id: sma50,            entity: security, source: Finviz, adapter: finviz, cadence: twice_daily, unit: pct,   raw_path: "50-Day Simple Moving Average", freshness_limit_h: 8, required_for: [market_confirmation], cost_tier: cheap}
+  - {id: sma200,           entity: security, source: Finviz, adapter: finviz, cadence: twice_daily, unit: pct,   raw_path: "200-Day Simple Moving Average", freshness_limit_h: 8, required_for: [market_confirmation], cost_tier: cheap}
+  - {id: short_float,      entity: security, source: Finviz, adapter: finviz, cadence: daily,       unit: pct,   raw_path: "Short Float",   freshness_limit_h: 30, required_for: [risk, market_confirmation], cost_tier: cheap}
+  - {id: beta,             entity: security, source: Finviz, adapter: finviz, cadence: weekly,      unit: ratio, raw_path: Beta,            freshness_limit_h: 200, required_for: [risk], cost_tier: cheap}
+
+  # ---- fundamentals (from Finviz feed; SEC-audited where flagged) ------------
+  - {id: market_cap,       entity: company,  source: Finviz, adapter: finviz, cadence: daily,       unit: usd,   raw_path: "Market Cap",    freshness_limit_h: 30, required_for: [screen, quality], cost_tier: cheap}
+  - {id: gross_margin,     entity: company,  source: Finviz, adapter: finviz, cadence: daily,       unit: pct,   raw_path: "Gross Margin",  freshness_limit_h: 200, required_for: [quality], cost_tier: cheap}
+  - {id: oper_margin,      entity: company,  source: Finviz, adapter: finviz, cadence: daily,       unit: pct,   raw_path: "Operating Margin", freshness_limit_h: 200, required_for: [quality], cost_tier: cheap}
+  - {id: profit_margin,    entity: company,  source: Finviz, adapter: finviz, cadence: daily,       unit: pct,   raw_path: "Profit Margin", freshness_limit_h: 200, required_for: [quality], cost_tier: cheap}
+  - {id: roe,              entity: company,  source: Finviz, adapter: finviz, cadence: daily,       unit: pct,   raw_path: "Return on Equity", freshness_limit_h: 200, required_for: [quality], cost_tier: cheap}
+  - {id: roic,             entity: company,  source: Finviz, adapter: finviz, cadence: daily,       unit: pct,   raw_path: "Return on Invested Capital", freshness_limit_h: 200, required_for: [quality], cost_tier: cheap}
+  - {id: rev_growth_qoq,   entity: company,  source: Finviz, adapter: finviz, cadence: daily,       unit: pct,   raw_path: "Sales Growth Quarter Over Quarter", freshness_limit_h: 200, required_for: [growth], cost_tier: cheap}
+  - {id: eps_growth_next_y, entity: company, source: Finviz, adapter: finviz, cadence: daily,       unit: pct,   raw_path: "EPS Growth Next Year", freshness_limit_h: 200, required_for: [growth], cost_tier: cheap}
+  - {id: fwd_pe,           entity: company,  source: Finviz, adapter: finviz, cadence: daily,       unit: ratio, raw_path: "Forward P/E",   freshness_limit_h: 200, required_for: [valuation], cost_tier: cheap}
+  - {id: ps_ratio,         entity: company,  source: Finviz, adapter: finviz, cadence: daily,       unit: ratio, raw_path: "P/S",           freshness_limit_h: 200, required_for: [valuation], cost_tier: cheap}
+  - {id: pb_ratio,         entity: company,  source: Finviz, adapter: finviz, cadence: daily,       unit: ratio, raw_path: "P/B",           freshness_limit_h: 200, required_for: [valuation], cost_tier: cheap}
+  - {id: pfcf_ratio,       entity: company,  source: Finviz, adapter: finviz, cadence: daily,       unit: ratio, raw_path: "P/Free Cash Flow", freshness_limit_h: 200, required_for: [valuation], cost_tier: cheap}
+  - {id: debt_eq,          entity: company,  source: Finviz, adapter: finviz, cadence: daily,       unit: ratio, raw_path: "Total Debt/Equity", freshness_limit_h: 200, required_for: [survival], cost_tier: cheap}
+  - {id: current_ratio,    entity: company,  source: Finviz, adapter: finviz, cadence: daily,       unit: ratio, raw_path: "Current Ratio", freshness_limit_h: 200, required_for: [survival], cost_tier: cheap}
+  - {id: target_price,     entity: security, source: Finviz, adapter: finviz, cadence: daily,       unit: usd,   raw_path: "Target Price",  freshness_limit_h: 30, required_for: [valuation], cost_tier: cheap}
+  - {id: analyst_recom,    entity: security, source: Finviz, adapter: finviz, cadence: daily,       unit: ratio, raw_path: "Analyst Recom", freshness_limit_h: 30, required_for: [catalysts], cost_tier: cheap}
+  - {id: inst_trans,       entity: security, source: Finviz, adapter: finviz, cadence: daily,       unit: pct,   raw_path: "Institutional Transactions", freshness_limit_h: 200, required_for: [market_confirmation], cost_tier: cheap}
+  - {id: sector,           entity: company,  source: Finviz, adapter: finviz, cadence: weekly,      unit: text,  raw_path: Sector,          freshness_limit_h: 720, required_for: [screen], cost_tier: cheap}
+  - {id: industry,         entity: company,  source: Finviz, adapter: finviz, cadence: weekly,      unit: text,  raw_path: Industry,        freshness_limit_h: 720, required_for: [screen, peers], cost_tier: cheap}
+
+  # ---- derived / slow (own transforms) --------------------------------------
+  - {id: sma_200week,      entity: security, source: yfinance, adapter: yfinance, cadence: weekly,  unit: usd,   transform: sma_200week,    freshness_limit_h: 200, required_for: [market_confirmation], cost_tier: medium}
+  - {id: dist_200wma_pct,  entity: security, source: yfinance, adapter: yfinance, cadence: weekly,  unit: pct,   transform: dist_from_200wma, freshness_limit_h: 200, required_for: [market_confirmation], cost_tier: medium}
+
+  # ---- SEC / forensic (filing-based) ----------------------------------------
+  - {id: altman_z,         entity: company,  source: "SEC EDGAR", adapter: sec_edgar, cadence: filing_based, unit: ratio, transform: altman_z, freshness_limit_h: 720, required_for: [survival, vetoes], cost_tier: expensive}
+  - {id: red_flags,        entity: company,  source: "SEC EDGAR", adapter: sec_edgar, cadence: filing_based, unit: text,  transform: red_flags_panel, freshness_limit_h: 720, required_for: [risk, vetoes], cost_tier: expensive}
+  - {id: going_concern,    entity: company,  source: "SEC EDGAR", adapter: sec_edgar, cadence: filing_based, unit: bool,  transform: going_concern, freshness_limit_h: 720, required_for: [vetoes], cost_tier: expensive}
+  - {id: share_count_yoy,  entity: company,  source: "SEC EDGAR", adapter: sec_edgar, cadence: filing_based, unit: pct,   transform: dilution_yoy, freshness_limit_h: 720, required_for: [survival, risk], cost_tier: expensive}
+
+  # ---- events (insider / news) ----------------------------------------------
+  - {id: insider_buys,     entity: company,  source: "SEC Form 4", adapter: form4,   cadence: event_based, unit: text, transform: insider_summary, freshness_limit_h: 48, required_for: [market_confirmation, risk], cost_tier: medium}
+  - {id: company_news,     entity: company,  source: Finnhub,      adapter: finnhub, cadence: twice_daily,  unit: text, raw_path: news, freshness_limit_h: 24, required_for: [catalysts], cost_tier: medium}
+
+  # ---- institutional ---------------------------------------------------------
+  - {id: thirteenf_flow,   entity: company,  source: "SEC 13F", adapter: thirteenf, cadence: weekly, unit: text, transform: institutional_flow, freshness_limit_h: 720, required_for: [market_confirmation], cost_tier: expensive}
