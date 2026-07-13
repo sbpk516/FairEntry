@@ -8,8 +8,9 @@ from __future__ import annotations
 
 from . import cache
 from .provider import get_provider
+from ..adapters.finnhub import fetch_news
 
-PROMPT_VERSION = "v1"
+PROMPT_VERSION = "v2"   # bumped: prompt now includes real recent news
 
 _SYS = ("You are a disciplined value+growth equity analyst. Think like a careful "
         "investor, not a hype machine. Reply with a single JSON object only, no prose.")
@@ -44,11 +45,31 @@ def _facts(sec, metrics):
     return {k: g(k) for k in keys if g(k) is not None}
 
 
+def _news_block(ticker: str) -> tuple[str, list]:
+    """Recent headlines as a compact prompt block + the raw list (for the cache
+    key & export). Empty string when no news / no key — the LLM then reasons from
+    metrics only, exactly as before."""
+    news = fetch_news(ticker)
+    if not news:
+        return "", []
+    lines = []
+    for n in news[:10]:
+        cats = f" [{','.join(n['categories'])}]" if n.get("categories") else ""
+        lines.append(f"- {n['date']}{cats} {n['headline']}")
+    block = ("Recent news headlines (you decide if each is bullish/bearish — do "
+             "NOT assume; read them):\n" + "\n".join(lines) + " ")
+    return block, news
+
+
 def build_thesis(sec, metrics, verdict_ctx, strategy_key, provider_name="deepseek"):
     """Return a thesis dict (recovery/growth) + modifier band info. Cached."""
     prov = get_provider(provider_name)
     facts = _facts(sec, metrics)
-    inputs = {"facts": facts, "verdict": verdict_ctx, "strategy": strategy_key}
+    news_block, news = _news_block(sec["ticker"])
+    # Coarse news signal in the cache key: material new headlines -> re-reason.
+    news_sig = [n["date"] + "|" + n["headline"][:60] for n in news[:6]]
+    inputs = {"facts": facts, "verdict": verdict_ctx, "strategy": strategy_key,
+              "news": news_sig}
     ck = cache.key(sec["ticker"], PROMPT_VERSION, getattr(prov, "NAME", "?"), inputs)
     cached = cache.get(ck)
     if cached is not None:
@@ -59,6 +80,7 @@ def build_thesis(sec, metrics, verdict_ctx, strategy_key, provider_name="deepsee
     user = (f"Ticker {sec['ticker']} ({sec.get('company','')}), sector {sec.get('sector','')}. "
             f"Current deterministic verdict: {verdict_ctx.get('verdict')} "
             f"(score {verdict_ctx.get('preliminary')}). Key facts: {facts}. "
+            + news_block
             + ("Judge whether the growth premium is justified and the entry is safe. "
                if is_growth else
                "Diagnose why it may be down and whether recovery is credible. ")
@@ -68,6 +90,7 @@ def build_thesis(sec, metrics, verdict_ctx, strategy_key, provider_name="deepsee
         out = prov.complete_json(_SYS, user)
         out["_provider"] = getattr(prov, "NAME", "?")
         out["_stub"] = out.get("_stub", False)
+        out["_news"] = news[:8]   # carry the headlines used, for the UI evidence panel
     except Exception as e:  # provider down / no balance -> neutral, non-fatal; NOT cached
         return {"_provider": "unavailable", "_error": str(e)[:120],
                 "recovery_score": 50, "growth_score": 50, "thesis_score": 50,

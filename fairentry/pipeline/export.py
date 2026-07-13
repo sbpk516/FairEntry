@@ -55,15 +55,20 @@ def _map(rec, strategies, strategy_key):
                       th.get("temporary_vs_structural", "unknown"),
                       th.get("expected_timeframe", ""), s.get("evidence", "")]
                      for s in (th.get("situation") or [])]
+        news = [{"date": n.get("date", ""), "headline": n.get("headline", ""),
+                 "source": n.get("source", ""), "url": n.get("url", ""),
+                 "categories": n.get("categories", [])}
+                for n in (th.get("_news") or [])]
         thesis = {"type": "recovery" if strategy_key == "deep_value" else "growth",
                   "score": th.get("thesis_score", 50), "label": th.get("temporary_vs_structural", "—"),
                   "summary": th.get("summary", ""), "situation": situation,
-                  "kill": th.get("kill_switch", ""), "provider": th.get("_provider", "—")}
+                  "kill": th.get("kill_switch", ""), "provider": th.get("_provider", "—"),
+                  "news": news}
     else:
         thesis = {"type": "recovery" if strategy_key == "deep_value" else "growth",
                   "score": 50, "label": "not shortlisted",
                   "summary": "Deterministic score only (reasoning runs on the shortlist).",
-                  "situation": [], "kill": "", "provider": "—"}
+                  "situation": [], "kill": "", "provider": "—", "news": []}
     # Growth-entry plan (for Quality Growth names): fair-price cases + entry zone
     # + upside now vs at the entry zone + the buy-now/wait decision.
     growth_entry = None

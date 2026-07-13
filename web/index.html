@@ -168,6 +168,17 @@
   .stg.improving{ color:var(--buy-text); background:var(--buy-bg); border-color:transparent; }
   .stg.worsening,.stg.structural{ color:var(--avoid-text); background:var(--avoid-bg); border-color:transparent; }
 
+  /* recent news (reasoning evidence) */
+  .news-list{ border:1px solid var(--line); border-radius:11px; padding:2px 15px; }
+  .news-row{ padding:11px 0; border-top:1px solid var(--line-soft); }
+  .news-row:first-child{ border-top:none; }
+  .news-meta{ font-family:var(--mono); font-size:11px; color:var(--ink-faint); }
+  .news-head{ font-size:13.5px; line-height:1.5; margin-top:3px; color:var(--ink); }
+  .news-head a{ color:var(--ink); text-decoration:none; border-bottom:1px solid var(--line); }
+  .news-head a:hover{ border-bottom-color:var(--ink-soft); }
+  .ntag{ display:inline-block; font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:.4px;
+    padding:1px 7px; margin-left:5px; border-radius:20px; background:var(--chip-bg,rgba(120,130,150,.14)); color:var(--ink-soft); vertical-align:middle; }
+
   /* valuation panel */
   .valbar{ position:relative; height:46px; margin:14px 0 6px; }
   .valtrack{ position:absolute; top:20px; left:0; right:0; height:6px; background:var(--sunk); border-radius:4px; }
@@ -484,6 +495,17 @@ function situationHTML(s){ if(!s.thesis.situation||!s.thesis.situation.length) r
   return '<div class="sub-h">Why is it down? — situation checklist</div><div class="sit">'+rows+'</div>'+
     '<div style="font-size:12.5px;color:var(--ink-soft);margin-top:10px;line-height:1.5"><b>Kill-switch:</b> '+esc(s.thesis.kill)+'</div>'; }
 
+// Recent news the reasoning layer actually read (Finnhub). Evidence, not scoring
+// — the LLM decides bullish/bearish from these headlines; we don't keyword-guess.
+function newsHTML(s){ var nx=s.thesis.news; if(!nx||!nx.length) return '';
+  var rows=nx.slice(0,8).map(function(n){
+    var tags=(n.categories||[]).map(function(c){return '<span class="ntag">'+esc(c)+'</span>';}).join('');
+    var head=n.url?('<a href="'+esc(n.url)+'" target="_blank" rel="noopener">'+esc(n.headline)+'</a>'):esc(n.headline);
+    return '<div class="news-row"><div class="news-meta">'+esc(n.date)+(n.source?' · '+esc(n.source):'')+'</div>'+
+      '<div class="news-head">'+head+' '+tags+'</div></div>'; }).join('');
+  return '<div class="sub-h">Recent news the analysis read <span style="font-weight:400;color:var(--ink-faint);font-size:12px">(Finnhub · last 60 days · stance judged by the reasoning layer)</span></div>'+
+    '<div class="news-list">'+rows+'</div>'; }
+
 // Growth entry plan — for Quality Growth names: fair-price cases, entry zone,
 // upside now vs at entry, and the buy-now/wait decision.
 var EV_LABEL={buy_now:['Buy Now','good'],starter:['Starter','info'],wait_for_pullback:['Wait for Pullback','warn'],
@@ -557,7 +579,7 @@ function openDetail(tk){ var s=STOCKS.find(function(x){return x.ticker===tk;}); 
     .map(function(a){return '<div class="acard"><div class="l">'+a[0]+'</div><div class="v">'+esc(a[1])+'</div></div>';}).join('')+'</div>';
   var mathSec='<div class="sub-h">How the '+Math.round(c.prelim)+' was computed</div>'+scoreMathHTML(s,c);
   var scorecard='<div class="sub-h">Scorecard — click a category for its arithmetic, then any item for expected vs actual</div>'+s.cats.map(catHTML).join('');
-  $('#d-body').innerHTML=hero+mathSec+scorecard+valHTML(s)+growthEntryHTML(s)+situationHTML(s)+action;
+  $('#d-body').innerHTML=hero+mathSec+scorecard+valHTML(s)+growthEntryHTML(s)+situationHTML(s)+newsHTML(s)+action;
   openDrawer('#detail');
 }
 
