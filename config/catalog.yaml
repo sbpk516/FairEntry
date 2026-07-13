@@ -63,4 +63,5 @@ fields:
   - {id: company_news,     entity: company,  source: Finnhub,      adapter: finnhub, cadence: twice_daily,  unit: text, raw_path: news, freshness_limit_h: 24, required_for: [catalysts], cost_tier: medium}
 
   # ---- institutional ---------------------------------------------------------
-  - {id: thirteenf_flow,   entity: company,  source: "SEC 13F", adapter: thirteenf, cadence: weekly, unit: text, transform: institutional_flow, freshness_limit_h: 720, required_for: [market_confirmation], cost_tier: expensive}
+  - {id: thirteenf_score,  entity: company,  source: "SEC 13F", adapter: thirteenf, cadence: weekly, unit: score, transform: institutional_flow, freshness_limit_h: 720, required_for: [confirmation], cost_tier: expensive}
+  - {id: thirteenf_flow,   entity: company,  source: "SEC 13F", adapter: thirteenf, cadence: weekly, unit: text, transform: institutional_flow, freshness_limit_h: 720, required_for: [confirmation], cost_tier: expensive}

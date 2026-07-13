@@ -1,0 +1,25 @@
+# Tracked 13F filers — "smart money" whose SEC 13F-HR holdings we aggregate.
+#
+# The 13F signal is cost-FLAT: we fetch these managers' filings once per run
+# (cached weekly) and every ticker lookup is then a dict hit, so adding more
+# names to the universe costs nothing extra here. Cost scales with THIS list.
+#
+# cik: 10-digit SEC CIK of the FILER (the fund/manager), zero-padded is fine
+# without leading zeros — the adapter normalizes. A wrong/dead CIK is skipped
+# gracefully (no filings -> ignored), so pruning is safe.
+#
+# Edit freely: add managers you respect, remove ones you don't. Keep the list
+# diversified (value + growth) and modest in size (~10-20) to stay fast.
+managers:
+  - {name: "Berkshire Hathaway",        cik: "0001067983"}
+  - {name: "Baupost Group (Klarman)",   cik: "0001061768"}
+  - {name: "Appaloosa (Tepper)",        cik: "0001656456"}
+  - {name: "Third Point (Loeb)",        cik: "0001040273"}
+  - {name: "Pershing Square (Ackman)",  cik: "0001336528"}
+  - {name: "Tiger Global",              cik: "0001167483"}
+  - {name: "Coatue",                    cik: "0001135730"}
+  - {name: "Lone Pine",                 cik: "0001061165"}
+  - {name: "Viking Global",             cik: "0001103804"}
+  - {name: "Duquesne (Druckenmiller)",  cik: "0001536411"}
+  - {name: "Altimeter",                 cik: "0001541617"}
+  - {name: "Fundsmith (Terry Smith)",   cik: "0001569205"}

@@ -122,24 +122,26 @@ def refresh(cfg, store, run_id=None, wma_tickers=None, sec_tickers=None, verbose
             store.log_fetch(run_id, "form4", False, 0, time.time() - t0, str(e))
             summary["sources"]["form4"] = {"ok": False, "error": str(e)}
 
-    # --- other enrichers (interfaces live; return {} until ported) -----------
-    for name in ("finnhub", "thirteenf"):
-        mod = ENRICHERS[name]
-        if getattr(mod, "IMPLEMENTED", False):
-            t0 = time.time()
-            try:
-                m = mod.fetch(cfg, set(by_adapter.get(name, [])), universe)
-                n = 0
-                for tkr, vals in m.items():
-                    for fid, val in vals.items():
-                        if val is not None:
-                            store.set_metric(tkr, fid, val, name)
-                            n += 1
-                store.commit()
-                store.log_fetch(run_id, name, True, len(m), time.time() - t0)
-                summary["sources"][name] = {"ok": True, "values": n}
-            except Exception as e:
-                store.log_fetch(run_id, name, False, 0, time.time() - t0, str(e))
-                summary["sources"][name] = {"ok": False, "error": str(e)}
+    # --- SEC 13F: smart-money institutional flow (cost-flat, matched by name) --
+    if getattr(thirteenf, "IMPLEMENTED", False):
+        t0 = time.time()
+        try:
+            names = {s["ticker"]: s.get("company", "") for s in securities}
+            m = thirteenf.fetch(cfg, set(by_adapter.get("thirteenf", [])), universe, names=names)
+            n = 0
+            for tkr, vals in m.items():
+                for fid, val in vals.items():
+                    if val is not None:
+                        store.set_metric(tkr, fid, val, "thirteenf")
+                        n += 1
+            store.commit()
+            store.log_fetch(run_id, "thirteenf", True, len(m), time.time() - t0)
+            summary["sources"]["thirteenf"] = {"ok": True, "tickers": len(m), "values": n}
+            if verbose:
+                print(f"  thirteenf: {len(m)} tickers held by tracked funds ({time.time()-t0:.0f}s)")
+        except Exception as e:
+            store.log_fetch(run_id, "thirteenf", False, 0, time.time() - t0, str(e))
+            summary["sources"]["thirteenf"] = {"ok": False, "error": str(e)}
 
+    # finnhub news is fetched shortlist-only from the reasoning layer, not here.
     return summary

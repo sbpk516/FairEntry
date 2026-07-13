@@ -99,7 +99,8 @@ def _map(rec, strategies, strategy_key):
         "strategy": strategies, "price": rec["price"],
         "cats": [{"id": c["id"], "label": c["label"], "score": c["score"] or 0,
                   "items": [{"label": i["label"], "weight": i["weight"], "score": i["score"] or 0,
-                             "actual": "n/a" if i["actual"] is None else str(i["actual"]),
+                             "actual": (rec.get("_sm_flow") if i.get("id") == "smart_money" and rec.get("_sm_flow")
+                                        else ("n/a" if i["actual"] is None else str(i["actual"]))),
                              "expected": i["expected"], "rule": i["rule"],
                              "source": i["source"] or "—"} for i in c["items"] if i["score"] is not None]}
                  for c in rec["categories"] if c["score"] is not None],
@@ -167,8 +168,11 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
         pw = _preset_weights(cfg, primary)
         if pw:
             s["weights"] = pw
-        rec = score_ticker(cfg, secs[t], store.metrics_for(t), med, s)
+        mt = store.metrics_for(t)
+        rec = score_ticker(cfg, secs[t], mt, med, s)
         rec["_primary"] = primary; rec["_strategies"] = strategies
+        smf = mt.get("thirteenf_flow", {})
+        rec["_sm_flow"] = smf.get("value") if isinstance(smf, dict) else None
         recs.append(rec)
 
     reasoning_summary = {}
