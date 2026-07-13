@@ -37,6 +37,30 @@ def _cik_map() -> dict:
         return {}
 
 
+def _dilution(cik) -> float | None:
+    """Year-over-year % change in diluted share count from XBRL (facts cached by
+    the forensic panel). Positive = dilution, negative = buyback."""
+    facts = rf.fetch_company_facts(str(cik))
+    if not facts:
+        return None
+    for concept in ("WeightedAverageNumberOfDilutedSharesOutstanding",
+                    "WeightedAverageNumberOfSharesOutstandingBasic",
+                    "CommonStockSharesOutstanding"):
+        try:
+            vals = facts["facts"]["us-gaap"][concept]["units"].get("shares", [])
+        except KeyError:
+            continue
+        annual = [v for v in vals if v.get("form") == "10-K" and v.get("fp") == "FY"]
+        seen = {}
+        for e in annual:
+            if e["end"] not in seen or e["filed"] > seen[e["end"]]["filed"]:
+                seen[e["end"]] = e
+        recent = sorted(seen.values(), key=lambda x: x["end"], reverse=True)[:2]
+        if len(recent) >= 2 and recent[1]["val"] > 0:
+            return round((recent[0]["val"] / recent[1]["val"] - 1) * 100, 1)
+    return None
+
+
 def _panel_to_fields(panel: dict) -> dict:
     sc = panel.get("scores", {})
     crit = panel.get("critical_count", 0)
@@ -65,6 +89,9 @@ def fetch(cfg, field_ids, tickers=None, market_caps=None):
             try:
                 panel = rf.generate_red_flags(t, cik, caps.get(t, 0.0) or 0.0)
                 cached = _panel_to_fields(panel)
+                d = _dilution(cik)
+                if d is not None:
+                    cached["share_count_yoy"] = d
             except Exception:
                 cached = {}
             cache_put("sec_panel", t, cached)
