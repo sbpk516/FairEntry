@@ -97,6 +97,25 @@ def _map(rec, strategies, strategy_key):
             "durability": (th.get("durability") if th else None),
             "kill": (th.get("kill_switch") if th else ""),
         }
+    # C4 labels (req §9): holding horizon, expansion, followed-source count.
+    extra = []
+    tf = th.get("expected_timeframe") if th else None
+    if tf:
+        extra.append(["Horizon: " + tf, "info"])
+    else:
+        hold = {"deep_value": "Hold 1–3 yrs", "quality_growth": "Hold 2–5 yrs"}.get(strategy_key)
+        if hold:
+            extra.append([hold, "info"])
+    kc = (th.get("key_catalyst", "") if th else "").lower()
+    newscats = {c for n in thesis["news"] for c in (n.get("categories") or [])}
+    if any(w in kc for w in ("expan", "new market", "launch", "capacity", "customer")) \
+            or "product" in newscats or "m&a" in newscats:
+        extra.append(["Expanding", "good"])
+    nsrc = len(thesis["watchlist"])
+    if nsrc:
+        extra.append([f"{nsrc} sources to follow", "info"])
+    labels = (_labels(rec) + extra)[:6]
+
     return {
         "ticker": rec["ticker"], "company": rec["company"], "sector": rec["sector"],
         "strategy": strategies, "price": rec["price"],
@@ -114,7 +133,7 @@ def _map(rec, strategies, strategy_key):
         "growth_entry": growth_entry,
         "vetoes": [v["reason"] for v in rec["vetoes"]],
         "soft": [g["reason"] for g in rec["soft_gates"]],
-        "labels": _labels(rec), "action": _action(rec),
+        "labels": labels, "action": _action(rec),
     }
 
 
@@ -150,10 +169,52 @@ def _apply_reasoning(cfg, secs, store, recs, settings, med, cap=25):
     return {"shortlist": len(shortlist), "reasoned": used, "provider_down": provider_down}
 
 
+def _estimate_revisions(store, lookback_days=45):
+    """Analyst-target *revision* signal, computed from metrics_history: are the
+    mean analyst targets being raised or cut over the last ~45 days? Rising
+    targets = positive revisions. Graceful: a ticker with <2 snapshots gets no
+    score (item drops), so this activates as daily history accumulates — the
+    same 'mechanism now, value later' pattern as the backtest.
+    Returns {ticker: score 0-100}."""
+    rows = store.con.execute(
+        "SELECT ticker, substr(fetched_at,1,10) d, value_num v FROM metrics_history "
+        "WHERE field_id='target_price' AND value_num IS NOT NULL "
+        "GROUP BY ticker, d ORDER BY ticker, d")
+    series: dict[str, list] = {}
+    for r in rows:
+        series.setdefault(r["ticker"], []).append((r["d"], r["v"]))
+    out = {}
+    for t, pts in series.items():
+        pts = [p for p in pts if p[1] and p[1] > 0]
+        if len(pts) < 2:
+            continue
+        # earliest within the lookback window vs the latest
+        latest_d = pts[-1][0]
+        window = [p for p in pts if _within(p[0], latest_d, lookback_days)]
+        if len(window) < 2:
+            window = pts[-2:]
+        first, last = window[0][1], window[-1][1]
+        chg = (last / first - 1) * 100 if first else 0.0
+        out[t] = int(max(0, min(100, round(50 + max(-40, min(40, chg * 3))))))
+    return out
+
+
+def _within(d, ref, days):
+    from datetime import date
+    try:
+        return (date.fromisoformat(ref) - date.fromisoformat(d)).days <= days
+    except Exception:
+        return True
+
+
 def build_board(cfg, store, settings=None, reason=False) -> dict:
     settings = settings or {"margin_of_safety_pct": 15, "target_upside_pct": 30}
     med = sector_medians(cfg, store)
     secs = {x["ticker"]: x for x in store.securities()}
+    revisions = _estimate_revisions(store)
+    for t, sc in revisions.items():
+        store.set_metric(t, "estimate_revision_score", sc, "computed")
+    store.commit()
 
     quals: dict[str, list[str]] = {}
     for sid, mod in SCREENERS.items():

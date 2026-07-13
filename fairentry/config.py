@@ -26,6 +26,7 @@ CONFIG_DIR = ROOT / "config"
 COMPUTED_METRICS = {
     "intrinsic_gap_pct", "news_sentiment_score", "red_flags_score",
     "red_flags_critical", "upside_pct", "valuation_label", "sector_median",
+    "estimate_revision_score",   # derived from analyst-target history (build_board)
 }
 
 VALID_CADENCES = {"twice_daily", "daily", "weekly", "filing_based", "event_based"}
