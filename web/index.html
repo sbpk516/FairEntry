@@ -190,6 +190,18 @@
   .wl-why{ font-size:13px; color:var(--ink-soft); line-height:1.5; margin-top:3px; }
   .wl-where{ font-size:12px; color:var(--ink-faint); font-family:var(--mono); margin-top:4px; }
 
+  /* fair-value method drill-down */
+  .vmeth-head{ font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--ink-faint); margin-bottom:9px; }
+  .hint{ text-transform:none; letter-spacing:0; color:var(--ink-faint); font-weight:400; }
+  .vmeth-box{ font-size:13px; line-height:1.55; color:var(--ink-soft); }
+  .vmeth-what{ color:var(--ink); margin-bottom:8px; }
+  .vmeth-formula{ font-family:var(--mono); font-size:12.5px; color:var(--ink); background:var(--chip-bg,rgba(120,130,150,.12));
+    padding:9px 11px; border-radius:8px; line-height:1.55; }
+  .vmeth-why{ margin-top:8px; }
+  .vmeth-watch{ margin-top:6px; color:var(--ink-faint); }
+  .vmeth-median{ font-size:12.5px; color:var(--ink-soft); line-height:1.55; margin-top:12px; padding:11px 13px;
+    border:1px dashed var(--line); border-radius:10px; }
+
   /* valuation panel */
   .valbar{ position:relative; height:46px; margin:14px 0 6px; }
   .valtrack{ position:absolute; top:20px; left:0; right:0; height:6px; background:var(--sunk); border-radius:4px; }
@@ -456,9 +468,9 @@ function actionNuance(c){
 function thesisPlain(s){
   var l=(s.thesis.label||'').toLowerCase();
   if(l==='ai review pending') return 'not reviewed yet';
-  var map={temporary:'temporary setback', cyclical:'cyclical dip',
-           structural:'structural risk', durable:'durable', moderate:'moderate',
-           fragile:'fragile'};
+  var map={temporary:'temporary — business intact', cyclical:'cyclical — recovers with cycle',
+           structural:'structural — may not recover', durable:'durable growth',
+           moderate:'moderate durability', fragile:'fragile — growth at risk'};
   return map[l] || (l && l!=='—' && l!=='unknown' ? l : 'AI read n/a'); }
 function bar(sc){ return '<div class="track"><i style="width:'+sc+'%;background:'+HUE(sc)+'"></i></div>'; }
 function tileHTML(s){ var c=compute(s), vk=c.verdict.toLowerCase();
@@ -580,6 +592,29 @@ function growthEntryHTML(s){ var g=s.growth_entry; if(!g) return '';
       '<span>Enter at or below <b>'+num$(g.buy_below)+'</b> for your '+g.mos_pct+'% margin of safety.</span></div>'+
     cases+upside+extra; }
 
+// The thought process behind each fair-value method. `what` = plain description,
+// `why` = why the approach is valid, `watch` = its main weakness. The actual
+// arithmetic (with this stock's numbers) comes from the backend as m.basis.
+var VAL_WHY={
+  analyst:{what:'The average 12-month price target of the Wall-Street analysts covering the stock.',
+    why:'It aggregates many professional models into one number, so it\'s a useful sanity anchor for the other methods.',
+    watch:'Analysts herd and skew optimistic, and targets lag reality — it\'s only one vote among the methods.'},
+  lynch:{what:'Peter Lynch\'s rule of thumb: a fair P/E roughly equals the company\'s earnings growth rate (a PEG of about 1).',
+    why:'Over time a stock\'s price follows its earnings growth, so a company growing EPS ~20%/yr can reasonably support a ~20× P/E. We cap the fair multiple to 8–40× to avoid absurd values.',
+    watch:'Relies on the forecast growth rate being real and durable; junk-in, junk-out if growth disappoints.'},
+  peer_pe:{what:'Values the stock at the forward P/E its sector peers trade at, instead of its own depressed/inflated multiple.',
+    why:'Similar businesses tend to converge to similar earnings multiples, so a healthy company trading well below its peer group is arguably cheap relative to comparable names.',
+    watch:'Assumes the peer group is fairly valued and the company deserves the peer multiple — a genuinely weaker business shouldn\'t.'},
+  peer_ps:{what:'The same peer-relative idea using price-to-sales instead of earnings.',
+    why:'Revenue is far more stable than earnings, so P/S is useful when profits are temporarily depressed or swinging — it re-rates the stock to the sector-median sales multiple.',
+    watch:'Ignores profitability entirely — cheap on sales can still be a bad business if margins are thin.'},
+  fcf:{what:'Values the business on the actual free cash flow it generates, at a fair price-to-FCF multiple (base ~18×, lifted for growth).',
+    why:'Cash flow is much harder to manipulate than accounting earnings, so this is a robustness check on the earnings-based methods.',
+    watch:'FCF can be lumpy (big capex years distort it); one year\'s figure may not represent normalized cash generation.'},
+  book:{what:'A floor-style value based on net assets (book value) at a fair price-to-book multiple.',
+    why:'Answers "what are the assets worth?" rather than "what are the earnings worth?" — most useful for asset-heavy or badly beaten-down names where earnings power is uncertain.',
+    watch:'Book value is a poor guide for asset-light businesses (software, brands) where the real value isn\'t on the balance sheet.'}
+};
 function valHTML(s){ var v=s.valuation, price=s.price;
   var buyBelow=+(v.base*(1-S.mos/100)).toFixed(1);
   var lo=Math.min(v.low, price)*0.9, hi=Math.max(v.high, price)*1.08, span=(hi-lo)||1;
@@ -604,13 +639,23 @@ function valHTML(s){ var v=s.valuation, price=s.price;
     (upside>=0?'<b>'+upside+'% upside</b> to fair value':'<b>'+Math.abs(upside)+'% above</b> fair value')+
     '. At your '+S.mos+'% margin of safety you\'d buy below <b>$'+buyBelow+'</b>, so today it is <b>'+zoneWord+'</b>.</div>';
   var methods = (v.methods&&v.methods.length)?
-    '<div style="margin-top:16px"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-faint);margin-bottom:7px">Fair value — '+v.methods.length+' methods → median $'+v.base+'</div>'+
-    '<div style="display:flex;flex-direction:column;gap:5px">'+
-      v.methods.map(function(m){ var mh=HUET(m.upside>=30?80:m.upside>=12?55:30);
-        return '<div style="display:flex;align-items:center;gap:10px;font-size:13.5px"><span style="flex:1;color:var(--ink-soft)">'+esc(m.name)+
-          '</span><span class="tnum" style="min-width:66px;text-align:right;font-weight:600">$'+m.fair+
-          '</span><span class="tnum" style="min-width:60px;text-align:right;color:'+mh+';font-weight:700">'+(m.upside>=0?'+':'')+m.upside+'%</span></div>'; }).join('')+
-    '</div></div>' : '';
+    '<div style="margin-top:18px"><div class="vmeth-head">Fair value — '+v.methods.length+' methods → median $'+v.base+
+      ' <span class="hint">click a method for its formula &amp; why it works</span></div>'+
+      v.methods.map(function(m){ var mh=HUET(m.upside>=30?80:m.upside>=12?55:30); var w=VAL_WHY[m.key]||{};
+        return '<div class="cat" data-exp><button class="row"><span class="chev">›</span>'+
+          '<span class="rname">'+esc(m.name)+'</span>'+
+          '<span class="rmeta"><span class="rscore tnum" style="min-width:72px;text-align:right;color:var(--ink)">$'+m.fair+'</span>'+
+            '<span class="tnum" style="min-width:64px;text-align:right;color:'+mh+';font-weight:700">'+(m.upside>=0?'+':'')+m.upside+'%</span></span></button>'+
+          '<div class="detail"><div class="detail-in"><div class="vmeth-box">'+
+            (w.what?'<div class="vmeth-what">'+esc(w.what)+'</div>':'')+
+            (m.basis?'<div class="vmeth-formula">'+esc(m.basis)+'</div>':'')+
+            (w.why?'<div class="vmeth-why"><b>Why it works:</b> '+esc(w.why)+'</div>':'')+
+            (w.watch?'<div class="vmeth-watch"><b>Watch out:</b> '+esc(w.watch)+'</div>':'')+
+          '</div></div></div></div>'; }).join('')+
+      '<div class="vmeth-median"><b>Base fair value</b> = the <b>median</b> of these '+v.methods.length+' methods = <b>$'+v.base+'</b>. '+
+        'The median (not the average) is used so one extreme estimate can\'t skew the number. The spread '+
+        '<b>$'+v.low+'–$'+v.high+'</b> shows how much the methods agree — a tight spread means higher confidence.</div>'+
+    '</div>' : '';
   return '<div class="sub-h">Valuation &amp; entry</div><div class="vgauge">'+nums+line+legend+explain+methods+'</div>'; }
 
 function openDetail(tk){ var s=STOCKS.find(function(x){return x.ticker===tk;}); if(!s)return; var c=compute(s), vk=c.verdict.toLowerCase();

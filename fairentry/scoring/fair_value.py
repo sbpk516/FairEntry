@@ -43,23 +43,41 @@ def fair_value(metrics: dict, mos_pct: float = 15.0, sector_med: dict | None = N
 
     methods = []
 
-    def add(name, fair):
+    def add(name, key, fair, basis):
         if fair and fair > 0:
-            methods.append({"name": name, "fair": round(fair, 2),
-                            "upside": round((fair / price - 1) * 100, 1)})
+            methods.append({"name": name, "key": key, "fair": round(fair, 2),
+                            "upside": round((fair / price - 1) * 100, 1), "basis": basis})
 
-    add("Analyst target", _num(metrics, "target_price"))
+    tp = _num(metrics, "target_price")
+    if tp and tp > 0:
+        add("Analyst target", "analyst", tp,
+            f"Wall-Street 12-month mean price target = ${tp:.2f}.")
     if g and fpe and fpe > 0 and g > 0:                       # Lynch: fair P/E ~ growth
-        add("Growth-justified (Lynch)", price * max(8.0, min(g, 40.0)) / fpe)
+        fair_pe = max(8.0, min(g, 40.0)); f = price * fair_pe / fpe
+        add("Growth-justified (Lynch)", "lynch", f,
+            f"Fair P/E ≈ EPS growth {g:.0f}% (capped to 8–40) = {fair_pe:.0f}×. "
+            f"Current fwd P/E is {fpe:.1f}× → ${price:.2f} × {fair_pe:.0f} ÷ {fpe:.1f} = ${f:.2f}.")
     if fpe and fpe > 0 and (sector_med.get("fwd_pe") or 0) > 0:
-        add("Peer forward P/E", price * sector_med["fwd_pe"] / fpe)
+        spe = sector_med["fwd_pe"]; f = price * spe / fpe
+        add("Peer forward P/E", "peer_pe", f,
+            f"Re-rate to the sector-median forward P/E {spe:.1f}× (vs its own {fpe:.1f}×): "
+            f"${price:.2f} × {spe:.1f} ÷ {fpe:.1f} = ${f:.2f}.")
     if ps and ps > 0 and (sector_med.get("ps_ratio") or 0) > 0:
-        add("Peer P/S", price * sector_med["ps_ratio"] / ps)
+        sps = sector_med["ps_ratio"]; f = price * sps / ps
+        add("Peer P/S", "peer_ps", f,
+            f"At the sector-median price/sales {sps:.2f}× (vs its own {ps:.2f}×): "
+            f"${price:.2f} × {sps:.2f} ÷ {ps:.2f} = ${f:.2f}.")
     if pfcf and pfcf > 0:                                     # growth lifts a fair P/FCF
-        add("FCF value", price * (18.0 + (min(g, 30.0) / 2 if g and g > 0 else 0)) / pfcf)
+        mult = 18.0 + (min(g, 30.0) / 2 if g and g > 0 else 0); f = price * mult / pfcf
+        add("FCF value", "fcf", f,
+            f"Fair price/free-cash-flow of {mult:.0f}× (base 18, lifted by growth) vs its own {pfcf:.1f}×: "
+            f"${price:.2f} × {mult:.0f} ÷ {pfcf:.1f} = ${f:.2f}.")
     if pb and pb > 0:
         fair_pb = sector_med.get("pb_ratio") if (sector_med.get("pb_ratio") or 0) > 0 else 2.0
-        add("Asset / book", price * fair_pb / pb)
+        f = price * fair_pb / pb
+        add("Asset / book", "book", f,
+            f"At a fair price/book of {fair_pb:.2f}× ({'sector median' if (sector_med.get('pb_ratio') or 0) > 0 else '~2× default'}) "
+            f"vs its own {pb:.2f}×: ${price:.2f} × {fair_pb:.2f} ÷ {pb:.2f} = ${f:.2f}.")
 
     if not methods:
         return unknown
