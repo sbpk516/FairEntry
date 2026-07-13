@@ -23,10 +23,11 @@ def _fields_by_adapter(cfg):
     return by
 
 
-def refresh(cfg, store, run_id=None, wma_tickers=None, verbose=True):
+def refresh(cfg, store, run_id=None, wma_tickers=None, sec_tickers=None, verbose=True):
     """Refresh the store. Returns a summary dict.
-    wma_tickers: tickers to run the (network-heavy) yfinance 200wma on. If None,
-    yfinance is skipped this run (scoring treats dist_200wma_pct as missing).
+    wma_tickers: tickers to run the (network-heavy) yfinance 200wma on.
+    sec_tickers: tickers to run the (expensive) SEC forensic panel on. Both are
+    bounded by the caller; missing values are handled gracefully by scoring.
     """
     run_id = run_id or datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
     by_adapter = _fields_by_adapter(cfg)
@@ -80,8 +81,30 @@ def refresh(cfg, store, run_id=None, wma_tickers=None, verbose=True):
             store.log_fetch(run_id, "yfinance", False, 0, time.time() - t0, str(e))
             summary["sources"]["yfinance"] = {"ok": False, "error": str(e)}
 
+    # --- SEC forensic panel (Altman-Z, red flags, going-concern) -------------
+    if sec_tickers:
+        caps = {t: (metrics.get(t, {}).get("market_cap") or 0) / 1e9 for t in sec_tickers}
+        targets = [t for t in sec_tickers if t in set(universe)]
+        t0 = time.time()
+        try:
+            m = sec_edgar.fetch(cfg, set(by_adapter.get("sec_edgar", [])), targets, market_caps=caps)
+            n = 0
+            for tkr, vals in m.items():
+                for fid, val in vals.items():
+                    if val is not None:
+                        store.set_metric(tkr, fid, val, "sec_edgar")
+                        n += 1
+            store.commit()
+            store.log_fetch(run_id, "sec_edgar", True, len(m), time.time() - t0)
+            summary["sources"]["sec_edgar"] = {"ok": True, "tickers": len(m), "values": n}
+            if verbose:
+                print(f"  sec_edgar: {len(m)} tickers forensic ({time.time()-t0:.0f}s)")
+        except Exception as e:
+            store.log_fetch(run_id, "sec_edgar", False, 0, time.time() - t0, str(e))
+            summary["sources"]["sec_edgar"] = {"ok": False, "error": str(e)}
+
     # --- other enrichers (interfaces live; return {} until ported) -----------
-    for name in ("sec_edgar", "finnhub", "form4", "thirteenf"):
+    for name in ("finnhub", "form4", "thirteenf"):
         mod = ENRICHERS[name]
         if getattr(mod, "IMPLEMENTED", False):
             t0 = time.time()

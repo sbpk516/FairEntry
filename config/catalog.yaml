@@ -53,7 +53,8 @@ fields:
 
   # ---- SEC / forensic (filing-based) ----------------------------------------
   - {id: altman_z,         entity: company,  source: "SEC EDGAR", adapter: sec_edgar, cadence: filing_based, unit: ratio, transform: altman_z, freshness_limit_h: 720, required_for: [survival, vetoes], cost_tier: expensive}
-  - {id: red_flags,        entity: company,  source: "SEC EDGAR", adapter: sec_edgar, cadence: filing_based, unit: text,  transform: red_flags_panel, freshness_limit_h: 720, required_for: [risk, vetoes], cost_tier: expensive}
+  - {id: red_flags_score,  entity: company,  source: "SEC EDGAR", adapter: sec_edgar, cadence: filing_based, unit: ratio, transform: red_flags_panel, freshness_limit_h: 720, required_for: [risk], cost_tier: expensive}
+  - {id: red_flags_critical, entity: company, source: "SEC EDGAR", adapter: sec_edgar, cadence: filing_based, unit: count, transform: red_flags_panel, freshness_limit_h: 720, required_for: [vetoes], cost_tier: expensive}
   - {id: going_concern,    entity: company,  source: "SEC EDGAR", adapter: sec_edgar, cadence: filing_based, unit: bool,  transform: going_concern, freshness_limit_h: 720, required_for: [vetoes], cost_tier: expensive}
   - {id: share_count_yoy,  entity: company,  source: "SEC EDGAR", adapter: sec_edgar, cadence: filing_based, unit: pct,   transform: dilution_yoy, freshness_limit_h: 720, required_for: [survival, risk], cost_tier: expensive}
 
