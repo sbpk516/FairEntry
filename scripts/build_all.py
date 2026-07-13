@@ -50,9 +50,18 @@ def main():
             refresh(cfg, store, sec_tickers=cand, wma_tickers=cand)
         print("Screening + scoring…" + (" + reasoning shortlist" if args.reason else ""))
         board = build_board(cfg, store, reason=args.reason)
+        from fairentry.tracking import record as track_record
+        track = track_record(store, board)
+        board["meta"]["tracking"] = {"alerts": len(track["alerts"]),
+                                     "opened": track["opened"], "closed": track["closed"]}
         path = write_board(board)
     if board["meta"].get("reasoning"):
         print("Reasoning:", board["meta"]["reasoning"])
+    print(f"Tracking: {track['tracked']} tracked, {track['opened']} paper positions opened, "
+          f"{track['closed']} closed, {len(track['alerts'])} degradation alert(s)")
+    for a in track["alerts"][:8]:
+        print(f"  ALERT {a['ticker']} ({a['strategy']}): {a['from']} -> {a['to']} "
+              f"(score {a['score_from']} -> {a['score_to']})")
     from collections import Counter
     v = Counter(s["verdict"] if "verdict" in s else "" for s in [])  # verdict is recomputed in UI
     print(f"Exported {board['meta']['count']} stocks -> {path}")

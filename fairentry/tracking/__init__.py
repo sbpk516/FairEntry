@@ -1,27 +1,72 @@
-"""Recommendation tracking — persist each run's verdicts and follow them over
-time (first_seen / last_seen), the basis for a paper portfolio + degradation
-alerts. Reads the exported board; writes the recommendations table.
+"""Recommendation tracking + paper portfolio + degradation alerts.
+
+Each run: persist every name's verdict (first_seen / last_seen), detect when a
+tracked name's verdict worsens or its score drops materially (alert), and run a
+simple paper portfolio (open on Buy, close on Avoid). Reads the pipeline's
+score_results (deterministic verdict — reproducible), writes the recommendations
++ paper_portfolio tables.
 """
 from __future__ import annotations
 
 from datetime import datetime, timezone
 
+_RANK = {"Buy": 0, "Watch": 1, "Avoid": 2}
+_DROP_ALERT = 8.0   # score drop that counts as degradation
 
-def record(store, board: dict):
-    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    n = 0
-    for s in board.get("stocks", []):
-        # verdict is recomputed in the UI, but the pipeline stored score_results;
-        # here we track the pipeline's own verdict from the store.
+
+def _now():
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def record(store, board: dict) -> dict:
+    now = _now()
+    alerts, opened, closed = [], 0, 0
+    price_by = {s["ticker"]: s.get("price") for s in board.get("stocks", [])}
+    action_by = {s["ticker"]: s.get("action", {}).get("action", "") for s in board.get("stocks", [])}
+
+    for tkr in price_by:
         for r in store.con.execute(
-                "SELECT strategy, verdict, preliminary FROM score_results WHERE ticker=?",
-                (s["ticker"],)):
-            store.con.execute(
-                "INSERT INTO recommendations(ticker,strategy,verdict,action,score,first_seen,last_seen) "
-                "VALUES(?,?,?,?,?,?,?) ON CONFLICT(ticker,strategy) DO UPDATE SET "
-                "verdict=excluded.verdict, score=excluded.score, last_seen=excluded.last_seen",
-                (s["ticker"], r["strategy"], r["verdict"], s["action"]["action"],
-                 r["preliminary"], now, now))
-            n += 1
+                "SELECT strategy, verdict, preliminary FROM score_results WHERE ticker=?", (tkr,)):
+            strat, verdict, score = r["strategy"], r["verdict"], r["preliminary"]
+            prev = store.con.execute(
+                "SELECT verdict, score FROM recommendations WHERE ticker=? AND strategy=?",
+                (tkr, strat)).fetchone()
+            if prev:
+                worse = _RANK.get(verdict, 1) > _RANK.get(prev["verdict"], 1)
+                dropped = (prev["score"] or 0) - (score or 0) >= _DROP_ALERT
+                if worse or dropped:
+                    alerts.append({"ticker": tkr, "strategy": strat,
+                                   "from": prev["verdict"], "to": verdict,
+                                   "score_from": round(prev["score"] or 0, 1),
+                                   "score_to": round(score or 0, 1)})
+                store.con.execute(
+                    "UPDATE recommendations SET verdict=?, action=?, score=?, last_seen=? "
+                    "WHERE ticker=? AND strategy=?",
+                    (verdict, action_by.get(tkr, ""), score, now, tkr, strat))
+            else:
+                store.con.execute(
+                    "INSERT INTO recommendations(ticker,strategy,verdict,action,score,first_seen,last_seen) "
+                    "VALUES(?,?,?,?,?,?,?)",
+                    (tkr, strat, verdict, action_by.get(tkr, ""), score, now, now))
+
+            # paper portfolio: open on first Buy, close on Avoid
+            held = store.con.execute(
+                "SELECT status FROM paper_portfolio WHERE ticker=?", (tkr,)).fetchone()
+            if verdict == "Buy" and not held:
+                store.con.execute(
+                    "INSERT INTO paper_portfolio(ticker,entered_at,entry_price,strategy,status,notes) "
+                    "VALUES(?,?,?,?,?,?)", (tkr, now, price_by[tkr], strat, "open", "opened on Buy"))
+                opened += 1
+            elif verdict == "Avoid" and held and held["status"] == "open":
+                store.con.execute(
+                    "UPDATE paper_portfolio SET status=?, notes=? WHERE ticker=?",
+                    ("closed", "closed on Avoid", tkr))
+                closed += 1
+            break   # one strategy row per ticker is enough for tracking
     store.commit()
-    return n
+    return {"tracked": len(price_by), "alerts": alerts, "opened": opened, "closed": closed}
+
+
+def open_positions(store) -> list[dict]:
+    return [dict(r) for r in store.con.execute(
+        "SELECT * FROM paper_portfolio WHERE status='open' ORDER BY entered_at DESC")]
