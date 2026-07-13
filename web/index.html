@@ -438,6 +438,14 @@ function compute(s){ var base=baseScore(s), mod=thesisMod(s), prelim=base+mod-(s
   out.verdict=v; return out; }
 
 /* ---------- board render ---------- */
+// Action phrase derived from the LIVE verdict so it can never contradict the
+// pill. (The backend s.action.action is a build-time snapshot under default
+// settings; the pill is recomputed here from the user's sliders + soft gates,
+// so we must recompute the phrase too.)
+function liveAction(c){
+  if(c.verdict==='Avoid') return c.vetoed?'Avoid — vetoed':'Avoid';
+  if(c.verdict==='Buy') return 'Buy Now';
+  return c.capped?'Would-be Buy — gated':'Watch'; }
 function bar(sc){ return '<div class="track"><i style="width:'+sc+'%;background:'+HUE(sc)+'"></i></div>'; }
 function tileHTML(s){ var c=compute(s), vk=c.verdict.toLowerCase();
   var kv='<div class="kv"><span>Upside <b>'+(s.valuation.upside>=0?'+':'')+s.valuation.upside+'%</b></span>'+
@@ -446,7 +454,7 @@ function tileHTML(s){ var c=compute(s), vk=c.verdict.toLowerCase();
   var labs=s.labels.slice(0,4).map(function(l){return '<span class="lab '+l[1]+'">'+esc(l[0])+'</span>';}).join('');
   return '<div class="tile" data-t="'+s.ticker+'"><div class="vstripe st-'+vk+'"></div><div class="tile-in">'+
     '<div class="tile-top"><div><div class="tick">'+s.ticker+'</div><div class="co">'+esc(s.company)+' · '+esc(s.sector)+'</div></div>'+
-    '<div class="verdict"><span class="vpill bg-'+vk+' v-'+vk+'">'+c.verdict+'</span><div class="action-lbl">'+esc(s.action.action)+'</div></div></div>'+
+    '<div class="verdict"><span class="vpill bg-'+vk+' v-'+vk+'">'+c.verdict+'</span><div class="action-lbl">'+esc(liveAction(c))+'</div></div></div>'+
     '<div class="scorebar-wrap"><span class="scoreval tnum" style="color:'+HUET(c.prelim)+'">'+Math.round(c.prelim)+'<span>/100</span></span>'+bar(Math.round(c.prelim))+'</div>'+
     kv+'<div class="labels">'+labs+'</div></div></div>'; }
 
@@ -595,12 +603,12 @@ function openDetail(tk){ var s=STOCKS.find(function(x){return x.ticker===tk;}); 
   var vetoHTML=c.vetoed?'<div style="margin-top:10px"><span class="lab bad">VETO</span> '+s.vetoes.map(esc).join(' · ')+'</div>':'';
   var gateHTML=(c.gates&&c.gates.length)?'<div style="margin-top:8px;font-size:12px;color:var(--watch)">Soft gate'+(c.capped?' (capped Buy→Watch)':'')+': '+c.gates.map(esc).join(' · ')+'</div>':'';
   var hero='<div class="verdict-hero bg-'+vk+'" style="border-color:var(--'+vk+'-line)"><div class="vh-top">'+
-    '<span class="vh-pill bg-'+vk+' v-'+vk+'">'+c.verdict+'</span><span class="lab '+(vk==='buy'?'good':vk==='watch'?'warn':'bad')+'">'+esc(s.action.action)+'</span>'+
+    '<span class="vh-pill bg-'+vk+' v-'+vk+'">'+c.verdict+'</span><span class="lab '+(vk==='buy'?'good':vk==='watch'?'warn':'bad')+'">'+esc(liveAction(c))+'</span>'+
     '<span class="vh-score tnum" style="color:var(--'+vk+'-text)">'+Math.round(c.prelim)+'<span>/100</span></span></div>'+
     '<div class="vh-why">'+esc(s.thesis.summary)+'</div>'+
     vetoHTML+gateHTML+'</div>';
   var action='<div class="sub-h">Action plan</div><div class="action-grid">'+
-    [['Action',s.action.action],['Position size',s.action.size],['Add trigger',s.action.add],['Invalidation / stop',s.action.stop],['Entry logic',s.action.entry],['Review',s.action.review]]
+    [['Action',liveAction(c)],['Position size',s.action.size],['Add trigger',s.action.add],['Invalidation / stop',s.action.stop],['Entry logic',s.action.entry],['Review',s.action.review]]
     .map(function(a){return '<div class="acard"><div class="l">'+a[0]+'</div><div class="v">'+esc(a[1])+'</div></div>';}).join('')+'</div>';
   var mathSec='<div class="sub-h">How the '+Math.round(c.prelim)+' was computed</div>'+scoreMathHTML(s,c);
   var scorecard='<div class="sub-h">Scorecard — click a category for its arithmetic, then any item for expected vs actual</div>'+s.cats.map(catHTML).join('');

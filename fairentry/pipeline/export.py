@@ -69,8 +69,10 @@ def _map(rec, strategies, strategy_key):
                   "news": news, "watchlist": watchlist}
     else:
         thesis = {"type": "recovery" if strategy_key == "deep_value" else "growth",
-                  "score": 50, "label": "not shortlisted",
-                  "summary": "Deterministic score only (reasoning runs on the shortlist).",
+                  "score": 50, "label": "AI review pending",
+                  "summary": "Scored on the numbers only — the AI deep-dive (news, "
+                             "recovery thesis, and sources to follow) runs on a focused "
+                             "shortlist each build, so this name doesn't have one yet.",
                   "situation": [], "kill": "", "provider": "—", "news": [], "watchlist": []}
     # Growth-entry plan (for Quality Growth names): fair-price cases + entry zone
     # + upside now vs at the entry zone + the buy-now/wait decision.
