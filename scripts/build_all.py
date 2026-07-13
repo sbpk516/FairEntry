@@ -19,15 +19,18 @@ from fairentry.pipeline.export import build_board, write_board
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--refresh", action="store_true", help="refresh data before scoring")
+    ap.add_argument("--reason", action="store_true", help="run the LLM reasoning layer on the shortlist")
     args = ap.parse_args()
     cfg = load_config()
     with Store() as store:
         if args.refresh:
             print("Refreshing…")
             refresh(cfg, store)
-        print("Screening + scoring…")
-        board = build_board(cfg, store)
+        print("Screening + scoring…" + (" + reasoning shortlist" if args.reason else ""))
+        board = build_board(cfg, store, reason=args.reason)
         path = write_board(board)
+    if board["meta"].get("reasoning"):
+        print("Reasoning:", board["meta"]["reasoning"])
     from collections import Counter
     v = Counter(s["verdict"] if "verdict" in s else "" for s in [])  # verdict is recomputed in UI
     print(f"Exported {board['meta']['count']} stocks -> {path}")

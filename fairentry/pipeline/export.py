@@ -48,6 +48,22 @@ def _action(rec):
 
 def _map(rec, strategies, strategy_key):
     fv = rec["valuation"]
+    th = rec.get("_thesis")
+    if th:
+        situation = [{"reason": s.get("reason", ""), "status": s.get("status", "active"),
+                      "severity": s.get("severity", "medium"),
+                      "temporary_vs_structural": th.get("temporary_vs_structural", "unknown"),
+                      "duration": th.get("expected_timeframe", ""), "evidence": s.get("evidence", "")}
+                     for s in (th.get("situation") or [])]
+        thesis = {"type": "recovery" if strategy_key == "deep_value" else "growth",
+                  "score": th.get("thesis_score", 50), "label": th.get("temporary_vs_structural", "—"),
+                  "summary": th.get("summary", ""), "situation": situation,
+                  "kill": th.get("kill_switch", ""), "provider": th.get("_provider", "—")}
+    else:
+        thesis = {"type": "recovery" if strategy_key == "deep_value" else "growth",
+                  "score": 50, "label": "not shortlisted",
+                  "summary": "Deterministic score only (reasoning runs on the shortlist).",
+                  "situation": [], "kill": "", "provider": "—"}
     return {
         "ticker": rec["ticker"], "company": rec["company"], "sector": rec["sector"],
         "strategy": strategies, "price": rec["price"],
@@ -57,11 +73,7 @@ def _map(rec, strategies, strategy_key):
                              "expected": i["expected"], "rule": i["rule"],
                              "source": i["source"] or "—"} for i in c["items"] if i["score"] is not None]}
                  for c in rec["categories"] if c["score"] is not None],
-        "thesis": {"type": "recovery" if strategy_key == "deep_value" else "growth",
-                   "score": 50, "label": "Reasoning pending",
-                   "summary": "Deterministic score shown. The thesis/recovery reasoning layer "
-                              "(why it's down, peers, DeepSeek) runs in the next phase.",
-                   "situation": [], "kill": ""},
+        "thesis": thesis,
         "valuation": {"low": fv["fair_low"], "base": fv["fair_base"], "high": fv["fair_high"],
                       "upside": round(fv["upside_pct"]), "label": fv["valuation_label"]},
         "vetoes": [v["reason"] for v in rec["vetoes"]],
@@ -70,22 +82,53 @@ def _map(rec, strategies, strategy_key):
     }
 
 
-def build_board(cfg, store, settings=None) -> dict:
+def _apply_reasoning(cfg, secs, store, recs, settings, med, cap=25):
+    """Run the reasoning layer on a borderline shortlist only. Circuit-breaks if
+    the provider is unavailable (e.g. no balance) so we never stall the run."""
+    from ..reasoning.thesis import build_thesis, modifier_for
+    bands = cfg.scoring.get("thesis_modifier", [])
+    buy_b, watch_b = cfg.verdict_bands["buy"], cfg.verdict_bands["watch"]
+    shortlist = sorted(
+        [r for r in recs if watch_b - 3 <= r["preliminary"] <= buy_b + 4 and not r["vetoes"]],
+        key=lambda r: -r["preliminary"])[:cap]
+    provider_down = False
+    used = 0
+    for r in shortlist:
+        primary = r["_primary"]
+        if provider_down:
+            continue
+        th = build_thesis(secs[r["ticker"]], store.metrics_for(r["ticker"]),
+                          {"verdict": r["verdict"], "preliminary": r["preliminary"]}, primary)
+        if th.get("_provider") == "unavailable":
+            provider_down = True
+            continue
+        mod = modifier_for(th.get("thesis_score", 50), bands)
+        s = dict(settings); s["thesis_modifier"] = mod
+        pw = _preset_weights(cfg, primary)
+        if pw:
+            s["weights"] = pw
+        r2 = score_ticker(cfg, secs[r["ticker"]], store.metrics_for(r["ticker"]), med, s)
+        r2["_primary"] = primary; r2["_strategies"] = r["_strategies"]; r2["_thesis"] = th
+        recs[recs.index(r)] = r2
+        used += 1
+    return {"shortlist": len(shortlist), "reasoned": used, "provider_down": provider_down}
+
+
+def build_board(cfg, store, settings=None, reason=False) -> dict:
     settings = settings or {"margin_of_safety_pct": 15, "target_upside_pct": 30}
     med = sector_medians(cfg, store)
     secs = {x["ticker"]: x for x in store.securities()}
 
-    # which strategies each ticker qualifies for
     quals: dict[str, list[str]] = {}
     for sid, mod in SCREENERS.items():
-        for t, sec in secs.items():
+        for t in secs:
             ok, _ = mod.passes(store.metrics_for(t))
             if ok:
                 quals.setdefault(t, []).append(mod.STRATEGY)
                 store.set_screen_result(t, sid, True, {})
     store.commit()
 
-    stocks = []
+    recs = []
     for t, strategies in quals.items():
         primary = "deep_value" if "deepvalue" in strategies else "quality_growth"
         s = dict(settings)
@@ -93,14 +136,25 @@ def build_board(cfg, store, settings=None) -> dict:
         if pw:
             s["weights"] = pw
         rec = score_ticker(cfg, secs[t], store.metrics_for(t), med, s)
-        store.set_score_result(t, primary, rec["base_score"], rec["preliminary"], rec["verdict"], rec)
-        stocks.append(_map(rec, strategies, primary))
+        rec["_primary"] = primary; rec["_strategies"] = strategies
+        recs.append(rec)
+
+    reasoning_summary = {}
+    if reason:
+        reasoning_summary = _apply_reasoning(cfg, secs, store, recs, settings, med)
+
+    stocks = []
+    for rec in recs:
+        store.set_score_result(rec["ticker"], rec["_primary"], rec["base_score"],
+                               rec["preliminary"], rec["verdict"], rec)
+        stocks.append(_map(rec, rec["_strategies"], rec["_primary"]))
     store.commit()
 
-    stocks.sort(key=lambda r: -(r["cats"] and sum(c["score"] * 1 for c in r["cats"]) or 0))
+    stocks.sort(key=lambda r: -(r["cats"] and sum(c["score"] for c in r["cats"]) or 0))
     return {"meta": {"generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                      "sectors": [s["id"] for s in cfg.enabled_sectors],
-                     "config_version": cfg.scoring.get("version"), "count": len(stocks)},
+                     "config_version": cfg.scoring.get("version"), "count": len(stocks),
+                     "reasoning": reasoning_summary},
             "stocks": stocks}
 
 
