@@ -527,7 +527,15 @@ function valHTML(s){ var v=s.valuation, price=s.price;
   var explain='<div class="vg-explain">You pay <b>$'+price+'</b> for something worth about <b>$'+v.base+'</b> — '+
     (upside>=0?'<b>'+upside+'% upside</b> to fair value':'<b>'+Math.abs(upside)+'% above</b> fair value')+
     '. At your '+S.mos+'% margin of safety you\'d buy below <b>$'+buyBelow+'</b>, so today it is <b>'+zoneWord+'</b>.</div>';
-  return '<div class="sub-h">Valuation &amp; entry</div><div class="vgauge">'+nums+line+legend+explain+'</div>'; }
+  var methods = (v.methods&&v.methods.length)?
+    '<div style="margin-top:16px"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-faint);margin-bottom:7px">Fair value — '+v.methods.length+' methods → median $'+v.base+'</div>'+
+    '<div style="display:flex;flex-direction:column;gap:5px">'+
+      v.methods.map(function(m){ var mh=HUET(m.upside>=30?80:m.upside>=12?55:30);
+        return '<div style="display:flex;align-items:center;gap:10px;font-size:13.5px"><span style="flex:1;color:var(--ink-soft)">'+esc(m.name)+
+          '</span><span class="tnum" style="min-width:66px;text-align:right;font-weight:600">$'+m.fair+
+          '</span><span class="tnum" style="min-width:60px;text-align:right;color:'+mh+';font-weight:700">'+(m.upside>=0?'+':'')+m.upside+'%</span></div>'; }).join('')+
+    '</div></div>' : '';
+  return '<div class="sub-h">Valuation &amp; entry</div><div class="vgauge">'+nums+line+legend+explain+methods+'</div>'; }
 
 function openDetail(tk){ var s=STOCKS.find(function(x){return x.ticker===tk;}); if(!s)return; var c=compute(s), vk=c.verdict.toLowerCase();
   $('#d-title').innerHTML=s.ticker+' <span style="font-size:13px;color:var(--ink-faint);font-weight:500">'+esc(s.company)+'</span>';

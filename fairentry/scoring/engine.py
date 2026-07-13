@@ -17,8 +17,9 @@ from .fair_value import fair_value
 
 # ---- sector medians (for sector_rel rules) --------------------------------
 def sector_medians(cfg, store) -> dict:
-    """{sector: {metric: median}} for every metric used by a sector_rel rule."""
-    metrics_needed = set()
+    """{sector: {metric: median}} for sector_rel rules AND the valuation multiples
+    the multi-method fair value needs (peer P/E, P/S, P/B)."""
+    metrics_needed = {"fwd_pe", "ps_ratio", "pb_ratio", "pfcf_ratio"}
     for cat in cfg.categories.values():
         for it in cat["items"]:
             if it["rule"].get("type") == "sector_rel":
@@ -52,11 +53,10 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
     flat = {k: (v["value"] if isinstance(v, dict) else v) for k, v in metrics_raw.items()}
     prov = {k: v for k, v in metrics_raw.items()}
 
-    fv = fair_value(metrics_raw, mos)
+    med = medians.get(sec["sector"], {})
+    fv = fair_value(metrics_raw, mos, med)
     flat.update({"intrinsic_gap_pct": fv["intrinsic_gap_pct"],
                  "upside_pct": fv["upside_pct"], "valuation_label": fv["valuation_label"]})
-
-    med = medians.get(sec["sector"], {})
     categories, cat_scores = [], {}
     for cid, cat in cfg.categories.items():
         items, num, den = [], 0.0, 0.0
