@@ -68,15 +68,16 @@ def build_thesis(sec, metrics, verdict_ctx, strategy_key, provider_name="deepsee
         out = prov.complete_json(_SYS, user)
         out["_provider"] = getattr(prov, "NAME", "?")
         out["_stub"] = out.get("_stub", False)
-    except Exception as e:  # provider down / no balance -> neutral, non-fatal
-        out = {"_provider": "unavailable", "_error": str(e)[:120],
-               "recovery_score": 50, "growth_score": 50, "thesis_confidence": "low",
-               "summary": "Reasoning unavailable (provider) — deterministic score only.",
-               "situation": [], "kill_switch": ""}
+    except Exception as e:  # provider down / no balance -> neutral, non-fatal; NOT cached
+        return {"_provider": "unavailable", "_error": str(e)[:120],
+                "recovery_score": 50, "growth_score": 50, "thesis_score": 50,
+                "thesis_confidence": "low", "temporary_vs_structural": "unknown",
+                "summary": "Reasoning unavailable (provider) — deterministic score only.",
+                "situation": [], "kill_switch": ""}
 
     score = out.get("growth_score" if is_growth else "recovery_score", 50)
     out["thesis_score"] = int(score) if isinstance(score, (int, float)) else 50
-    cache.put(ck, out)
+    cache.put(ck, out)   # only successful reasoning is cached
     return out
 
 

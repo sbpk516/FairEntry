@@ -50,10 +50,10 @@ def _map(rec, strategies, strategy_key):
     fv = rec["valuation"]
     th = rec.get("_thesis")
     if th:
-        situation = [{"reason": s.get("reason", ""), "status": s.get("status", "active"),
-                      "severity": s.get("severity", "medium"),
-                      "temporary_vs_structural": th.get("temporary_vs_structural", "unknown"),
-                      "duration": th.get("expected_timeframe", ""), "evidence": s.get("evidence", "")}
+        # UI's situationHTML reads arrays: [reason, status, severity, temp/struct, duration, evidence]
+        situation = [[s.get("reason", ""), s.get("status", "active"), s.get("severity", "medium"),
+                      th.get("temporary_vs_structural", "unknown"),
+                      th.get("expected_timeframe", ""), s.get("evidence", "")]
                      for s in (th.get("situation") or [])]
         thesis = {"type": "recovery" if strategy_key == "deep_value" else "growth",
                   "score": th.get("thesis_score", 50), "label": th.get("temporary_vs_structural", "—"),
