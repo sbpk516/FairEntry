@@ -164,6 +164,7 @@ def _apply_reasoning(cfg, secs, store, recs, settings, med, cap=25):
             s["weights"] = pw
         r2 = score_ticker(cfg, secs[r["ticker"]], store.metrics_for(r["ticker"]), med, s)
         r2["_primary"] = primary; r2["_strategies"] = r["_strategies"]; r2["_thesis"] = th
+        r2["_sm_flow"] = r.get("_sm_flow")   # preserve rec-attached extras across re-score
         recs[recs.index(r)] = r2
         used += 1
     return {"shortlist": len(shortlist), "reasoned": used, "provider_down": provider_down}

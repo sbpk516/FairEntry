@@ -19,8 +19,14 @@ def apply_rule(rule: dict, value, sector_median=None):
         return None, "no data"
 
     if t == "passthrough":
-        v = 50.0 if value is None else float(value)
-        return max(0.0, min(100.0, v)), "direct score"
+        if value is None:
+            # Sparse signals (e.g. 13F, estimate revisions) opt to DROP when we
+            # have no data — the item vanishes and the category renormalizes,
+            # rather than pretending a neutral 50. Others keep the neutral default.
+            if rule.get("drop_if_missing"):
+                return None, "no data"
+            return 50.0, "no data — neutral"
+        return max(0.0, min(100.0, float(value))), "direct score"
 
     if t == "higher_better":
         s = _lerp(value, rule["floor_at"], rule["full_at"])

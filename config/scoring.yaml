@@ -58,7 +58,7 @@ categories:
       - {id: near_200wma,    label: "200-week MA proximity", weight: 25, metric: dist_200wma_pct, expected: "within ±15% = near", rule: {type: band, bands: [{max: 5, min: -15, score: 85}, {max: 15, min: -30, score: 55}, {max: 100, min: -100, score: 25}]}}
       - {id: trend,          label: "Above 200-day MA",     weight: 20, metric: sma200, expected: "price > 200DMA", rule: {type: higher_better, full_at: 5, floor_at: -20}}
       - {id: inst_flow,      label: "Institutional flow",   weight: 20, metric: inst_trans, expected: "net buying", rule: {type: higher_better, full_at: 2, floor_at: -3}}
-      - {id: smart_money,    label: "Smart-money 13F",      weight: 20, metric: thirteenf_score, expected: "owned / added by respected funds", rule: {type: passthrough}}
+      - {id: smart_money,    label: "Smart-money 13F",      weight: 20, metric: thirteenf_score, expected: "owned / added by respected funds", rule: {type: passthrough, drop_if_missing: true}}
       - {id: insider_buying, label: "Insider buying",       weight: 30, metric: insider_score, expected: "fresh / cluster / top-exec buys", rule: {type: passthrough}}
   catalysts:
     label: Catalysts & Narrative
@@ -66,7 +66,7 @@ categories:
     items:
       - {id: news_sentiment, label: "News sentiment",   weight: 40, metric: news_sentiment_score, expected: "positive stance", rule: {type: passthrough}}
       - {id: analyst,        label: "Analyst consensus", weight: 25, metric: analyst_recom, expected: "≤ 2 (Buy)", rule: {type: lower_better, full_at: 1.5, floor_at: 3.5}}
-      - {id: est_revisions,  label: "Estimate revisions", weight: 20, metric: estimate_revision_score, expected: "analyst targets rising", rule: {type: passthrough}}
+      - {id: est_revisions,  label: "Estimate revisions", weight: 20, metric: estimate_revision_score, expected: "analyst targets rising", rule: {type: passthrough, drop_if_missing: true}}
       - {id: sqz_context,    label: "Short-squeeze fuel", weight: 15, metric: short_float, expected: "elevated but not extreme", rule: {type: band, bands: [{min: 15, max: 30, score: 70}, {min: 5, max: 15, score: 55}, {min: 0, max: 5, score: 45}]}}
   risk:
     label: Risk, Red Flags & Fragility
