@@ -45,16 +45,18 @@ _Generated from `config/scoring.yaml`. Do not edit by hand._
 |---|--:|---|---|---|
 | 200-week MA proximity | 25 | `dist_200wma_pct` | within ±15% = near | `band` |
 | Above 200-day MA | 20 | `sma200` | price > 200DMA | `higher_better` |
-| Institutional flow | 25 | `inst_trans` | net buying | `higher_better` |
+| Institutional flow | 20 | `inst_trans` | net buying | `higher_better` |
+| Smart-money 13F | 20 | `thirteenf_score` | owned / added by respected funds | `passthrough` |
 | Insider buying | 30 | `insider_score` | fresh / cluster / top-exec buys | `passthrough` |
 
 ### Catalysts & Narrative — weight 9
 
 | Item | Weight | Metric | Expected | Rule |
 |---|--:|---|---|---|
-| News sentiment | 45 | `news_sentiment_score` | positive stance | `passthrough` |
-| Analyst consensus | 30 | `analyst_recom` | ≤ 2 (Buy) | `lower_better` |
-| Short-squeeze fuel | 25 | `short_float` | elevated but not extreme | `band` |
+| News sentiment | 40 | `news_sentiment_score` | positive stance | `passthrough` |
+| Analyst consensus | 25 | `analyst_recom` | ≤ 2 (Buy) | `lower_better` |
+| Estimate revisions | 20 | `estimate_revision_score` | analyst targets rising | `passthrough` |
+| Short-squeeze fuel | 15 | `short_float` | elevated but not extreme | `band` |
 
 ### Risk, Red Flags & Fragility — weight 14
 
@@ -65,7 +67,7 @@ _Generated from `config/scoring.yaml`. Do not edit by hand._
 | Macro / beta | 30 | `beta` | resilient (β near 1) | `lower_better` |
 
 ## Hard vetoes (force Avoid)
-- **going_concern** — Going-concern doubt confirmed (`going_concern == true`)
+- **going_concern** — Going-concern doubt confirmed (`going_concern`)
 - **distress_corroborated** — Corroborated financial distress (`altman_z < 1.8 and debt_eq > 2`)
 - **critical_red_flag** — Critical accounting / fraud flag (`red_flags_critical > 0`)
 

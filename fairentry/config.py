@@ -148,6 +148,42 @@ def _validate_scoring(sc: dict, known_metrics: set[str]) -> list[str]:
         errs.append("scoring: verdict_bands must define 'buy' and 'watch'")
     elif vb["buy"] <= vb["watch"]:
         errs.append("scoring: buy band must be > watch band")
+    errs += _validate_when_expressions(sc, cats, known_metrics)
+    return errs
+
+
+# Names available to veto / soft-gate `when` expressions at scoring time
+# (see engine.score_ticker). Beyond metrics: per-category scores + a few extras.
+_WHEN_EXTRA_NAMES = {"target_upside"}
+
+
+def _validate_when_expressions(sc: dict, cats: dict, known_metrics: set[str]) -> list[str]:
+    """Every veto / soft-gate `when` is a tiny Python expression eval'd against
+    the ticker's metric namespace. A typo (e.g. YAML `true` instead of Python
+    `True`, or a misspelled metric) raises NameError at runtime, which the engine
+    silently swallows — the rule then never fires. Catch that here at load time:
+    reject any `when` that won't compile or references an unknown name.
+    """
+    names = (set(known_metrics) | COMPUTED_METRICS | _WHEN_EXTRA_NAMES
+             | {f"category_{cid}" for cid in cats})
+    errs: list[str] = []
+    for group in ("vetoes", "soft_gates"):
+        for rule in sc.get(group, []):
+            rid = rule.get("id", "?")
+            expr = rule.get("when")
+            if not isinstance(expr, str) or not expr.strip():
+                errs.append(f"scoring {group}.{rid}: missing 'when' expression")
+                continue
+            try:
+                code = compile(expr, f"<{group}.{rid}.when>", "eval")
+            except SyntaxError as e:
+                errs.append(f"scoring {group}.{rid}: 'when' is not valid Python ({e.msg}): {expr!r}")
+                continue
+            unknown = [n for n in code.co_names if n not in names]
+            if unknown:
+                errs.append(f"scoring {group}.{rid}: 'when' references unknown name(s) "
+                            f"{sorted(unknown)} — metric typo, or use Python True/False "
+                            f"(not YAML true/false): {expr!r}")
     return errs
 
 

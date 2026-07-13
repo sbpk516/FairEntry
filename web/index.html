@@ -315,9 +315,9 @@
 </div>
 
 <div class="scrim" id="scrim"></div>
-<aside class="drawer" id="detail"><div class="dhead"><h2 id="d-title">—</h2><button class="x" id="d-close">×</button></div><div class="dbody" id="d-body"></div></aside>
-<aside class="drawer left" id="settings">
-  <div class="dhead"><h2>Tune the model</h2><button class="x" id="s-close">×</button></div>
+<aside class="drawer" id="detail" role="dialog" aria-modal="true" aria-labelledby="d-title"><div class="dhead"><h2 id="d-title">—</h2><button class="x" id="d-close" aria-label="Close">×</button></div><div class="dbody" id="d-body"></div></aside>
+<aside class="drawer left" id="settings" role="dialog" aria-modal="true" aria-label="Tune the model">
+  <div class="dhead"><h2>Tune the model</h2><button class="x" id="s-close" aria-label="Close">×</button></div>
   <div class="dbody" id="s-body"></div>
 </aside>
 
@@ -325,7 +325,10 @@
 (function(){
 "use strict";
 var $=function(s,r){return (r||document).querySelector(s);};
-var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
+var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
+// URLs come from external news (Finnhub); only allow http(s) so a `javascript:`
+// / `data:` scheme can never become a clickable script link.
+var safeUrl=function(u){ u=String(u==null?'':u).trim(); return /^https?:\/\//i.test(u)?u:''; };
 
 /* ---------- default settings (user-editable) ---------- */
 var DEFAULTS={ weights:{quality:16,survival:18,growth:14,valuation:18,confirmation:11,catalysts:9,risk:14},
@@ -338,6 +341,27 @@ function restoreS(){ try{ var raw=localStorage.getItem(SKEY); if(raw){ var o=JSO
   if(o&&o.weights){ S=Object.assign(JSON.parse(JSON.stringify(DEFAULTS)), o);
     S.weights=Object.assign({}, DEFAULTS.weights, o.weights); } } }catch(e){} }
 var MODE='deepvalue';
+var META={};                                   // board.json meta (filled on load)
+var MODE_STRATEGY={deepvalue:'deep_value', growth:'quality_growth'};
+
+// Mirror the backend's per-strategy scoring: unless the user has tuned weights
+// themselves, use the mode's preset weights + verdict bands straight from the
+// exported config, so the client score/verdict matches the stored one.
+function presetForMode(){
+  var name=(META.strategy_presets||{})[MODE_STRATEGY[MODE]];
+  if(name && PRESETS[name]) return Object.assign({}, DEFAULTS.weights, PRESETS[name]);
+  if(META.default_weights) return Object.assign({}, DEFAULTS.weights, META.default_weights);
+  return JSON.parse(JSON.stringify(DEFAULTS.weights));
+}
+function syncModelToMode(){
+  if(!S.userTuned) S.weights=presetForMode();
+  if(!S.userBands && META.verdict_bands){ S.buyBand=META.verdict_bands.buy; S.watchBand=META.verdict_bands.watch; }
+}
+// The mode's recommended model — used as the "def"/"changed-from" reference so
+// the applied preset doesn't read as a user change.
+function baseline(){ return { weights: presetForMode(),
+  buyBand: META.verdict_bands ? META.verdict_bands.buy : DEFAULTS.buyBand,
+  watchBand: META.verdict_bands ? META.verdict_bands.watch : DEFAULTS.watchBand }; }
 
 var CATS=[['quality','Business Quality'],['survival','Financial Strength & Survival'],['growth','Growth & Momentum'],
  ['valuation','Valuation & Margin of Safety'],['confirmation','Market Confirmation'],['catalysts','Catalysts & Narrative'],['risk','Risk & Red Flags']];
@@ -437,8 +461,11 @@ var STOCKS=[
 
 /* ---------- verdict engine (mirrors the scoring-model formula) ---------- */
 function baseScore(s){ var num=0,den=0; s.cats.forEach(function(c){ var w=S.weights[c.id]; num+=w*c.score; den+=w; }); return num/den; }
-function thesisMod(s){ var t=s.thesis.score; return t>=80?6:t>=65?3:t>=50?0:t>=35?-5:-10; }
-function softGates(s){ var g=[]; if(s.soft.indexOf('expensive')>=0)g.push('Valuation is expensive');
+function thesisMod(s){ var t=s.thesis.score, b=META.thesis_modifier;
+  if(b&&b.length){ var mod=0; b.slice().sort(function(x,y){return y.min-x.min;}).some(function(band){
+    if(t>=band.min){ mod=band.mod; return true; } return false; }); return mod; }
+  return t>=80?6:t>=65?3:t>=50?0:t>=35?-5:-10; }
+function softGates(s){ var g=[]; if(s.valuation&&s.valuation.label==='expensive')g.push('Valuation is expensive');
   var surv=s.cats.find(function(c){return c.id==='survival';}); if(surv&&surv.score<30)g.push('Survival score < 30');
   if(s.valuation.upside < S.target) g.push('Upside '+s.valuation.upside+'% < target '+S.target+'%'); return g; }
 function compute(s){ var base=baseScore(s), mod=thesisMod(s), prelim=base+mod-(s.riskPenalty||0);
@@ -479,8 +506,8 @@ function tileHTML(s){ var c=compute(s), vk=c.verdict.toLowerCase();
     '<span>AI read <b>'+esc(thesisPlain(s))+'</b></span></div>';
   var labs=s.labels.slice(0,4).map(function(l){return '<span class="lab '+l[1]+'">'+esc(l[0])+'</span>';}).join('');
   var nuance=actionNuance(c);
-  return '<div class="tile" data-t="'+s.ticker+'"><div class="vstripe st-'+vk+'"></div><div class="tile-in">'+
-    '<div class="tile-top"><div><div class="tick">'+s.ticker+'</div><div class="co">'+esc(s.company)+' · '+esc(s.sector)+'</div></div>'+
+  return '<div class="tile" data-t="'+esc(s.ticker)+'" role="button" tabindex="0" aria-label="'+esc(s.ticker+' '+s.company+' — '+c.verdict+', score '+Math.round(c.prelim))+'"><div class="vstripe st-'+vk+'"></div><div class="tile-in">'+
+    '<div class="tile-top"><div><div class="tick">'+esc(s.ticker)+'</div><div class="co">'+esc(s.company)+' · '+esc(s.sector)+'</div></div>'+
     '<div class="verdict"><span class="vpill bg-'+vk+' v-'+vk+'">'+c.verdict+'</span>'+(nuance?'<div class="action-lbl">'+esc(nuance)+'</div>':'')+'</div></div>'+
     '<div class="scorebar-wrap"><span class="scoreval tnum" style="color:'+HUET(c.prelim)+'">'+Math.round(c.prelim)+'<span>/100</span></span>'+bar(Math.round(c.prelim))+'</div>'+
     kv+'<div class="labels">'+labs+'</div></div></div>'; }
@@ -536,8 +563,8 @@ function scoreMathHTML(s,c){
 
 function situationHTML(s){ if(!s.thesis.situation||!s.thesis.situation.length) return '';
   var rows=s.thesis.situation.map(function(r){ return '<div class="sit-row"><div class="sit-q">'+esc(r[0])+'</div>'+
-    '<div class="sit-tags"><span class="stg '+r[1]+'">status: '+r[1]+'</span><span class="stg">severity: '+r[2]+'</span>'+
-    '<span class="stg '+(r[3]==='structural'?'structural':'')+'">'+r[3]+'</span><span class="stg">~'+esc(r[4])+'</span><span class="stg">evidence: '+esc(r[5])+'</span></div></div>'; }).join('');
+    '<div class="sit-tags"><span class="stg '+esc(r[1])+'">status: '+esc(r[1])+'</span><span class="stg">severity: '+esc(r[2])+'</span>'+
+    '<span class="stg '+(r[3]==='structural'?'structural':'')+'">'+esc(r[3])+'</span><span class="stg">~'+esc(r[4])+'</span><span class="stg">evidence: '+esc(r[5])+'</span></div></div>'; }).join('');
   return '<div class="sub-h">Why is it down? — situation checklist</div><div class="sit">'+rows+'</div>'+
     '<div style="font-size:12.5px;color:var(--ink-soft);margin-top:10px;line-height:1.5"><b>Kill-switch:</b> '+esc(s.thesis.kill)+'</div>'; }
 
@@ -546,7 +573,8 @@ function situationHTML(s){ if(!s.thesis.situation||!s.thesis.situation.length) r
 function newsHTML(s){ var nx=s.thesis.news; if(!nx||!nx.length) return '';
   var rows=nx.slice(0,8).map(function(n){
     var tags=(n.categories||[]).map(function(c){return '<span class="ntag">'+esc(c)+'</span>';}).join('');
-    var head=n.url?('<a href="'+esc(n.url)+'" target="_blank" rel="noopener">'+esc(n.headline)+'</a>'):esc(n.headline);
+    var u=safeUrl(n.url);
+    var head=u?('<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(n.headline)+'</a>'):esc(n.headline);
     return '<div class="news-row"><div class="news-meta">'+esc(n.date)+(n.source?' · '+esc(n.source):'')+'</div>'+
       '<div class="news-head">'+head+' '+tags+'</div></div>'; }).join('');
   return '<div class="sub-h">Recent news the analysis read <span style="font-weight:400;color:var(--ink-faint);font-size:12px">(Finnhub · last 60 days · stance judged by the reasoning layer)</span></div>'+
@@ -659,7 +687,7 @@ function valHTML(s){ var v=s.valuation, price=s.price;
   return '<div class="sub-h">Valuation &amp; entry</div><div class="vgauge">'+nums+line+legend+explain+methods+'</div>'; }
 
 function openDetail(tk){ var s=STOCKS.find(function(x){return x.ticker===tk;}); if(!s)return; var c=compute(s), vk=c.verdict.toLowerCase();
-  $('#d-title').innerHTML=s.ticker+' <span style="font-size:13px;color:var(--ink-faint);font-weight:500">'+esc(s.company)+'</span>';
+  $('#d-title').innerHTML=esc(s.ticker)+' <span style="font-size:13px;color:var(--ink-faint);font-weight:500">'+esc(s.company)+'</span>';
   var vetoHTML=c.vetoed?'<div style="margin-top:10px"><span class="lab bad">VETO</span> '+s.vetoes.map(esc).join(' · ')+'</div>':'';
   var gateHTML=(c.gates&&c.gates.length)?'<div style="margin-top:8px;font-size:12px;color:var(--watch)">Soft gate'+(c.capped?' (capped Buy→Watch)':'')+': '+c.gates.map(esc).join(' · ')+'</div>':'';
   var hero='<div class="verdict-hero bg-'+vk+'" style="border-color:var(--'+vk+'-line)"><div class="vh-top">'+
@@ -686,21 +714,24 @@ function renderSettings(){
   body+='<select id="preset-pick" style="width:100%;font-size:13px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:8px 11px;margin-bottom:14px">'+
     '<option value="">— apply a preset —</option><option value="__default">Recommended defaults</option>'+
     Object.keys(PRESETS).map(function(p){ return '<option value="'+p+'">'+p.replace(/_/g,' ')+'</option>'; }).join('')+'</select>';
+  var bl=baseline();   // the mode's recommended model (backend preset + bands)
   body+='<div class="sub-h">Category weights</div>';
-  CATS.forEach(function(c){ body+=slider('w.'+c[0], c[1], 0, 30, S.weights[c[0]], DEFAULTS.weights[c[0]], 'How much '+c[1]+' moves the base score.'); });
+  CATS.forEach(function(c){ body+=slider('w.'+c[0], c[1], 0, 30, S.weights[c[0]], bl.weights[c[0]], 'How much '+c[1]+' moves the base score.'); });
   body+='<div class="sub-h">Verdict & entry</div>';
-  body+=slider('buyBand','Buy band (score ≥)',50,90,S.buyBand,DEFAULTS.buyBand,'Preliminary score needed for Buy.');
-  body+=slider('watchBand','Watch band (score ≥)',30,70,S.watchBand,DEFAULTS.watchBand,'Below this = Avoid.');
+  body+=slider('buyBand','Buy band (score ≥)',50,90,S.buyBand,bl.buyBand,'Preliminary score needed for Buy.');
+  body+=slider('watchBand','Watch band (score ≥)',30,70,S.watchBand,bl.watchBand,'Below this = Avoid.');
   body+=slider('mos','Margin of safety %',0,50,S.mos,DEFAULTS.mos,'Discount to fair value required for the buy zone.');
   body+=slider('target','Target upside %',10,60,S.target,DEFAULTS.target,'Below this, a Buy is soft-gated to Watch.');
   body+='<button class="resetbtn" id="resetbtn">↺ Reset all to recommended defaults</button>';
   $('#s-body').innerHTML=body; updateChanged();
 }
-function updateChanged(){ var n=0; CATS.forEach(function(c){ if(S.weights[c[0]]!==DEFAULTS.weights[c[0]])n++; });
-  ['buyBand','watchBand','mos','target'].forEach(function(k){ if(S[k]!==DEFAULTS[k])n++; });
+function updateChanged(){ var bl=baseline(), n=0;
+  CATS.forEach(function(c){ if(S.weights[c[0]]!==bl.weights[c[0]])n++; });
+  if(S.buyBand!==bl.buyBand)n++; if(S.watchBand!==bl.watchBand)n++;
+  ['mos','target'].forEach(function(k){ if(S[k]!==DEFAULTS[k])n++; });
   var note=$('#changed-note'); if(!note)return;
   if(n===0){ note.style.display='none'; } else { note.style.display='block';
-    note.innerHTML='<b>'+n+'</b> setting'+(n>1?'s':'')+' changed from defaults — the board reflects your model live.'; } }
+    note.innerHTML='<b>'+n+'</b> setting'+(n>1?'s':'')+' changed from the recommended model — the board reflects your model live.'; } }
 
 /* ---------- events ---------- */
 function openDrawer(sel){ $('#scrim').classList.add('on'); $(sel).classList.add('on'); }
@@ -710,9 +741,15 @@ document.addEventListener('click',function(e){
   var tile=e.target.closest('.tile'); if(tile){ openDetail(tile.dataset.t); return; }
   var exp=e.target.closest('[data-exp]'); if(exp && e.target.closest('.row')){ exp.classList.toggle('open'); return; }
 });
-$('#board').addEventListener('click',function(){});
+// Keyboard: Enter/Space opens a focused tile; Escape closes any open overlay.
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){ closeAll(); return; }
+  if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){ var tile=e.target.closest&&e.target.closest('.tile');
+    if(tile){ e.preventDefault(); openDetail(tile.dataset.t); } }
+});
 $('#modes').addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b)return;
-  $('#modes .on').classList.remove('on'); b.classList.add('on'); MODE=b.dataset.mode; renderBoard(); });
+  $('#modes .on').classList.remove('on'); b.classList.add('on'); MODE=b.dataset.mode;
+  syncModelToMode(); renderSettings(); renderBoard(); });
 $('#vfilter').addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b)return;
   $('#vfilter .on').classList.remove('on'); b.classList.add('on'); renderBoard(); });
 $('#search').addEventListener('input',renderBoard);
@@ -725,18 +762,19 @@ $('#themebtn').addEventListener('click',function(){ var r=document.documentEleme
   r.setAttribute('data-theme', dark?'light':'dark'); });
 
 $('#s-body').addEventListener('input',function(e){ var inp=e.target.closest('[data-set]'); if(!inp)return;
-  var key=inp.dataset.set, val=+inp.value; if(key.indexOf('w.')===0){ S.weights[key.slice(2)]=val; } else { S[key]=val; }
+  var key=inp.dataset.set, val=+inp.value; if(key.indexOf('w.')===0){ S.weights[key.slice(2)]=val; S.userTuned=true; } else { S[key]=val; if(key==='buyBand'||key==='watchBand') S.userBands=true; }
   var cur=$('#cur-'+key.replace('.','\\.')); var curEl=document.getElementById('cur-'+key); if(curEl)curEl.textContent=val;
   updateChanged(); saveS(); renderBoard(); if($('#detail').classList.contains('on')){ /* keep detail in sync */ var t=$('#d-title').textContent.trim().split(' ')[0]; openDetail(t); }
 });
 $('#s-body').addEventListener('change',function(e){ if(e.target.id!=='preset-pick') return; var v=e.target.value;
-  if(v==='__default'){ S.weights=JSON.parse(JSON.stringify(DEFAULTS.weights)); }
+  if(v==='__default'){ S.weights=Object.assign(JSON.parse(JSON.stringify(DEFAULTS.weights)), META.default_weights||{}); }
   else if(v&&PRESETS[v]){ S.weights=Object.assign(JSON.parse(JSON.stringify(DEFAULTS.weights)), PRESETS[v]); }
   else return;
+  S.userTuned=true;
   saveS(); renderSettings(); renderBoard();
   if($('#detail').classList.contains('on')){ var t=$('#d-title').textContent.trim().split(' ')[0]; openDetail(t); } });
 $('#s-body').addEventListener('click',function(e){ if(e.target.id==='resetbtn'){ S=JSON.parse(JSON.stringify(DEFAULTS));
-  try{ localStorage.removeItem(SKEY); }catch(err){} renderSettings(); renderBoard();
+  try{ localStorage.removeItem(SKEY); }catch(err){} syncModelToMode(); renderSettings(); renderBoard();
   if($('#detail').classList.contains('on')){ var t=$('#d-title').textContent.trim().split(' ')[0]; openDetail(t); } } });
 
 /* ---------- init: load real data from the pipeline export ---------- */
@@ -744,7 +782,9 @@ restoreS();          // restore the user's saved weights/thresholds
 renderSettings();
 fetch('data/board.json', {cache:'no-store'}).then(function(r){ return r.json(); }).then(function(b){
   STOCKS = b.stocks || [];
-  var m=b.meta||{}; PRESETS=m.presets||{}; renderSettings();   // now includes preset options
+  var m=b.meta||{}; META=m; PRESETS=m.presets||{};
+  syncModelToMode();          // apply the mode's backend preset weights + bands
+  renderSettings();           // now includes preset options
   var secs=Array.from(new Set(STOCKS.map(function(s){return s.sector;}))).sort();
   $('#sector').innerHTML='<option value="all">All sectors</option>'+secs.map(function(x){return '<option>'+esc(x)+'</option>';}).join('');
   var tag=document.querySelector('.brand .tag');

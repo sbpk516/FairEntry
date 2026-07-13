@@ -78,7 +78,7 @@ categories:
 
 # Hard vetoes -> force Avoid regardless of score.
 vetoes:
-  - {id: going_concern,        when: "going_concern == true",         reason: "Going-concern doubt confirmed"}
+  - {id: going_concern,        when: "going_concern",                 reason: "Going-concern doubt confirmed"}
   - {id: distress_corroborated, when: "altman_z < 1.8 and debt_eq > 2", reason: "Corroborated financial distress"}
   - {id: critical_red_flag,    when: "red_flags_critical > 0",        reason: "Critical accounting / fraud flag"}
 

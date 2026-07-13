@@ -259,7 +259,12 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
                      "config_version": cfg.scoring.get("version"), "count": len(stocks),
                      "reasoning": reasoning_summary,
                      "presets": cfg.scoring.get("presets", {}),
-                     "default_weights": {cid: c["weight"] for cid, c in cfg.categories.items()}},
+                     "default_weights": {cid: c["weight"] for cid, c in cfg.categories.items()},
+                     # everything the UI needs to reproduce the backend verdict
+                     # exactly (per-strategy preset weights, bands, thesis modifier)
+                     "strategy_presets": cfg.defaults.get("strategy_presets", {}),
+                     "verdict_bands": cfg.verdict_bands,
+                     "thesis_modifier": cfg.scoring.get("thesis_modifier", [])},
             "stocks": stocks}
 
 

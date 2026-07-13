@@ -37,6 +37,19 @@ jobs:
           python-version: "3.11"
       - name: Install deps
         run: pip install -r requirements.txt
+      # Restore the store (SQLite + adapter caches) from the most recent prior
+      # run. metrics_history is append-only and point-in-time, so persisting it
+      # across runs is what lets the backtest harness and the estimate-revision
+      # signal actually accumulate history (a fresh DB each run stays at one
+      # snapshot forever). Unique key per run always saves a new entry;
+      # restore-keys picks up the latest previous one.
+      - name: Restore accumulated store
+        uses: actions/cache@v4
+        with:
+          path: data
+          key: fairentry-store-${{ github.run_id }}
+          restore-keys: |
+            fairentry-store-
       - name: Validate config
         run: python -m fairentry.config
       - name: Build (refresh -> screen -> score -> export)
