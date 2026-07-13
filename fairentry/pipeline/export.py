@@ -59,16 +59,19 @@ def _map(rec, strategies, strategy_key):
                  "source": n.get("source", ""), "url": n.get("url", ""),
                  "categories": n.get("categories", [])}
                 for n in (th.get("_news") or [])]
+        watchlist = [{"name": w.get("name", ""), "type": w.get("type", ""),
+                      "where": w.get("where", ""), "why": w.get("why", "")}
+                     for w in (th.get("watchlist_sources") or []) if w.get("name")]
         thesis = {"type": "recovery" if strategy_key == "deep_value" else "growth",
                   "score": th.get("thesis_score", 50), "label": th.get("temporary_vs_structural", "—"),
                   "summary": th.get("summary", ""), "situation": situation,
                   "kill": th.get("kill_switch", ""), "provider": th.get("_provider", "—"),
-                  "news": news}
+                  "news": news, "watchlist": watchlist}
     else:
         thesis = {"type": "recovery" if strategy_key == "deep_value" else "growth",
                   "score": 50, "label": "not shortlisted",
                   "summary": "Deterministic score only (reasoning runs on the shortlist).",
-                  "situation": [], "kill": "", "provider": "—", "news": []}
+                  "situation": [], "kill": "", "provider": "—", "news": [], "watchlist": []}
     # Growth-entry plan (for Quality Growth names): fair-price cases + entry zone
     # + upside now vs at the entry zone + the buy-now/wait decision.
     growth_entry = None

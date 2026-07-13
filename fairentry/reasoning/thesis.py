@@ -10,10 +10,22 @@ from . import cache
 from .provider import get_provider
 from ..adapters.finnhub import fetch_news
 
-PROMPT_VERSION = "v2"   # bumped: prompt now includes real recent news
+PROMPT_VERSION = "v3"   # v2 added real news; v3 adds watchlist-source discovery
 
 _SYS = ("You are a disciplined value+growth equity analyst. Think like a careful "
         "investor, not a hype machine. Reply with a single JSON object only, no prose.")
+
+# §7B watchlist intelligence — real, specific sources to follow to track THIS
+# name's thesis. The anti-hallucination clause is deliberate: naming a plausible-
+# but-fake @handle or URL is worse than describing the source type honestly.
+_WATCHLIST_SCHEMA = (
+    "watchlist_sources (array of up to 5 objects, each: {name (a real, well-known "
+    "source — a sell-side/independent analyst, a notable investor, a publication/"
+    "newsletter, an SEC filing type, or a data source), "
+    "type (one of: analyst, investor, publication, filing, data_source, community), "
+    "where (short: where to find it — do NOT invent URLs, @handles, or emails; if "
+    "unsure, describe the source type generically), "
+    "why (short: what tracking it tells you about THIS name's thesis specifically)})")
 
 _RECOVERY_SCHEMA = (
     "Return JSON with exactly these keys: "
@@ -24,7 +36,7 @@ _RECOVERY_SCHEMA = (
     "resolved/worsening), severity(low/medium/high/critical), evidence(short, cite a metric)}), "
     "key_catalyst (short string or ''), expected_timeframe (short string), "
     "kill_switch (short string: what would prove the thesis wrong), "
-    "summary (<=40 words).")
+    "summary (<=40 words), " + _WATCHLIST_SCHEMA)
 
 _GROWTH_SCHEMA = (
     "Return JSON with exactly these keys: "
@@ -32,7 +44,7 @@ _GROWTH_SCHEMA = (
     "required_growth_to_justify_price (short string), "
     "durability (one of: durable, moderate, fragile, unknown), "
     "entry_view (one of: buy_now, starter, wait_for_pullback, wait_for_confirmation, avoid), "
-    "summary (<=40 words), kill_switch (short string).")
+    "summary (<=40 words), kill_switch (short string), " + _WATCHLIST_SCHEMA)
 
 
 def _facts(sec, metrics):
