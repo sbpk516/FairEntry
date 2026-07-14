@@ -290,7 +290,8 @@
   <div class="topbar">
     <div class="brand"><span class="logo">Fair<b>Entry</b></span><span class="tag">working name · prototype</span></div>
     <div class="modes" id="modes">
-      <button data-mode="deepvalue" class="on">Deep Value</button>
+      <button data-mode="all" class="on">All Stocks</button>
+      <button data-mode="deepvalue">Deep Value</button>
       <button data-mode="growth">Quality Growth Entry</button>
     </div>
     <span class="ai-status" id="ai-status"></span>
@@ -346,7 +347,7 @@ function saveS(){ try{ localStorage.setItem(SKEY, JSON.stringify(S)); }catch(e){
 function restoreS(){ try{ var raw=localStorage.getItem(SKEY); if(raw){ var o=JSON.parse(raw);
   if(o&&o.weights){ S=Object.assign(JSON.parse(JSON.stringify(DEFAULTS)), o);
     S.weights=Object.assign({}, DEFAULTS.weights, o.weights); } } }catch(e){} }
-var MODE='deepvalue';
+var MODE='all';
 var META={};                                   // board.json meta (filled on load)
 var MODE_STRATEGY={deepvalue:'deep_value', growth:'quality_growth'};
 
@@ -354,6 +355,10 @@ var MODE_STRATEGY={deepvalue:'deep_value', growth:'quality_growth'};
 // themselves, use the mode's preset weights + verdict bands straight from the
 // exported config, so the client score/verdict matches the stored one.
 function presetForMode(){
+  if(MODE==='all'){
+    if(META.default_weights) return Object.assign({}, DEFAULTS.weights, META.default_weights);
+    return JSON.parse(JSON.stringify(DEFAULTS.weights));
+  }
   var name=(META.strategy_presets||{})[MODE_STRATEGY[MODE]];
   if(name && PRESETS[name]) return Object.assign({}, DEFAULTS.weights, PRESETS[name]);
   if(META.default_weights) return Object.assign({}, DEFAULTS.weights, META.default_weights);
@@ -529,7 +534,7 @@ function tileHTML(s){ var c=compute(s), vk=c.verdict.toLowerCase();
 
 function currentList(){
   var q=$('#search').value.trim().toLowerCase(), sec=$('#sector').value, vf=$('#vfilter .on').dataset.v, sort=$('#sort').value;
-  var list=STOCKS.filter(function(s){ return s.strategy.indexOf(MODE)>=0; })
+  var list=STOCKS.filter(function(s){ return MODE==='all' || s.strategy.indexOf(MODE)>=0; })
     .map(function(s){ return {s:s, c:compute(s)}; })
     .filter(function(o){ if(sec!=='all'&&o.s.sector!==sec)return false; if(vf!=='all'&&o.c.verdict!==vf)return false;
       if(q&&(o.s.ticker.toLowerCase().indexOf(q)<0&&o.s.company.toLowerCase().indexOf(q)<0))return false; return true; });
