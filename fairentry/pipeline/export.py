@@ -154,14 +154,22 @@ def _map(rec, strategies, strategy_key):
     }
 
 
-def _apply_reasoning(cfg, secs, store, recs, settings, med, cap=25):
-    """Run the reasoning layer on a borderline shortlist only. Circuit-breaks if
-    the provider is unavailable (e.g. no balance) so we never stall the run."""
+def _apply_reasoning(cfg, secs, store, recs, settings, med, cap=30):
+    """Run the reasoning layer on the names most worth an AI read: every Buy /
+    near-Buy candidate — preliminary at or above the Watch line (minus a small
+    margin so borderline names the modifier could tip are included too), highest
+    score first, capped. Note: this covers clear Buys, which the old borderline-
+    only window (<= buy_b + 4) excluded.
+
+    Circuit-breaks if the provider is unavailable OR only the offline stub is
+    present (no DEEPSEEK_API_KEY / balance) — so we never stall the run, and never
+    attach a placeholder 'review' that isn't a real one (the name stays honestly
+    'not reviewed yet' instead)."""
     from ..reasoning.thesis import build_thesis, modifier_for
     bands = cfg.scoring.get("thesis_modifier", [])
-    buy_b, watch_b = cfg.verdict_bands["buy"], cfg.verdict_bands["watch"]
+    watch_b = cfg.verdict_bands["watch"]
     shortlist = sorted(
-        [r for r in recs if watch_b - 3 <= r["preliminary"] <= buy_b + 4 and not r["vetoes"]],
+        [r for r in recs if r["preliminary"] >= watch_b - 3 and not r["vetoes"]],
         key=lambda r: -r["preliminary"])[:cap]
     provider_down = False
     used = 0
@@ -171,8 +179,8 @@ def _apply_reasoning(cfg, secs, store, recs, settings, med, cap=25):
             continue
         th = build_thesis(secs[r["ticker"]], store.metrics_for(r["ticker"]),
                           {"verdict": r["verdict"], "preliminary": r["preliminary"]}, primary)
-        if th.get("_provider") == "unavailable":
-            provider_down = True
+        if th.get("_provider") == "unavailable" or th.get("_stub"):
+            provider_down = True   # no real provider — leave the rest 'not reviewed'
             continue
         mod = modifier_for(th.get("thesis_score", 50), bands)
         s = dict(settings); s["thesis_modifier"] = mod

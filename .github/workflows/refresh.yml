@@ -1,6 +1,7 @@
 name: FairEntry — refresh + deploy
 
-# Twice daily (05:00 / 14:00 ET ≈ 09:00 / 18:00 UTC) + on push to main + manual.
+# Twice daily (05:00 / 14:00 ET ≈ 09:00 / 18:00 UTC) + weekly AI review
+# (Mon 08:00 UTC, with --reason) + on push to main + manual.
 on:
   push:
     branches: [main]
@@ -10,8 +11,9 @@ on:
       - "tests/**"
       - "README.md"
   schedule:
-    - cron: "0 9 * * *"
-    - cron: "0 18 * * *"
+    - cron: "0 9 * * *"      # daily — deterministic refresh
+    - cron: "0 18 * * *"     # daily — deterministic refresh
+    - cron: "0 8 * * 1"      # Monday — weekly run WITH the LLM reasoning layer
   workflow_dispatch:
     inputs:
       reason:
@@ -59,8 +61,10 @@ jobs:
             fairentry-store-
       - name: Validate config
         run: python -m fairentry.config
+      # Run the LLM reasoning layer on the weekly Monday cron, or when the manual
+      # dispatch requests it. The twice-daily crons stay deterministic (no LLM cost).
       - name: Build (refresh -> screen -> score -> export)
-        run: python scripts/build_all.py --refresh ${{ github.event.inputs.reason == 'true' && '--reason' || '' }}
+        run: python scripts/build_all.py --refresh ${{ (github.event.inputs.reason == 'true' || github.event.schedule == '0 8 * * 1') && '--reason' || '' }}
       - name: Upload master.db artifact (regenerable; not committed)
         uses: actions/upload-artifact@v4
         with:
