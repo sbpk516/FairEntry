@@ -82,16 +82,34 @@ def test_score_preserves_country():
 
 def test_non_usa_country_is_tile_label():
     rec = {"country": "Taiwan",
-           "valuation": {"upside_pct": 30, "valuation_label": "cheap"},
-           "vetoes": []}
+           "price": 90, "verdict": "Buy",
+           "valuation": {"upside_pct": 30, "valuation_label": "cheap", "buy_zone": 100},
+           "categories": [{"id": "quality", "score": 88, "items": []},
+                          {"id": "growth", "score": 80,
+                           "items": [{"metric": "rev_growth_qoq", "actual": 31}]}],
+           "vetoes": [], "soft_gates": []}
     assert _labels(rec)[0] == ["Taiwan", "info"]
 
 
 def test_usa_country_is_not_tile_label():
     rec = {"country": "USA",
-           "valuation": {"upside_pct": 30, "valuation_label": "cheap"},
-           "vetoes": []}
+           "price": 90, "verdict": "Buy",
+           "valuation": {"upside_pct": 30, "valuation_label": "cheap", "buy_zone": 100},
+           "categories": [], "vetoes": [], "soft_gates": []}
     assert ["USA", "info"] not in _labels(rec)
+
+
+def test_tile_labels_include_quality_growth_and_entry():
+    rec = {"country": "USA", "price": 214, "verdict": "Watch",
+           "valuation": {"upside_pct": 12, "valuation_label": "expensive", "buy_zone": 185},
+           "categories": [{"id": "quality", "score": 92, "items": []},
+                          {"id": "growth", "score": 90,
+                           "items": [{"metric": "rev_growth_qoq", "actual": 31}]}],
+           "vetoes": [], "soft_gates": [{"id": "expensive", "reason": "Valuation is expensive"}]}
+    labels = _labels(rec)
+    assert ["Quality: excellent", "good"] in labels
+    assert ["Growth +31%", "good"] in labels
+    assert ["Entry: stretched", "warn"] in labels
 
 
 # ---- veto / soft-gate firing -------------------------------------------------

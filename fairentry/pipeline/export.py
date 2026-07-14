@@ -21,11 +21,82 @@ def _preset_weights(cfg, strategy_key):
     return presets.get(name)
 
 
+def _cat_score(rec, cat_id):
+    for c in rec.get("categories", []):
+        if c.get("id") == cat_id:
+            return c.get("score")
+    return None
+
+
+def _metric_value(rec, metric_id):
+    for c in rec.get("categories", []):
+        for i in c.get("items", []):
+            if i.get("metric") == metric_id:
+                return i.get("actual")
+    return None
+
+
+def _quality_label(score):
+    if score is None:
+        return None
+    if score >= 85:
+        return ["Quality: excellent", "good"]
+    if score >= 70:
+        return ["Quality: strong", "good"]
+    if score >= 55:
+        return ["Quality: solid", "info"]
+    if score >= 40:
+        return ["Quality: mixed", "warn"]
+    return ["Quality: weak", "bad"]
+
+
+def _growth_label(rec):
+    rev = _metric_value(rec, "rev_growth_qoq")
+    if isinstance(rev, (int, float)):
+        style = "good" if rev >= 15 else "info" if rev >= 5 else "warn" if rev >= 0 else "bad"
+        return [f"Growth {rev:+.0f}%", style]
+    score = _cat_score(rec, "growth")
+    if score is None:
+        return None
+    if score >= 75:
+        return ["Growth: strong", "good"]
+    if score >= 55:
+        return ["Growth: steady", "info"]
+    if score >= 40:
+        return ["Growth: slow", "warn"]
+    return ["Growth: weak", "bad"]
+
+
+def _entry_label(rec):
+    verdict = rec.get("verdict")
+    fv = rec.get("valuation", {})
+    gates = {g.get("id") for g in rec.get("soft_gates", [])}
+    if verdict == "Avoid" or rec.get("vetoes"):
+        return ["Entry: avoid", "bad"]
+    if "expensive" in gates or fv.get("valuation_label") == "expensive":
+        return ["Entry: stretched", "warn"]
+    if "upside_below_target" in gates:
+        return ["Entry: thin upside", "warn"]
+    if "survival_floor" in gates:
+        return ["Entry: risky", "bad"]
+    price, buy_zone = rec.get("price"), fv.get("buy_zone")
+    if verdict == "Buy":
+        if price and buy_zone and price <= buy_zone:
+            return ["Entry: buy zone", "good"]
+        return ["Entry: acceptable", "info"]
+    if price and buy_zone and price > buy_zone:
+        return ["Entry: pullback", "warn"]
+    return ["Entry: watch", "warn"]
+
+
 def _labels(rec):
     out = []
     country = (rec.get("country") or "").strip()
     if country and country.lower() not in {"usa", "us", "united states", "united states of america"}:
         out.append([country, "info"])
+    for label in (_quality_label(_cat_score(rec, "quality")), _growth_label(rec), _entry_label(rec)):
+        if label:
+            out.append(label)
     up = rec["valuation"]["upside_pct"]
     if up is not None:
         out.append([f"Upside {'+' if up >= 0 else ''}{up:.0f}%", "good" if up >= 20 else "warn" if up >= 0 else "bad"])
