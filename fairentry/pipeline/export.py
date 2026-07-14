@@ -69,14 +69,16 @@ def _map(rec, strategies, strategy_key):
                   "score": th.get("thesis_score", 50), "label": th.get("temporary_vs_structural", "—"),
                   "summary": th.get("summary", ""), "situation": situation,
                   "kill": th.get("kill_switch", ""), "provider": th.get("_provider", "—"),
+                  "reviewed_at": th.get("_reviewed_at"),
                   "news": news, "watchlist": watchlist}
     else:
         thesis = {"type": "recovery" if strategy_key == "deep_value" else "growth",
                   "score": 50, "label": "AI review pending",
                   "summary": "Scored on the numbers only — the AI deep-dive (news, "
                              "recovery thesis, and sources to follow) runs on a focused "
-                             "shortlist each build, so this name doesn't have one yet.",
-                  "situation": [], "kill": "", "provider": "—", "news": [], "watchlist": []}
+                             "weekly shortlist, so this name doesn't have one yet.",
+                  "situation": [], "kill": "", "provider": "—", "reviewed_at": None,
+                  "news": [], "watchlist": []}
     # Growth-entry plan (for Quality Growth names): fair-price cases + entry zone
     # + upside now vs at the entry zone + the buy-now/wait decision.
     growth_entry = None
@@ -157,19 +159,37 @@ def _map(rec, strategies, strategy_key):
     }
 
 
-def _apply_reasoning(cfg, secs, store, recs, settings, med, cap=30):
-    """Run the reasoning layer on the names most worth an AI read: every Buy /
-    near-Buy candidate — preliminary at or above the Watch line (minus a small
-    margin so borderline names the modifier could tip are included too), highest
-    score first, capped. Note: this covers clear Buys, which the old borderline-
-    only window (<= buy_b + 4) excluded.
+def _rescore_with_thesis(cfg, secs, store, rec, th, settings, med):
+    """Re-score one rec with its thesis modifier + preset weights, carrying the
+    thesis (and rec-attached extras) onto the new record. Shared by the live-LLM
+    path and the stored-thesis re-attach path so they behave identically."""
+    from ..reasoning.thesis import modifier_for
+    primary = rec["_primary"]
+    mod = modifier_for(th.get("thesis_score", 50), cfg.scoring.get("thesis_modifier", []))
+    s = dict(settings); s["thesis_modifier"] = mod
+    pw = _preset_weights(cfg, primary)
+    if pw:
+        s["weights"] = pw
+    r2 = score_ticker(cfg, secs[rec["ticker"]], store.metrics_for(rec["ticker"]), med, s)
+    r2["_primary"] = primary; r2["_strategies"] = rec["_strategies"]; r2["_thesis"] = th
+    r2["_sm_flow"] = rec.get("_sm_flow")   # preserve rec-attached extras across re-score
+    return r2, mod
 
-    Circuit-breaks if the provider is unavailable OR only the offline stub is
-    present (no DEEPSEEK_API_KEY / balance) — so we never stall the run, and never
-    attach a placeholder 'review' that isn't a real one (the name stays honestly
-    'not reviewed yet' instead)."""
-    from ..reasoning.thesis import build_thesis, modifier_for
-    bands = cfg.scoring.get("thesis_modifier", [])
+
+def _apply_reasoning(cfg, secs, store, recs, settings, med, cap=30):
+    """Run the reasoning layer (a real LLM call) on the names most worth an AI
+    read: every Buy / near-Buy candidate — preliminary at or above the Watch line
+    (minus a small margin so borderline names the modifier could tip are included
+    too), highest score first, capped. Covers clear Buys, which the old
+    borderline-only window (<= buy_b + 4) excluded.
+
+    Each successful thesis is persisted to the store (thesis_results) so later
+    deterministic builds can re-attach it. Circuit-breaks if the provider is
+    unavailable OR only the offline stub is present (no DEEPSEEK_API_KEY /
+    balance) — so we never stall the run, and never attach a placeholder 'review'
+    that isn't a real one (the name stays honestly 'not reviewed yet')."""
+    from ..reasoning.thesis import build_thesis
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     watch_b = cfg.verdict_bands["watch"]
     shortlist = sorted(
         [r for r in recs if r["preliminary"] >= watch_b - 3 and not r["vetoes"]],
@@ -185,17 +205,48 @@ def _apply_reasoning(cfg, secs, store, recs, settings, med, cap=30):
         if th.get("_provider") == "unavailable" or th.get("_stub"):
             provider_down = True   # no real provider — leave the rest 'not reviewed'
             continue
-        mod = modifier_for(th.get("thesis_score", 50), bands)
-        s = dict(settings); s["thesis_modifier"] = mod
-        pw = _preset_weights(cfg, primary)
-        if pw:
-            s["weights"] = pw
-        r2 = score_ticker(cfg, secs[r["ticker"]], store.metrics_for(r["ticker"]), med, s)
-        r2["_primary"] = primary; r2["_strategies"] = r["_strategies"]; r2["_thesis"] = th
-        r2["_sm_flow"] = r.get("_sm_flow")   # preserve rec-attached extras across re-score
+        th["_reviewed_at"] = now
+        r2, mod = _rescore_with_thesis(cfg, secs, store, r, th, settings, med)
         recs[recs.index(r)] = r2
+        store.set_thesis_result(r["ticker"], primary, th.get("thesis_score", 50),
+                                mod, json.dumps(th), th.get("_provider", "?"), now)
         used += 1
     return {"shortlist": len(shortlist), "reasoned": used, "provider_down": provider_down}
+
+
+def _review_age_days(run_at: str) -> float:
+    try:
+        dt = datetime.fromisoformat(run_at)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return (datetime.now(timezone.utc) - dt).total_seconds() / 86400
+    except Exception:
+        return 1e9
+
+
+def _attach_stored_theses(cfg, secs, store, recs, settings, med, max_age_days=21):
+    """Re-attach the most recent stored thesis to any rec that doesn't already
+    have a fresh one, so an AI review persists across the deterministic (non-
+    --reason) builds between weekly reasoning runs. Skips stale reviews."""
+    stored = store.latest_theses()
+    attached = 0
+    for i, rec in enumerate(recs):
+        if rec.get("_thesis"):
+            continue                                  # got a fresh LLM thesis this build
+        row = stored.get(rec["ticker"])
+        if not row or not row.get("thesis_json"):
+            continue
+        if _review_age_days(row["run_at"]) > max_age_days:
+            continue                                  # too old to trust — leave 'pending'
+        try:
+            th = json.loads(row["thesis_json"])
+        except Exception:
+            continue
+        th["_reviewed_at"] = row["run_at"]
+        r2, _ = _rescore_with_thesis(cfg, secs, store, rec, th, settings, med)
+        recs[i] = r2
+        attached += 1
+    return attached
 
 
 def _estimate_revisions(store, lookback_days=45):
@@ -271,6 +322,9 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
     reasoning_summary = {}
     if reason:
         reasoning_summary = _apply_reasoning(cfg, secs, store, recs, settings, med)
+    # Always re-attach the most recent stored thesis to names not freshly
+    # reasoned, so AI reads survive the deterministic builds between weekly runs.
+    reattached = _attach_stored_theses(cfg, secs, store, recs, settings, med)
 
     stocks = []
     for rec in recs:
@@ -279,11 +333,29 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
         stocks.append(_map(rec, rec["_strategies"], rec["_primary"]))
     store.commit()
 
+    # ---- AI-review status for the UI ----------------------------------------
+    reviewed = [r for r in recs if r.get("_thesis")]
+    review_dates = [r["_thesis"].get("_reviewed_at") for r in reviewed
+                    if r["_thesis"].get("_reviewed_at")]
+    ai_review = {
+        "ran_llm": bool(reason),                         # did this build call the LLM
+        "reasoned_now": reasoning_summary.get("reasoned", 0),
+        "shortlist": reasoning_summary.get("shortlist", 0),
+        "provider_down": reasoning_summary.get("provider_down", False),
+        "reattached": reattached,                        # from stored theses
+        "with_ai_read": len(reviewed),                   # names showing an AI read
+        "candidates": len(recs),
+        "last_review_at": max(review_dates) if review_dates else None,
+        "last_review_age_days": (round(min(_review_age_days(d) for d in review_dates), 1)
+                                 if review_dates else None),
+    }
+
     stocks.sort(key=lambda r: -(r["cats"] and sum(c["score"] for c in r["cats"]) or 0))
     return {"meta": {"generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                      "sectors": [s["id"] for s in cfg.enabled_sectors],
                      "config_version": cfg.scoring.get("version"), "count": len(stocks),
                      "reasoning": reasoning_summary,
+                     "ai_review": ai_review,
                      "presets": cfg.scoring.get("presets", {}),
                      "default_weights": {cid: c["weight"] for cid, c in cfg.categories.items()},
                      # everything the UI needs to reproduce the backend verdict

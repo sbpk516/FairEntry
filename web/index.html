@@ -55,6 +55,11 @@
   .brand .logo{ font-weight:800; font-size:19px; letter-spacing:-.02em; }
   .brand .logo b{ color:var(--accent); }
   .brand .tag{ font-size:11px; color:var(--ink-faint); font-family:var(--mono); }
+  .ai-status{ font-size:11px; font-family:var(--mono); padding:3px 9px; border-radius:999px;
+    border:1px solid var(--line); color:var(--ink-soft); white-space:nowrap; cursor:default; }
+  .ai-status.ok{ color:var(--buy-text); border-color:var(--buy); }
+  .ai-status.warn{ color:var(--watch-text); border-color:var(--watch); }
+  .ai-status:empty{ display:none; }
   .modes{ display:flex; background:var(--sunk); border-radius:10px; padding:3px; gap:2px; }
   .modes button{ border:none; background:transparent; color:var(--ink-soft); font-weight:600; font-size:13px;
     padding:7px 14px; border-radius:8px; }
@@ -288,6 +293,7 @@
       <button data-mode="deepvalue" class="on">Deep Value</button>
       <button data-mode="growth">Quality Growth Entry</button>
     </div>
+    <span class="ai-status" id="ai-status"></span>
     <span class="spacer"></span>
     <button class="iconbtn" id="tunebtn">⚙ Tune weights</button>
     <button class="iconbtn" id="themebtn">◐ Theme</button>
@@ -742,6 +748,37 @@ function updateChanged(){ var bl=baseline(), n=0;
   if(n===0){ note.style.display='none'; } else { note.style.display='block';
     note.innerHTML='<b>'+n+'</b> setting'+(n>1?'s':'')+' changed from the recommended model — the board reflects your model live.'; } }
 
+/* ---------- AI-review status (from meta.ai_review) ---------- */
+function agoText(days){
+  if(days==null) return '';
+  if(days<1) return 'today';
+  if(days<2) return 'yesterday';
+  if(days<14) return Math.round(days)+'d ago';
+  return Math.round(days/7)+'w ago';
+}
+function renderAiStatus(ai){
+  var el=$('#ai-status'); if(!el) return;
+  if(!ai){ el.textContent=''; return; }
+  var n=ai.with_ai_read||0, stale=(ai.last_review_age_days!=null && ai.last_review_age_days>10);
+  if(n>0){
+    var when=agoText(ai.last_review_age_days);
+    el.textContent='🧠 AI review · '+n+' name'+(n===1?'':'s')+(when?' · '+when:'');
+    el.className='ai-status'+(stale?' warn':' ok');
+    el.title='The AI thesis (news, recovery/growth read, sources to follow) ran on the top '
+      +n+' candidate'+(n===1?'':'s')+'. Refreshes weekly (Mon). '
+      +(stale?'This review is getting old — the weekly run may not have succeeded.':'');
+  } else if(ai.provider_down || (ai.ran_llm && !ai.reasoned_now)){
+    el.textContent='🧠 AI review unavailable';
+    el.className='ai-status warn';
+    el.title='The reasoning provider was unavailable (missing or exhausted DEEPSEEK_API_KEY). '
+      +'Names are scored on the numbers only.';
+  } else {
+    el.textContent='🧠 AI review · runs weekly';
+    el.className='ai-status';
+    el.title='The AI thesis runs on the weekly (Mon) build. Names show "not reviewed yet" until then.';
+  }
+}
+
 /* ---------- events ---------- */
 function openDrawer(sel){ $('#scrim').classList.add('on'); $(sel).classList.add('on'); }
 function closeAll(){ $('#scrim').classList.remove('on'); $('#detail').classList.remove('on'); $('#settings').classList.remove('on'); }
@@ -798,6 +835,7 @@ fetch('data/board.json', {cache:'no-store'}).then(function(r){ return r.json(); 
   $('#sector').innerHTML='<option value="all">All sectors</option>'+secs.map(function(x){return '<option>'+esc(x)+'</option>';}).join('');
   var tag=document.querySelector('.brand .tag');
   if(tag) tag.textContent='working name · '+(m.count||STOCKS.length)+' stocks · '+((m.generated_at||'').slice(0,10));
+  renderAiStatus(m.ai_review);
   renderBoard();
 }).catch(function(e){ $('#board').innerHTML='<div style="padding:30px;color:var(--ink-faint)">Could not load <code>data/board.json</code> — run <code>python scripts/build_all.py</code> first.</div>'; });
 })();

@@ -123,5 +123,31 @@ class Store:
             out.append(d)
         return out
 
+    # -- thesis (Layer B) results ---------------------------------------------
+    # Persist the LLM thesis so an AI review survives across deterministic builds
+    # (the reasoning layer only runs weekly; the twice-daily builds re-attach the
+    # stored thesis instead of reverting names to "not reviewed").
+    def set_thesis_result(self, ticker, strategy, thesis_score, modifier,
+                          thesis_json, provider, run_at=None):
+        self.con.execute(
+            "INSERT INTO thesis_results(ticker,strategy,thesis_score,modifier,thesis_json,provider,run_at) "
+            "VALUES(?,?,?,?,?,?,?) ON CONFLICT(ticker,strategy) DO UPDATE SET "
+            "thesis_score=excluded.thesis_score, modifier=excluded.modifier, "
+            "thesis_json=excluded.thesis_json, provider=excluded.provider, run_at=excluded.run_at",
+            (ticker, strategy, thesis_score, modifier, thesis_json, provider, run_at or _now()))
+
+    def latest_theses(self) -> dict:
+        """{ticker: {strategy, thesis_score, modifier, thesis_json, provider, run_at}}
+        — the most recently reasoned thesis per ticker."""
+        out: dict = {}
+        for r in self.con.execute(
+                "SELECT ticker,strategy,thesis_score,modifier,thesis_json,provider,run_at "
+                "FROM thesis_results"):
+            d = dict(r)
+            cur = out.get(r["ticker"])
+            if not cur or (d["run_at"] or "") > (cur["run_at"] or ""):
+                out[r["ticker"]] = d
+        return out
+
     def commit(self):
         self.con.commit()
