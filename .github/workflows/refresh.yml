@@ -61,10 +61,13 @@ jobs:
             fairentry-store-
       - name: Validate config
         run: python -m fairentry.config
-      # Run the LLM reasoning layer on the weekly Monday cron, or when the manual
-      # dispatch requests it. The twice-daily crons stay deterministic (no LLM cost).
+      # Run the LLM reasoning layer when: the weekly Monday cron fires, the manual
+      # dispatch requests it, OR a push commit message contains "[reason]" (a
+      # handy on-demand lever to force/seed an AI-review pass). The twice-daily
+      # crons and ordinary pushes stay deterministic (no LLM cost). Reasoned
+      # theses are persisted, so later deterministic builds keep showing them.
       - name: Build (refresh -> screen -> score -> export)
-        run: python scripts/build_all.py --refresh ${{ (github.event.inputs.reason == 'true' || github.event.schedule == '0 8 * * 1') && '--reason' || '' }}
+        run: python scripts/build_all.py --refresh ${{ (github.event.inputs.reason == 'true' || github.event.schedule == '0 8 * * 1' || contains(github.event.head_commit.message, '[reason]')) && '--reason' || '' }}
       - name: Upload master.db artifact (regenerable; not committed)
         uses: actions/upload-artifact@v4
         with:
