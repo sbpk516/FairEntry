@@ -1,7 +1,14 @@
 name: FairEntry — refresh + deploy
 
-# Twice daily (05:00 / 14:00 ET ≈ 09:00 / 18:00 UTC) + manual dispatch.
+# Twice daily (05:00 / 14:00 ET ≈ 09:00 / 18:00 UTC) + on push to main + manual.
 on:
+  push:
+    branches: [main]
+    # Skip re-deploying for changes that can't affect the built site.
+    paths-ignore:
+      - "docs/**"
+      - "tests/**"
+      - "README.md"
   schedule:
     - cron: "0 9 * * *"
     - cron: "0 18 * * *"
