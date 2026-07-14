@@ -118,9 +118,13 @@ def _map(rec, strategies, strategy_key):
         extra.append([f"{nsrc} sources to follow", "info"])
     labels = (_labels(rec) + extra)[:6]
 
+    action = _action(rec)
     return {
         "ticker": rec["ticker"], "company": rec["company"], "sector": rec["sector"],
         "strategy": strategies, "price": rec["price"],
+        "score": rec["score"], "verdict": rec["verdict"],
+        "base_score": rec["base_score"], "thesis_modifier": rec["thesis_modifier"],
+        "preliminary": rec["preliminary"], "coverage_pct": rec.get("coverage_pct"),
         "cats": [{"id": c["id"], "label": c["label"], "score": c["score"] or 0,
                   "items": [{"label": i["label"], "weight": i["weight"], "score": i["score"] or 0,
                              "actual": (rec.get("_sm_flow") if i.get("id") == "smart_money" and rec.get("_sm_flow")
@@ -128,6 +132,16 @@ def _map(rec, strategies, strategy_key):
                              "expected": i["expected"], "rule": i["rule"],
                              "source": i["source"] or "—"} for i in c["items"] if i["score"] is not None]}
                  for c in rec["categories"] if c["score"] is not None],
+        "categories": [{"id": c["id"], "label": c["label"], "score": c["score"] or 0,
+                        "weight": c["weight"], "coverage": c.get("coverage"),
+                        "items": [{"label": i["label"], "weight": i["weight"],
+                                   "score": i["score"] or 0,
+                                   "actual": "n/a" if i["actual"] is None else str(i["actual"]),
+                                   "expected": i["expected"], "rule": i["rule"],
+                                   "source": i["source"] or "-",
+                                   "fetched_at": i.get("fetched_at") or "-"}
+                                  for i in c["items"] if i["score"] is not None]}
+                       for c in rec["categories"] if c["score"] is not None],
         "thesis": thesis,
         "valuation": {"low": fv["fair_low"], "base": fv["fair_base"], "high": fv["fair_high"],
                       "upside": round(fv["upside_pct"]), "label": fv["valuation_label"],
@@ -135,7 +149,8 @@ def _map(rec, strategies, strategy_key):
         "growth_entry": growth_entry,
         "vetoes": [v["reason"] for v in rec["vetoes"]],
         "soft": [g["reason"] for g in rec["soft_gates"]],
-        "labels": labels, "action": _action(rec),
+        "soft_gates": [g["reason"] for g in rec["soft_gates"]],
+        "labels": labels, "action": action, "action_plan": action,
     }
 
 

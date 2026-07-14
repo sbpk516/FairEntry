@@ -311,7 +311,7 @@
   </div>
 
   <div class="board" id="board"></div>
-  <div class="note-banner">Sample data — illustrative only, not investment advice. Every number here is fictional and drills to a mock source.</div>
+  <div class="note-banner">For personal research only, not investment advice. Scores are generated from the latest exported data and should be verified before acting.</div>
 </div>
 
 <div class="scrim" id="scrim"></div>
@@ -369,7 +369,7 @@ var CATLBL={}; CATS.forEach(function(c){CATLBL[c[0]]=c[1];});
 var HUE=function(sc){ return sc>=67?'var(--buy)':sc>=45?'var(--watch)':'var(--avoid)'; };       // fills (bars/stripes)
 var HUET=function(sc){ return sc>=67?'var(--buy-text)':sc>=45?'var(--watch-text)':'var(--avoid-text)'; }; // readable text
 
-/* ---------- sample data ---------- */
+/* ---------- fallback data ---------- */
 /* item(label, weight, score, actual, expected, rule, source) — every score is justified:
    actual vs expected, the rule that maps them, and the source. Category score is the
    weighted average of its items; base score the weighted average of the 7 categories. */
@@ -468,7 +468,16 @@ function thesisMod(s){ var t=s.thesis.score, b=META.thesis_modifier;
 function softGates(s){ var g=[]; if(s.valuation&&s.valuation.label==='expensive')g.push('Valuation is expensive');
   var surv=s.cats.find(function(c){return c.id==='survival';}); if(surv&&surv.score<30)g.push('Survival score < 30');
   if(s.valuation.upside < S.target) g.push('Upside '+s.valuation.upside+'% < target '+S.target+'%'); return g; }
-function compute(s){ var base=baseScore(s), mod=thesisMod(s), prelim=base+mod-(s.riskPenalty||0);
+function settingsChanged(){ var changed=false;
+  CATS.forEach(function(c){ if(S.weights[c[0]]!==DEFAULTS.weights[c[0]]) changed=true; });
+  ['buyBand','watchBand','mos','target'].forEach(function(k){ if(S[k]!==DEFAULTS[k]) changed=true; });
+  return changed; }
+function compute(s){
+  if(!settingsChanged() && typeof s.preliminary==='number' && s.verdict){
+    return {base:s.base_score||0, mod:s.thesis_modifier||0, prelim:s.preliminary,
+      gates:s.soft||[], verdict:s.verdict, vetoed:!!(s.vetoes&&s.vetoes.length), backend:true};
+  }
+  var base=baseScore(s), mod=thesisMod(s), prelim=base+mod-(s.riskPenalty||0);
   var out={base:base, mod:mod, prelim:prelim, gates:[], vetoed:false};
   if(s.vetoes.length){ out.verdict='Avoid'; out.vetoed=true; return out; }
   out.gates=softGates(s);
@@ -537,7 +546,7 @@ function metricHTML(it){ return '<div class="metricbox"><div class="ea">'+
   '<span class="k">Actual</span><span class="v act">'+esc(it.actual)+'</span>'+
   '<span class="k">How</span><span class="v">'+esc(it.rule)+'</span></div>'+
   '<div class="scoreline"><span class="big" style="color:'+HUET(it.score)+'">'+it.score+'<span style="font-size:11px;color:var(--ink-faint);font-weight:600">/100</span></span>'+
-  pctbar(it.score)+'<span class="why">weight '+it.weight+' · source '+esc(it.source)+' · fetched 2026-07-12</span></div></div>'; }
+  pctbar(it.score)+'<span class="why">weight '+it.weight+' · source '+esc(it.source)+' · fetched '+esc(it.fetched_at||'unknown')+'</span></div></div>'; }
 function itemHTML(it){ return '<div class="item" data-exp><button class="row"><span class="chev">›</span><span class="rname">'+esc(it.label)+
   '</span><span class="rmeta"><span class="wchip tnum">w '+it.weight+'</span>'+pctbar(it.score)+'<span class="rscore tnum" style="color:'+HUET(it.score)+'">'+it.score+'</span></span></button>'+
   '<div class="detail"><div class="detail-in">'+metricHTML(it)+'</div></div></div>'; }
@@ -781,7 +790,7 @@ $('#s-body').addEventListener('click',function(e){ if(e.target.id==='resetbtn'){
 restoreS();          // restore the user's saved weights/thresholds
 renderSettings();
 fetch('data/board.json', {cache:'no-store'}).then(function(r){ return r.json(); }).then(function(b){
-  STOCKS = b.stocks || [];
+  STOCKS = (b.stocks || []).map(function(s){ if(s.categories){ s.cats=s.categories; } return s; });
   var m=b.meta||{}; META=m; PRESETS=m.presets||{};
   syncModelToMode();          // apply the mode's backend preset weights + bands
   renderSettings();           // now includes preset options

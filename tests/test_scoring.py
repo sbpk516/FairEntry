@@ -144,6 +144,23 @@ def test_upside_soft_gate_caps_buy_to_watch():
     assert r["verdict"] != "Buy"
 
 
+def test_missing_survival_data_caps_buy():
+    """Missing survival data is a soft gate, not a free pass to Buy."""
+    cfg = load_config()
+    weights = {"quality": 100, "survival": 0, "growth": 0, "valuation": 0,
+               "confirmation": 0, "catalysts": 0, "risk": 0}
+    r = score_ticker(cfg, _SEC,
+                     {"price": {"value": 100}, "target_price": {"value": 160},
+                      "gross_margin": {"value": 80}, "roic": {"value": 30},
+                      "oper_margin": {"value": 30}},
+                     {"Technology": {"gross_margin": 40, "roic": 10}},
+                     {"weights": weights})
+    assert r["preliminary"] >= cfg.verdict_bands["buy"]
+    assert r["verdict"] == "Watch"
+    assert any(g["id"] == "survival_floor" and "missing data" in g["reason"]
+               for g in r["soft_gates"])
+
+
 # ---- multi-method fair value -------------------------------------------------
 
 def test_fair_value_blends_multiple_methods():

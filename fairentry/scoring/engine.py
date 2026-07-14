@@ -37,6 +37,8 @@ def sector_medians(cfg, store) -> dict:
 
 
 def _safe_eval(expr, ns):
+    expr = expr.replace(" true", " True").replace(" false", " False")
+    expr = expr.replace("== true", "== True").replace("== false", "== False")
     try:
         return eval(expr, {"__builtins__": {}}, ns)  # noqa: S307 (own trusted config)
     except Exception:
@@ -97,8 +99,13 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
 
     vetoes = [{"id": v["id"], "reason": v["reason"]}
               for v in cfg.scoring.get("vetoes", []) if _safe_eval(v["when"], ns) is True]
-    gates = [{"id": g["id"], "reason": g["reason"]}
-             for g in cfg.scoring.get("soft_gates", []) if _safe_eval(g["when"], ns) is True]
+    gates = []
+    for g in cfg.scoring.get("soft_gates", []):
+        fired = _safe_eval(g["when"], ns)
+        if fired is True:
+            gates.append({"id": g["id"], "reason": g["reason"]})
+        elif fired is None:
+            gates.append({"id": g["id"], "reason": f"{g['reason']} (missing data)"})
 
     buy_b, watch_b = cfg.verdict_bands["buy"], cfg.verdict_bands["watch"]
     if vetoes:
