@@ -476,17 +476,35 @@ function thesisMod(s){ var t=s.thesis.score, b=META.thesis_modifier;
   if(b&&b.length){ var mod=0; b.slice().sort(function(x,y){return y.min-x.min;}).some(function(band){
     if(t>=band.min){ mod=band.mod; return true; } return false; }); return mod; }
   return t>=80?6:t>=65?3:t>=50?0:t>=35?-5:-10; }
-function softGates(s){ var g=[]; if(s.valuation&&s.valuation.label==='expensive')g.push('Valuation is expensive');
-  var surv=s.cats.find(function(c){return c.id==='survival';}); if(surv&&surv.score<30)g.push('Survival score < 30');
-  if(s.valuation.upside < S.target) g.push('Upside '+s.valuation.upside+'% < target '+S.target+'%'); return g; }
-function settingsChanged(){ var changed=false;
-  CATS.forEach(function(c){ if(S.weights[c[0]]!==DEFAULTS.weights[c[0]]) changed=true; });
-  ['buyBand','watchBand','mos','target'].forEach(function(k){ if(S[k]!==DEFAULTS[k]) changed=true; });
-  return changed; }
+// Mirror the backend soft-gates (engine.score_ticker): expensive, survival<30,
+// no-confirmation<35, upside<target — INCLUDING the backend's "missing data"
+// behaviour, where a category with no scored items (absent from s.cats because
+// the exporter drops null-score categories) caps a Buy just like a low score.
+function softGates(s){ var g=[];
+  if(s.valuation&&s.valuation.label==='expensive') g.push('Valuation is expensive');
+  var surv=s.cats.find(function(c){return c.id==='survival';});
+  if(!surv) g.push('Survival score below floor (missing data)');
+  else if(surv.score<30) g.push('Survival score below floor');
+  var conf=s.cats.find(function(c){return c.id==='confirmation';});
+  if(!conf) g.push('No market confirmation (missing data)');
+  else if(conf.score<35) g.push('No market confirmation');
+  if(s.valuation.upside < S.target) g.push('Upside '+s.valuation.upside+'% < target '+S.target+'%');
+  return g; }
+// Has the USER moved the model off its recommended baseline? Compare against the
+// mode's preset (via the userTuned/userBands flags), NOT DEFAULTS — because
+// syncModelToMode() loads the mode's preset weights, which legitimately differ
+// from DEFAULTS. Comparing to DEFAULTS made this always-true, which disabled the
+// backend fast-path below and let the client's recompute diverge from the stored
+// verdict (e.g. show Buy where the backend gated to Watch).
+function settingsChanged(){
+  return !!(S.userTuned || S.userBands
+            || S.mos !== DEFAULTS.mos || S.target !== DEFAULTS.target); }
 function compute(s){
   if(!settingsChanged() && typeof s.preliminary==='number' && s.verdict){
+    var vetoed=!!(s.vetoes&&s.vetoes.length);
+    var capped=(s.verdict==='Watch' && s.preliminary>=S.buyBand && !vetoed);  // would-be Buy, gated
     return {base:s.base_score||0, mod:s.thesis_modifier||0, prelim:s.preliminary,
-      gates:s.soft||[], verdict:s.verdict, vetoed:!!(s.vetoes&&s.vetoes.length), backend:true};
+      gates:s.soft||[], verdict:s.verdict, capped:capped, vetoed:vetoed, backend:true};
   }
   var base=baseScore(s), mod=thesisMod(s), prelim=base+mod-(s.riskPenalty||0);
   var out={base:base, mod:mod, prelim:prelim, gates:[], vetoed:false};
