@@ -117,6 +117,7 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
 
     return {
         "ticker": sec["ticker"], "company": sec["company"], "sector": sec["sector"],
+        "country": sec.get("country"),
         "price": flat.get("price"),
         "base_score": base, "thesis_modifier": modifier, "preliminary": preliminary,
         "score": round(preliminary), "verdict": verdict,

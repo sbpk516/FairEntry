@@ -7,6 +7,7 @@ from fairentry.config import load_config
 from fairentry.scoring.rules import apply_rule
 from fairentry.scoring.engine import score_ticker
 from fairentry.scoring.fair_value import fair_value
+from fairentry.pipeline.export import _labels
 
 _SEC = {"ticker": "T", "company": "Test", "sector": "Technology"}
 _SETTINGS = {"margin_of_safety_pct": 15, "target_upside_pct": 30}
@@ -66,6 +67,31 @@ def test_reproducible():
     assert r1["preliminary"] == r2["preliminary"]
     assert r1["verdict"] == r2["verdict"]
     assert r1["base_score"] > 0
+
+
+def test_score_preserves_country():
+    cfg = load_config()
+    sec = {"ticker": "T", "company": "Test", "sector": "Technology", "country": "Taiwan"}
+    metrics = {"price": {"value": 100, "source": "x", "fetched_at": "2026-07-12"},
+               "target_price": {"value": 130, "source": "x", "fetched_at": "2026-07-12"},
+               "gross_margin": {"value": 50, "source": "x", "fetched_at": "2026-07-12"}}
+    r = score_ticker(cfg, sec, metrics, {"Technology": {"gross_margin": 40}},
+                     {"margin_of_safety_pct": 15, "target_upside_pct": 30})
+    assert r["country"] == "Taiwan"
+
+
+def test_non_usa_country_is_tile_label():
+    rec = {"country": "Taiwan",
+           "valuation": {"upside_pct": 30, "valuation_label": "cheap"},
+           "vetoes": []}
+    assert _labels(rec)[0] == ["Taiwan", "info"]
+
+
+def test_usa_country_is_not_tile_label():
+    rec = {"country": "USA",
+           "valuation": {"upside_pct": 30, "valuation_label": "cheap"},
+           "vetoes": []}
+    assert ["USA", "info"] not in _labels(rec)
 
 
 # ---- veto / soft-gate firing -------------------------------------------------

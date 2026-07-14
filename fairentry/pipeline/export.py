@@ -23,6 +23,9 @@ def _preset_weights(cfg, strategy_key):
 
 def _labels(rec):
     out = []
+    country = (rec.get("country") or "").strip()
+    if country and country.lower() not in {"usa", "us", "united states", "united states of america"}:
+        out.append([country, "info"])
     up = rec["valuation"]["upside_pct"]
     if up is not None:
         out.append([f"Upside {'+' if up >= 0 else ''}{up:.0f}%", "good" if up >= 20 else "warn" if up >= 0 else "bad"])
@@ -121,7 +124,7 @@ def _map(rec, strategies, strategy_key):
     action = _action(rec)
     return {
         "ticker": rec["ticker"], "company": rec["company"], "sector": rec["sector"],
-        "strategy": strategies, "price": rec["price"],
+        "country": rec.get("country"), "strategy": strategies, "price": rec["price"],
         "score": rec["score"], "verdict": rec["verdict"],
         "base_score": rec["base_score"], "thesis_modifier": rec["thesis_modifier"],
         "preliminary": rec["preliminary"], "coverage_pct": rec.get("coverage_pct"),
