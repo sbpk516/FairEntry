@@ -1,0 +1,100 @@
+import sys
+import tempfile
+from datetime import date, timedelta
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from fairentry.config import load_config
+from fairentry.store import Store
+from fairentry.backtest.seed import snapshots_for, _ma
+from fairentry.backtest.harness import run_rolling
+
+
+# ---- pure snapshot derivation ------------------------------------------------
+
+def test_ma():
+    assert _ma([1, 2, 3, 4], 2) == 3.5
+    assert _ma([1, 2], 5) is None
+
+
+def test_snapshots_scale_ratios_with_price():
+    closes = [("2024-01-01", 50.0), ("2024-01-08", 100.0)]
+    # price_now = 100, fwd_pe now = 20 -> at price 50 it should be ~10
+    consts, per = snapshots_for(closes, price_now=100.0,
+                                fundamentals={"fwd_pe": {"value": 20}, "gross_margin": {"value": 55}})
+    d0 = dict(per)["2024-01-01"]
+    d1 = dict(per)["2024-01-08"]
+    assert abs(d0["fwd_pe"] - 10.0) < 0.01      # halved with price
+    assert abs(d1["fwd_pe"] - 20.0) < 0.01
+    assert consts["gross_margin"] == 55          # fundamentals held constant
+
+
+# ---- rolling backtest end to end (synthetic, no network) --------------------
+
+def _weekly_dates(n, start=date(2023, 1, 2)):
+    return [(start + timedelta(weeks=i)).isoformat() for i in range(n)]
+
+
+def _seed(store, ticker, sector, closes_dates, fundamentals):
+    price_now = closes_dates[-1][1]
+    consts, per = snapshots_for(closes_dates, price_now, fundamentals)
+    store.upsert_security(ticker, ticker, sector)
+    earliest = per[0][0]
+    for fid, v in consts.items():
+        store.set_metric(ticker, fid, v, "seed_const", earliest)
+    for d, snap in per:
+        for fid, v in snap.items():
+            store.set_metric(ticker, fid, v, "seed_hist", d)
+
+
+def _fund(**kw):
+    return {k: {"value": v} for k, v in kw.items()}
+
+
+def test_rolling_backtest_detects_buy_alpha():
+    """A synthetic world where cheap/quality names rise and weak names fall:
+    the Buy bucket must show higher benchmark-relative return than Avoid, and
+    the ordering should be monotonic. This exercises seed -> as-of scoring ->
+    forward return -> cross-sectional alpha end to end."""
+    cfg = load_config()
+    weeks = 60
+    dts = _weekly_dates(weeks)
+    db = tempfile.mktemp(suffix=".db")
+    store = Store(db)
+
+    WIN = _fund(gross_margin=70, oper_margin=35, roic=30, debt_eq=0.2, current_ratio=3.2,
+                altman_z=8, rev_growth_qoq=25, eps_growth_next_y=30, fwd_pe=12, ps_ratio=2,
+                pb_ratio=2, pfcf_ratio=10, target_price=200, analyst_recom=1.3,
+                red_flags_score=100, red_flags_critical=0, short_float=3, beta=1.0)
+    LOSE = _fund(gross_margin=15, oper_margin=-5, roic=-3, debt_eq=3.5, current_ratio=0.8,
+                 altman_z=1.0, rev_growth_qoq=-10, eps_growth_next_y=-8, fwd_pe=40, ps_ratio=9,
+                 pb_ratio=5, pfcf_ratio=35, target_price=40, analyst_recom=3.2,
+                 red_flags_score=50, red_flags_critical=1, short_float=25, beta=2.0)
+    MID = _fund(gross_margin=40, oper_margin=12, roic=11, debt_eq=1.0, current_ratio=1.6,
+                altman_z=3.5, rev_growth_qoq=5, eps_growth_next_y=8, fwd_pe=18, ps_ratio=3,
+                pb_ratio=2.5, pfcf_ratio=16, target_price=78, analyst_recom=2.3,
+                red_flags_score=85, red_flags_critical=0, short_float=8, beta=1.1)
+
+    for i in range(12):   # winners: cheap + quality, price rises ~1.2%/wk
+        closes = [(dts[w], round(50 * (1.012 ** w), 4)) for w in range(weeks)]
+        _seed(store, f"WIN{i}", "Technology", closes, WIN)
+    for i in range(12):   # losers: weak + expensive, price falls ~1.2%/wk
+        closes = [(dts[w], round(100 * (0.988 ** w), 4)) for w in range(weeks)]
+        _seed(store, f"LOSE{i}", "Technology", closes, LOSE)
+    for i in range(8):    # middle: flat, moderate
+        closes = [(dts[w], round(70 + (1 if w % 2 else -1), 4)) for w in range(weeks)]
+        _seed(store, f"MID{i}", "Technology", closes, MID)
+    store.commit()
+
+    res = run_rolling(store, cfg, hold_days=30, step_days=14, min_names=20)
+    store.close()
+
+    assert res["ok"], res
+    assert res["cohorts"] >= 3
+    bv = res["by_verdict"]
+    assert "Buy" in bv and "Avoid" in bv, bv
+    # Buys must beat Avoids on benchmark-relative return, with a positive spread
+    assert bv["Buy"]["mean_alpha_pct"] > bv["Avoid"]["mean_alpha_pct"]
+    assert res["buy_minus_avoid_pct"] > 0
+    assert bv["Buy"]["hit_rate_pct"] > bv["Avoid"]["hit_rate_pct"]
