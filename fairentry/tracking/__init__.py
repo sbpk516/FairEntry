@@ -8,6 +8,7 @@ score_results (deterministic verdict — reproducible), writes the recommendatio
 """
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 
 _RANK = {"Buy": 0, "Watch": 1, "Avoid": 2}
@@ -20,14 +21,32 @@ def _now():
 
 def record(store, board: dict) -> dict:
     now = _now()
-    alerts, opened, closed = [], 0, 0
+    signal_date = now[:10]
+    alerts, opened, closed, signals = [], 0, 0, 0
     price_by = {s["ticker"]: s.get("price") for s in board.get("stocks", [])}
     action_by = {s["ticker"]: s.get("action", {}).get("action", "") for s in board.get("stocks", [])}
+    board_by = {s["ticker"]: s for s in board.get("stocks", [])}
 
     for tkr in price_by:
         for r in store.con.execute(
                 "SELECT strategy, verdict, preliminary FROM score_results WHERE ticker=?", (tkr,)):
             strat, verdict, score = r["strategy"], r["verdict"], r["preliminary"]
+            stock = board_by.get(tkr, {})
+            store.con.execute(
+                "INSERT INTO signal_events("
+                "signal_date,run_at,ticker,strategy,company,sector,country,price,score,verdict,action,"
+                "labels_json,gates_json,vetoes_json,trace_json) "
+                "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
+                "ON CONFLICT(signal_date,ticker,strategy) DO UPDATE SET "
+                "run_at=excluded.run_at, company=excluded.company, sector=excluded.sector, "
+                "country=excluded.country, price=excluded.price, score=excluded.score, "
+                "verdict=excluded.verdict, action=excluded.action, labels_json=excluded.labels_json, "
+                "gates_json=excluded.gates_json, vetoes_json=excluded.vetoes_json, trace_json=excluded.trace_json",
+                (signal_date, now, tkr, strat, stock.get("company"), stock.get("sector"),
+                 stock.get("country"), price_by.get(tkr), score, verdict, action_by.get(tkr, ""),
+                 json.dumps(stock.get("labels", [])), json.dumps(stock.get("soft_gates", [])),
+                 json.dumps(stock.get("vetoes", [])), json.dumps(stock)))
+            signals += 1
             prev = store.con.execute(
                 "SELECT verdict, score FROM recommendations WHERE ticker=? AND strategy=?",
                 (tkr, strat)).fetchone()
@@ -64,7 +83,7 @@ def record(store, board: dict) -> dict:
                 closed += 1
             break   # one strategy row per ticker is enough for tracking
     store.commit()
-    return {"tracked": len(price_by), "alerts": alerts, "opened": opened, "closed": closed}
+    return {"tracked": len(price_by), "signals": signals, "alerts": alerts, "opened": opened, "closed": closed}
 
 
 def open_positions(store) -> list[dict]:

@@ -12,9 +12,11 @@ for a first harness, refine once history is deep.
 from __future__ import annotations
 
 import statistics
-from datetime import date
+from datetime import date, timedelta
 
 from ..scoring.engine import sector_medians, medians_from, score_ticker
+
+DEFAULT_HORIZONS = {"1w": 7, "1m": 30, "3m": 90, "6m": 180, "12m": 365}
 
 
 def _dates(store) -> list[str]:
@@ -42,12 +44,95 @@ def _price_on(store, ticker, asof):
     return r["value_num"] if r else None
 
 
+def _price_on_or_after(store, ticker, target_date):
+    r = store.con.execute(
+        "SELECT value_num, substr(fetched_at,1,10) d FROM metrics_history "
+        "WHERE ticker=? AND field_id='price' AND substr(fetched_at,1,10)>=? "
+        "ORDER BY fetched_at ASC LIMIT 1", (ticker, target_date)).fetchone()
+    return (r["value_num"], r["d"]) if r else (None, None)
+
+
+def _signal_count(store):
+    try:
+        r = store.con.execute("SELECT COUNT(*) n FROM signal_events").fetchone()
+        return r["n"] if r else 0
+    except Exception:
+        return 0
+
+
 def _days(a, b):
     return (date.fromisoformat(b) - date.fromisoformat(a)).days
 
 
+def _summarize_returns(rets):
+    return {"n": len(rets),
+            "avg_return_pct": round(statistics.mean(rets), 2),
+            "median_return_pct": round(statistics.median(rets), 2),
+            "hit_rate_pct": round(sum(1 for r in rets if r > 0) / len(rets) * 100, 1)}
+
+
+def _run_signal_backtest(store, horizons):
+    rows = [dict(r) for r in store.con.execute(
+        "SELECT * FROM signal_events WHERE verdict IN ('Buy','Watch') "
+        "ORDER BY signal_date, ticker, strategy")]
+    if not rows:
+        return {"ok": False, "reason": "no Buy/Watch signal events recorded yet. "
+                "Run the daily pipeline to start the prospective ledger."}
+
+    matured: dict[str, list[dict]] = {h: [] for h in horizons}
+    for row in rows:
+        p0 = row.get("price")
+        if not p0 or p0 <= 0:
+            continue
+        start = date.fromisoformat(row["signal_date"])
+        for h, days in horizons.items():
+            target = (start + timedelta(days=days)).isoformat()
+            p1, exit_date = _price_on_or_after(store, row["ticker"], target)
+            if p1 and p1 > 0:
+                rec = dict(row)
+                rec["exit_date"] = exit_date
+                rec["return_pct"] = (p1 / p0 - 1) * 100
+                matured[h].append(rec)
+
+    by_horizon = {}
+    for h, recs in matured.items():
+        if not recs:
+            continue
+        by_verdict = {}
+        by_strategy = {}
+        for key, bucket in (("verdict", by_verdict), ("strategy", by_strategy)):
+            vals = {}
+            for r in recs:
+                vals.setdefault(r[key], []).append(r["return_pct"])
+            bucket.update({k: _summarize_returns(v) for k, v in vals.items() if v})
+        by_horizon[h] = {"signals": len(recs), "by_verdict": by_verdict,
+                         "by_strategy": by_strategy,
+                         "top": sorted(
+                             [{"ticker": r["ticker"], "strategy": r["strategy"],
+                               "verdict": r["verdict"], "return_pct": round(r["return_pct"], 2)}
+                              for r in recs], key=lambda x: -x["return_pct"])[:10],
+                         "bottom": sorted(
+                             [{"ticker": r["ticker"], "strategy": r["strategy"],
+                               "verdict": r["verdict"], "return_pct": round(r["return_pct"], 2)}
+                              for r in recs], key=lambda x: x["return_pct"])[:10]}
+
+    if not by_horizon:
+        earliest = rows[0]["signal_date"]
+        latest_price_date = _dates(store)[-1] if _dates(store) else "n/a"
+        return {"ok": False, "signals": len(rows), "entry": earliest,
+                "exit": latest_price_date,
+                "reason": "signal ledger is recording, but no signal has reached "
+                          "the shortest forward horizon yet."}
+
+    return {"ok": True, "mode": "signal_events", "signals": len(rows),
+            "horizons": by_horizon}
+
+
 def run(store, cfg, min_days: int = 14, settings=None) -> dict:
     settings = settings or {"margin_of_safety_pct": 15, "target_upside_pct": 30}
+    if _signal_count(store):
+        return _run_signal_backtest(store, DEFAULT_HORIZONS)
+
     dates = _dates(store)
     if len(dates) < 2:
         return {"ok": False, "reason": f"insufficient history: {len(dates)} snapshot date(s). "
@@ -73,9 +158,9 @@ def run(store, cfg, min_days: int = 14, settings=None) -> dict:
     summary = {}
     for v, rets in buckets.items():
         if rets:
-            summary[v] = {"n": len(rets), "avg_return_pct": round(statistics.mean(rets), 2),
-                          "hit_rate_pct": round(sum(1 for r in rets if r > 0) / len(rets) * 100, 1)}
-    return {"ok": True, "entry": entry, "exit": exit_, "span_days": span, "by_verdict": summary}
+            summary[v] = _summarize_returns(rets)
+    return {"ok": True, "mode": "snapshot_replay", "entry": entry, "exit": exit_,
+            "span_days": span, "by_verdict": summary}
 
 
 # ---------------------------------------------------------------------------

@@ -15,9 +15,11 @@ cp .env.example .env          # add FINVIZ_API_KEY (+ FINNHUB / DEEPSEEK later)
 python scripts/refresh.py             # pull the universe into data/fairentry.db
 python scripts/build_all.py           # screen -> score -> export web/data/board.json
 python scripts/build_all.py --refresh --reason   # full run incl. LLM reasoning
+python scripts/backtest.py            # prospective signal backtest once signals mature
 
 # view the app
 cd web && python -m http.server 8795   # open http://localhost:8795
+# portfolio tracker: http://localhost:8795/portfolio.html
 ```
 
 ## How it works
@@ -41,7 +43,9 @@ config/*.yaml → catalog refresh (adapters) → SQLite store
 
 Deterministic core (data → store → screen → score → UI) is complete and runs on
 real data. The DeepSeek reasoning layer is wired and activates when the account
-has balance. SEC/insider/news enrichment adapters port from BagHunter v1 next.
+has balance. Builds now record a point-in-time signal ledger for prospective
+backtesting, and the web app includes a browser-local dummy portfolio tracker at
+`web/portfolio.html`. SEC/insider/news enrichment adapters port from BagHunter v1 next.
 
 See `docs/IMPLEMENTATION_PLAN.md` for the full plan and traceability matrix, and
 `docs/methodology.md` (generated from config) for the live scoring model.

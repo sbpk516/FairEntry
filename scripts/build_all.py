@@ -53,11 +53,13 @@ def main():
         from fairentry.tracking import record as track_record
         track = track_record(store, board)
         board["meta"]["tracking"] = {"alerts": len(track["alerts"]),
-                                     "opened": track["opened"], "closed": track["closed"]}
+                                     "opened": track["opened"], "closed": track["closed"],
+                                     "signals": track.get("signals", 0)}
         path = write_board(board)
     if board["meta"].get("reasoning"):
         print("Reasoning:", board["meta"]["reasoning"])
-    print(f"Tracking: {track['tracked']} tracked, {track['opened']} paper positions opened, "
+    print(f"Tracking: {track['tracked']} tracked, {track.get('signals', 0)} signal snapshots, "
+          f"{track['opened']} paper positions opened, "
           f"{track['closed']} closed, {len(track['alerts'])} degradation alert(s)")
     for a in track["alerts"][:8]:
         print(f"  ALERT {a['ticker']} ({a['strategy']}): {a['from']} -> {a['to']} "

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FairEntry Portfolio</title>
+<style>
+  :root{
+    --bg:#eef1f6; --panel:#fff; --panel-2:#f4f6fb; --sunk:#e8ecf4;
+    --ink:#171b23; --ink-soft:#4a5262; --ink-faint:#657083;
+    --line:#dde2ec; --line-soft:#e9edf4; --accent:#4a5ee0; --accent-soft:#e7eafd;
+    --buy:#1f9d55; --buy-bg:#e2f4e9; --buy-text:#0f6e3a;
+    --watch:#b07d13; --watch-bg:#f7eed6; --watch-text:#835d10;
+    --avoid:#cf3a54; --avoid-bg:#fbe4e8; --avoid-text:#b81d39;
+    --mono:ui-monospace,"Cascadia Code","JetBrains Mono","SF Mono",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){ :root{
+    --bg:#0d1016; --panel:#161b23; --panel-2:#1b212b; --sunk:#11151c;
+    --ink:#e7ebf2; --ink-soft:#b3bccb; --ink-faint:#8b95a8;
+    --line:#28303c; --line-soft:#1f2630; --accent:#8496ff; --accent-soft:#1c2440;
+    --buy:#43c47a; --buy-bg:#11291b; --buy-text:#5ad78d;
+    --watch:#e0ad42; --watch-bg:#2a2410; --watch-text:#eeba55;
+    --avoid:#eb6a80; --avoid-bg:#2c1620; --avoid-text:#f38ba0;
+  }}
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px}
+  a{color:inherit;text-decoration:none}
+  button,input,select,textarea{font:inherit}
+  .topbar{position:sticky;top:0;z-index:10;background:var(--panel);border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:14px;padding:12px 20px;flex-wrap:wrap}
+  .logo{font-weight:800;font-size:19px}.logo b{color:var(--accent)}.tag{font-family:var(--mono);font-size:11px;color:var(--ink-faint)}
+  .spacer{flex:1}.btn{border:1px solid var(--line);background:var(--panel);color:var(--ink-soft);border-radius:9px;
+    padding:8px 12px;font-size:13px;font-weight:700;cursor:pointer}.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .wrap{padding:18px 20px 56px;max-width:1280px;margin:0 auto}
+  .summary{display:grid;grid-template-columns:repeat(5,minmax(140px,1fr));gap:12px;margin-bottom:16px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 14px}
+  .stat .k{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-faint);font-weight:800}
+  .stat .v{font-family:var(--mono);font-size:22px;font-weight:800;margin-top:3px}.pos{color:var(--buy-text)}.neg{color:var(--avoid-text)}
+  .grid{display:grid;grid-template-columns:360px 1fr;gap:16px;align-items:start}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .head{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+  .head h2{margin:0;font-size:16px}.body{padding:15px 16px}
+  .form{display:grid;gap:11px}.field label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-faint);font-weight:800;margin-bottom:5px}
+  .field input,.field select,.field textarea{width:100%;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);border-radius:9px;padding:9px 10px}
+  .twocol{display:grid;grid-template-columns:1fr 1fr;gap:10px}.hint{font-size:12px;color:var(--ink-faint);line-height:1.45}
+  table{width:100%;border-collapse:collapse}th,td{padding:10px 9px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+  th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-faint)}
+  td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}.ticker{font-family:var(--mono);font-weight:800}
+  .co{font-size:12px;color:var(--ink-faint);margin-top:2px}.pill{display:inline-block;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:800}
+  .pill.buy{background:var(--buy-bg);color:var(--buy-text)}.pill.watch{background:var(--watch-bg);color:var(--watch-text)}.pill.avoid{background:var(--avoid-bg);color:var(--avoid-text)}
+  .labs{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}.lab{font-size:10.5px;padding:2px 7px;border-radius:6px;background:var(--panel-2);color:var(--ink-soft)}
+  .lab.good{background:var(--buy-bg);color:var(--buy-text)}.lab.warn{background:var(--watch-bg);color:var(--watch-text)}.lab.bad{background:var(--avoid-bg);color:var(--avoid-text)}.lab.info{background:var(--accent-soft);color:var(--accent)}
+  .rowbtn{border:1px solid var(--line);background:var(--panel-2);color:var(--ink-soft);border-radius:7px;padding:5px 8px;font-size:12px;cursor:pointer;margin-left:4px}
+  .empty{padding:36px;text-align:center;color:var(--ink-faint)}
+  @media(max-width:860px){.grid{grid-template-columns:1fr}.summary{grid-template-columns:repeat(2,1fr)}.tablewrap{overflow-x:auto}table{min-width:860px}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="index.html" class="logo">Fair<b>Entry</b></a><span class="tag">dummy portfolio tracker</span>
+  <span class="spacer"></span>
+  <a class="btn" href="index.html">Board</a>
+</div>
+<main class="wrap">
+  <section class="summary" id="summary"></section>
+  <section class="grid">
+    <aside class="panel">
+      <div class="head"><h2 id="form-title">Add position</h2></div>
+      <div class="body">
+        <form class="form" id="pos-form">
+          <input type="hidden" id="edit-id">
+          <div class="field">
+            <label for="ticker">Ticker</label>
+            <input id="ticker" list="tickers" placeholder="TSM" autocomplete="off" required>
+            <datalist id="tickers"></datalist>
+          </div>
+          <div class="twocol">
+            <div class="field"><label for="shares">Shares</label><input id="shares" type="number" min="0" step="0.0001" required></div>
+            <div class="field"><label for="entry">Entry price</label><input id="entry" type="number" min="0" step="0.01" required></div>
+          </div>
+          <div class="twocol">
+            <div class="field"><label for="date">Entry date</label><input id="date" type="date"></div>
+            <div class="field"><label for="strategy">Strategy</label><select id="strategy"><option>quality_growth</option><option>deep_value</option><option>other</option></select></div>
+          </div>
+          <div class="field"><label for="notes">Notes</label><textarea id="notes" rows="3" placeholder="Why you added it, what would invalidate it"></textarea></div>
+          <button class="btn primary" type="submit">Save position</button>
+          <button class="btn" type="button" id="reset">Clear form</button>
+          <div class="hint">This is a dummy tracker stored in this browser only. It uses the latest FairEntry export for current prices.</div>
+        </form>
+      </div>
+    </aside>
+    <section class="panel">
+      <div class="head"><h2>Open positions</h2><span class="spacer"></span><button class="btn" id="export">Export JSON</button></div>
+      <div class="tablewrap"><table><thead><tr>
+        <th>Stock</th><th>Status</th><th class="num">Shares</th><th class="num">Entry</th><th class="num">Current</th>
+        <th class="num">Cost</th><th class="num">Value</th><th class="num">P/L</th><th>Actions</th>
+      </tr></thead><tbody id="rows"></tbody></table></div>
+    </section>
+  </section>
+</main>
+<script>
+(function(){
+"use strict";
+var KEY="fairentry_dummy_portfolio_v1", BOARD=[], MAP={};
+var $=function(s,r){return (r||document).querySelector(s);};
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function money(x){return x==null||!isFinite(x)?"-":"$"+Number(x).toLocaleString(undefined,{maximumFractionDigits:2});}
+function pct(x){return x==null||!isFinite(x)?"-":(x>=0?"+":"")+x.toFixed(1)+"%";}
+function today(){return new Date().toISOString().slice(0,10);}
+function load(){try{return JSON.parse(localStorage.getItem(KEY)||"[]");}catch(e){return [];}}
+function save(xs){localStorage.setItem(KEY,JSON.stringify(xs));}
+function stock(t){return MAP[String(t||"").toUpperCase()];}
+function positionValue(p){
+  var s=stock(p.ticker), cur=s&&s.price!=null?Number(s.price):null, sh=Number(p.shares)||0, entry=Number(p.entry)||0;
+  var cost=sh*entry, val=cur==null?null:sh*cur, pl=val==null?null:val-cost, plp=cost?pl/cost*100:null;
+  return {stock:s,current:cur,shares:sh,entry:entry,cost:cost,value:val,pl:pl,plp:plp};
+}
+function render(){
+  var xs=load(), totalCost=0,totalValue=0,known=0,winners=0;
+  xs.forEach(function(p){var v=positionValue(p); totalCost+=v.cost; if(v.value!=null){totalValue+=v.value; known++; if(v.pl>0)winners++;}});
+  var pl=totalValue-totalCost, plp=totalCost?pl/totalCost*100:0;
+  $("#summary").innerHTML=[
+    ["Positions",xs.length],["Cost",money(totalCost)],["Value",money(totalValue)],
+    ["P/L",'<span class="'+(pl>=0?'pos':'neg')+'">'+money(pl)+" / "+pct(plp)+"</span>"],
+    ["Winners",known?winners+" / "+known:"-"]
+  ].map(function(s){return '<div class="stat"><div class="k">'+s[0]+'</div><div class="v">'+s[1]+'</div></div>';}).join("");
+  var rows=$("#rows");
+  if(!xs.length){rows.innerHTML='<tr><td colspan="9"><div class="empty">No positions yet. Add a ticker on the left.</div></td></tr>';return;}
+  rows.innerHTML=xs.map(function(p){
+    var v=positionValue(p), s=v.stock, verdict=(s&&s.verdict||"n/a").toLowerCase();
+    var labs=(s&&s.labels||[]).slice(0,3).map(function(l){return '<span class="lab '+esc(l[1])+'">'+esc(l[0])+'</span>';}).join("");
+    return '<tr><td><div class="ticker">'+esc(p.ticker)+'</div><div class="co">'+esc(s&&s.company||p.notes||"Not on current board")+'</div><div class="labs">'+labs+'</div></td>'+
+      '<td><span class="pill '+esc(verdict)+'">'+esc(s&&s.verdict||"n/a")+'</span><div class="co">'+esc(p.strategy||"")+'</div></td>'+
+      '<td class="num">'+v.shares+'</td><td class="num">'+money(v.entry)+'</td><td class="num">'+money(v.current)+'</td>'+
+      '<td class="num">'+money(v.cost)+'</td><td class="num">'+money(v.value)+'</td>'+
+      '<td class="num '+(v.pl>=0?'pos':'neg')+'">'+money(v.pl)+'<div>'+pct(v.plp)+'</div></td>'+
+      '<td><button class="rowbtn" data-edit="'+esc(p.id)+'">Edit</button><button class="rowbtn" data-del="'+esc(p.id)+'">Delete</button></td></tr>';
+  }).join("");
+}
+function resetForm(){ $("#edit-id").value=""; $("#ticker").value=""; $("#shares").value=""; $("#entry").value=""; $("#date").value=today(); $("#strategy").value="quality_growth"; $("#notes").value=""; $("#form-title").textContent="Add position"; }
+function fillFromTicker(){var s=stock($("#ticker").value); if(s){ if(!$("#entry").value)$("#entry").value=s.price||""; $("#strategy").value=(s.strategy||[]).indexOf("deepvalue")>=0?"deep_value":"quality_growth"; }}
+$("#ticker").addEventListener("change",fillFromTicker);
+$("#pos-form").addEventListener("submit",function(e){
+  e.preventDefault(); var xs=load(), id=$("#edit-id").value||String(Date.now());
+  var p={id:id,ticker:$("#ticker").value.trim().toUpperCase(),shares:Number($("#shares").value),entry:Number($("#entry").value),
+    date:$("#date").value||today(),strategy:$("#strategy").value,notes:$("#notes").value.trim()};
+  xs=xs.filter(function(x){return x.id!==id;}); xs.push(p); save(xs); resetForm(); render();
+});
+$("#reset").addEventListener("click",resetForm);
+$("#rows").addEventListener("click",function(e){
+  var id=e.target.getAttribute("data-del"); if(id){save(load().filter(function(x){return x.id!==id;})); render(); return;}
+  id=e.target.getAttribute("data-edit"); if(id){var p=load().find(function(x){return x.id===id;}); if(!p)return;
+    $("#edit-id").value=p.id; $("#ticker").value=p.ticker; $("#shares").value=p.shares; $("#entry").value=p.entry; $("#date").value=p.date||today(); $("#strategy").value=p.strategy||"other"; $("#notes").value=p.notes||""; $("#form-title").textContent="Edit position";}
+});
+$("#export").addEventListener("click",function(){var blob=new Blob([JSON.stringify(load(),null,2)],{type:"application/json"}); var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="fairentry-portfolio.json"; a.click(); URL.revokeObjectURL(a.href);});
+fetch("data/board.json",{cache:"no-store"}).then(function(r){return r.json();}).then(function(b){
+  BOARD=b.stocks||[]; BOARD.forEach(function(s){MAP[s.ticker]=s;});
+  $("#tickers").innerHTML=BOARD.map(function(s){return '<option value="'+esc(s.ticker)+'">'+esc(s.company||"")+'</option>';}).join("");
+  resetForm(); render();
+}).catch(function(){resetForm(); render();});
+})();
+</script>
+</body>
+</html>

@@ -48,6 +48,20 @@ def _markdown_rolling(res):
 def _print_rolling(res):
     if not res["ok"]:
         print("Backtest not ready:", res["reason"])
+        if "signals" in res:
+            print(f"  recorded signals: {res['signals']}")
+        return
+    if res.get("mode") == "signal_events":
+        print(f"Prospective signal backtest ({res['signals']} recorded Buy/Watch signals)")
+        for h, d in res["horizons"].items():
+            print(f"\nHorizon {h}: {d['signals']} matured signals")
+            for v, s in d["by_verdict"].items():
+                print(f"  {v:6} n={s['n']:4} avg {s['avg_return_pct']:+.2f}% "
+                      f"median {s['median_return_pct']:+.2f}% hit {s['hit_rate_pct']}%")
+            for strat, s in d["by_strategy"].items():
+                print(f"  {strat:14} n={s['n']:4} avg {s['avg_return_pct']:+.2f}% "
+                      f"hit {s['hit_rate_pct']}%")
+        print(json.dumps(res, indent=1))
         return
     w = res["window"]
     print(f"Rolling backtest {w[0]} -> {w[1]}  ·  {res['cohorts']} cohorts  "
@@ -83,6 +97,18 @@ def main():
         _print_rolling(res)
     elif not res["ok"]:
         print("Backtest not ready:", res["reason"])
+        if "signals" in res:
+            print(f"  recorded signals: {res['signals']}")
+    elif res.get("mode") == "signal_events":
+        print(f"Prospective signal backtest ({res['signals']} recorded Buy/Watch signals)")
+        for h, d in res["horizons"].items():
+            print(f"\nHorizon {h}: {d['signals']} matured signals")
+            for v, s in d["by_verdict"].items():
+                print(f"  {v:6} n={s['n']:4} avg {s['avg_return_pct']:+.2f}% "
+                      f"median {s['median_return_pct']:+.2f}% hit {s['hit_rate_pct']}%")
+            for strat, s in d["by_strategy"].items():
+                print(f"  {strat:14} n={s['n']:4} avg {s['avg_return_pct']:+.2f}% "
+                      f"hit {s['hit_rate_pct']}%")
     else:
         print(f"Backtest {res['entry']} -> {res['exit']} ({res['span_days']}d)")
         for v, d in res["by_verdict"].items():

@@ -94,3 +94,26 @@ CREATE TABLE IF NOT EXISTS paper_portfolio (
   status      TEXT,
   notes       TEXT
 );
+
+-- prospective backtest ledger: one signal snapshot per ticker/strategy/day.
+-- Later backtests can join this to future metrics_history price snapshots.
+CREATE TABLE IF NOT EXISTS signal_events (
+  signal_date TEXT NOT NULL,
+  run_at      TEXT NOT NULL,
+  ticker      TEXT NOT NULL,
+  strategy    TEXT NOT NULL,
+  company     TEXT,
+  sector      TEXT,
+  country     TEXT,
+  price       REAL,
+  score       REAL,
+  verdict     TEXT,
+  action      TEXT,
+  labels_json TEXT,
+  gates_json  TEXT,
+  vetoes_json TEXT,
+  trace_json  TEXT,
+  PRIMARY KEY (signal_date, ticker, strategy)
+);
+CREATE INDEX IF NOT EXISTS ix_signal_events_ticker ON signal_events(ticker, signal_date);
+CREATE INDEX IF NOT EXISTS ix_signal_events_verdict ON signal_events(signal_date, verdict, strategy);
