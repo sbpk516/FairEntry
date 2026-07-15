@@ -14,7 +14,7 @@ from __future__ import annotations
 import statistics
 from datetime import date
 
-from ..scoring.engine import sector_medians, score_ticker
+from ..scoring.engine import sector_medians, medians_from, score_ticker
 
 
 def _dates(store) -> list[str]:
@@ -122,7 +122,6 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
         if last_pick is None or _days(last_pick, d) >= step_days:
             entries.append(d); last_pick = d
 
-    medians = sector_medians(cfg, store)      # see module note on point-in-time
     secs = store.securities()
     alpha = {"Buy": [], "Watch": [], "Avoid": []}
     raw = {"Buy": [], "Watch": [], "Avoid": []}
@@ -131,16 +130,21 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
         exit_ = _first_exit(dates, entry, hold_days)
         if not exit_:
             continue
-        rows = []
+        # point-in-time sector medians: computed from each name's AS-OF metrics
+        # at the entry date (no look-ahead), not the current snapshot.
+        asof = {}
         for sec in secs:
             m = _asof_metrics(store, sec["ticker"], entry)
-            if "price" not in m:
-                continue
-            p0 = _price_on(store, sec["ticker"], entry)
-            p1 = _price_on(store, sec["ticker"], exit_)
+            if "price" in m:
+                asof[sec["ticker"]] = (sec, m)
+        med = medians_from(cfg, [(sec["sector"], m) for sec, m in asof.values()])
+        rows = []
+        for tkr, (sec, m) in asof.items():
+            p0 = _price_on(store, tkr, entry)
+            p1 = _price_on(store, tkr, exit_)
             if not (p0 and p1 and p0 > 0):
                 continue
-            rec = score_ticker(cfg, sec, m, medians, settings)
+            rec = score_ticker(cfg, sec, m, med, settings)
             rows.append((rec["verdict"], (p1 / p0 - 1) * 100))
         if len(rows) < min_names:
             continue

@@ -16,24 +16,37 @@ from .fair_value import fair_value
 
 
 # ---- sector medians (for sector_rel rules) --------------------------------
-def sector_medians(cfg, store) -> dict:
-    """{sector: {metric: median}} for sector_rel rules AND the valuation multiples
-    the multi-method fair value needs (peer P/E, P/S, P/B)."""
-    metrics_needed = {"fwd_pe", "ps_ratio", "pb_ratio", "pfcf_ratio"}
+def _median_metrics(cfg) -> set:
+    """Metrics that need a sector median: valuation multiples (peer P/E, P/S, P/B,
+    P/FCF for the multi-method fair value) plus any sector_rel rule metric."""
+    needed = {"fwd_pe", "ps_ratio", "pb_ratio", "pfcf_ratio"}
     for cat in cfg.categories.values():
         for it in cat["items"]:
             if it["rule"].get("type") == "sector_rel":
-                metrics_needed.add(it["metric"])
+                needed.add(it["metric"])
+    return needed
+
+
+def medians_from(cfg, pairs) -> dict:
+    """{sector: {metric: median}} from (sector, metrics) pairs. `metrics` values
+    may be raw numbers or {"value": ...} dicts. Use this to compute medians from
+    any snapshot — current OR point-in-time (as-of a past date, for backtesting)."""
+    needed = _median_metrics(cfg)
     by_sector: dict = {}
-    for sec in store.securities():
-        s, t = sec["sector"], sec["ticker"]
-        m = store.metrics_for(t)
-        for mid in metrics_needed:
-            v = m.get(mid, {}).get("value")
+    for sector, m in pairs:
+        for mid in needed:
+            v = m.get(mid, {})
+            v = v.get("value") if isinstance(v, dict) else v
             if isinstance(v, (int, float)):
-                by_sector.setdefault(s, {}).setdefault(mid, []).append(v)
+                by_sector.setdefault(sector, {}).setdefault(mid, []).append(v)
     return {s: {mid: statistics.median(vs) for mid, vs in d.items() if vs}
             for s, d in by_sector.items()}
+
+
+def sector_medians(cfg, store) -> dict:
+    """Sector medians from the CURRENT snapshot (live scoring)."""
+    return medians_from(cfg, ((sec["sector"], store.metrics_for(sec["ticker"]))
+                              for sec in store.securities()))
 
 
 def _safe_eval(expr, ns):
