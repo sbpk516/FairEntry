@@ -72,13 +72,13 @@ jobs:
           else
             echo "Using restored live store."
           fi
-      - name: Seed history from real prices (yfinance)
-        run: python scripts/seed_backtest.py --limit "$LIMIT"
+      - name: Seed history from real prices + SEC filings
+        run: python scripts/seed_backtest.py --sec-history --limit "$LIMIT"
       - name: Run rolling backtest -> summary
         run: |
           python scripts/backtest.py --db data/backtest.db --rolling \
             --hold "$HOLD" --step "$STEP" \
-            --md-out "$GITHUB_STEP_SUMMARY" --json | tee backtest_result.txt
+            --md-out "$GITHUB_STEP_SUMMARY" --json-out web/data/backtest.json --json | tee backtest_result.txt
       - name: Tune weights (regime-robust, downside-protected) -> summary
         run: |
           python scripts/tune_weights.py --db data/backtest.db \
@@ -93,4 +93,5 @@ jobs:
           path: |
             backtest_result.txt
             data/backtest.db
+            web/data/backtest.json
           retention-days: 14

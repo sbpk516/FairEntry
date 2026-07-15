@@ -68,6 +68,11 @@ jobs:
       # theses are persisted, so later deterministic builds keep showing them.
       - name: Build (refresh -> screen -> score -> export)
         run: python scripts/build_all.py --refresh ${{ (github.event.inputs.reason == 'true' || github.event.schedule == '0 8 * * 1' || contains(github.event.head_commit.message, '[reason]')) && '--reason' || '' }}
+      - name: Build backtest report for UI
+        run: |
+          python scripts/seed_backtest.py --sec-history --limit 150
+          python scripts/backtest.py --db data/backtest.db --rolling \
+            --hold 30 --step 7 --json-out web/data/backtest.json
       - name: Upload master.db artifact (regenerable; not committed)
         uses: actions/upload-artifact@v4
         with:
