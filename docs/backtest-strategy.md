@@ -54,10 +54,13 @@ Avoid          -1.09% α  42.1% hit
 The Buy filter reliably beats the average stock across 152 cohorts and three
 years. Buys are up ~59% of the time vs ~42% for Avoids.
 
-**Weight tuning:** a quality/growth tilt improves out-of-sample alpha at all hold
-windows. The *unprotected* tuner also cut `risk` 14→6.2 and `survival` 18→14.6 —
-rejected as single-regime overfit (all history is one recovery/bull market). We
-adopt the **downside-protected** version instead (see Decision log).
+**Weight tuning:** **no change adopted — current defaults kept.** An *unprotected*
+tuner found a quality/growth tilt that beat default out-of-sample (+2.25%), but it
+did so by cutting `risk` 14→6.2 and `survival` 18→14.6. When we re-ran with the
+downside guardrail (`risk`/`survival` pinned near default), the edge **vanished** —
+the tuned vector was marginally *worse* than default at every hold window
+(verdict: KEEP DEFAULT). Conclusion: the apparent gain was **taking more risk in a
+bull market**, not stock-selection skill. See Decision log.
 
 ---
 
@@ -66,21 +69,27 @@ adopt the **downside-protected** version instead (see Decision log).
 Newest first. Record every weight change: date, what changed, the evidence, and
 what would reverse it.
 
-### 2026-07-15 — Adopt a downside-protected quality/growth tilt
-- **Change:** default category weights re-tuned toward quality + growth, with
-  `risk`/`survival` **pinned within ±3 of their defaults** (guardrail).
-- **Evidence:** regime-robust tuner (`--holds 20,30,60 --folds 4 --reg 0.4
-  --protect risk,survival`) — tuned beat default on the held-out fold at every
-  hold window and did not weaken the worst-case regime.
-- **Why protected, not the raw tuner output:** the raw tuner cut risk/survival
-  hard, which shines in a bull tape but is untested in a drawdown. Our data
-  (2023–26) is one macro regime, so we keep downside weights near default.
-- **Adopted weights:** _(filled in when applied — see `config/scoring.yaml`)_
-- **What would reverse this:** the weekly backtest showing the tilt stops
-  beating default out-of-sample, or a drawdown period entering the history that
-  favors the defensive categories.
+### 2026-07-15 — Reviewed weight tuning → **kept defaults** (no change)
+- **Decision:** no change to `config/scoring.yaml`. The scoring weights remain the
+  original hand-set defaults.
+- **What we tested:** the regime-robust tuner, first unprotected, then with a
+  downside guardrail (`--holds 20,30,60 --folds 4 --reg 0.4 --protect
+  risk,survival --protect-band 3`).
+- **Finding:** unprotected, the tuner's tilt beat default out-of-sample by
+  ~+2.25% — but only by cutting `risk` (14→6.2) and `survival` (18→14.6). With
+  those categories protected, the tuned vector was *marginally worse* than
+  default at all three hold windows (h20 −0.21, h30 −0.29, h60 −0.23), so the
+  tuner returned **KEEP DEFAULT (no gain)**.
+- **Interpretation:** the apparent edge was **downside risk-taking in a bull
+  market**, not selection skill. Adopting it would have quietly reduced the
+  model's safety margin on the strength of a single macro regime. Guardrail did
+  its job.
+- **What would change this:** a repeated ADOPT from the *protected* tuner across
+  several weeks, or a real **drawdown** entering the seeded history — at which
+  point re-review the defensive weights *without* the guardrail, since that's the
+  regime we've been protecting against.
 
-_(Prior to this, weights were the original hand-set defaults.)_
+_(Weights unchanged since project start.)_
 
 ---
 
