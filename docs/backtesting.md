@@ -222,6 +222,13 @@ python scripts/seed_backtest.py --limit 150  # ~3 years of history from real pri
 python scripts/backtest.py --db data/backtest.db --rolling --hold 30 --step 7
 ```
 
+For a more practical free historical test, add SEC filing fundamentals:
+
+```bash
+python scripts/seed_backtest.py --sec-history --limit 150
+python scripts/backtest.py --db data/backtest.db --rolling --hold 30 --step 7
+```
+
 **What the seeder reconstructs accurately** (from the real price path):
 - the actual **price** each week,
 - **valuation ratios** (P/E, P/S, P/B, P/FCF) — they move with price, so we scale
@@ -229,17 +236,29 @@ python scripts/backtest.py --db data/backtest.db --rolling --hold 30 --step 7
 - **momentum/trend** (1-year performance, distance from moving averages) —
   computed directly from the price series.
 
-**What it holds constant at today's value** (we can't get their history for
-free): margins, growth rates, ROIC, debt, Altman-Z, analyst target, red flags.
+**What `--sec-history` reconstructs from SEC filing dates**:
+- gross/operating/profit margins,
+- current ratio, debt/equity, ROE, ROIC proxy,
+- revenue growth between filed periods,
+- share-count dilution,
+- market cap, P/S, P/B, and P/FCF where shares/cash-flow facts are available,
+- Altman-Z proxy using the facts filed by that date.
+
+**What it still holds constant or omits** because SEC does not provide it:
+analyst target, analyst recommendation, short float, beta, insider score,
+13F score, estimate revisions, and news sentiment.
 
 ---
 
 ## 9. Honest limitations (so you don't over-trust it)
 
-- **Seeded fundamentals are frozen at today's values.** So the seeded backtest
+- **Without `--sec-history`, seeded fundamentals are frozen at today's values.** So the seeded backtest
   tests **entry/valuation/timing** well, but won't catch a company whose
   *fundamentals* rotted *before* its price fell. (The live-accumulated history
   has no such issue — it's the price of not waiting.)
+- **With `--sec-history`, core fundamentals improve, but coverage is uneven.**
+  SEC facts are filing-based, concept names vary, and foreign issuers/ADRs can
+  be less complete. Missing fields are omitted rather than guessed.
 - **Survivorship bias.** A name that cratered and dropped out of the universe can
   silently vanish from a window, flattering the averages.
 - **Sector medians use the current snapshot** (a small look-ahead). Cheap to

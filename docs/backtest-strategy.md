@@ -121,11 +121,12 @@ _(Weights unchanged since project start.)_
 - **One macro regime.** All seeded history (2023–26) is a recovery/bull market.
   Blocked cross-validation guards against *sampling* overfit, not *macro-regime*
   overfit. **Revisit** the defensive weights once a real drawdown is in the data.
-- **Seeded fundamentals are frozen at today's values.** The seeded backtest is
-  valuation/momentum-accurate but can't catch fundamentals decaying before price.
-  As the *live* `metrics_history` deepens, cross-check with a live-history run
-  (`scripts/backtest.py --rolling` on `data/fairentry.db`), which has no such
-  limitation.
+- **Free historical fundamentals are partial.** Use
+  `python scripts/seed_backtest.py --sec-history` to reconstruct core filing
+  fundamentals from SEC companyfacts by filing date. It improves the old
+  price-only seed materially, but analyst targets/recommendations, short float,
+  beta, news, and some insider/institutional signals are still current, omitted,
+  or approximate.
 - **Deterministic gate only.** The backtest validates the numbers-based Buy
   filter, not the LLM thesis nudge.
 - **Alpha is vs the universe average, not a formal index**, and prices exclude

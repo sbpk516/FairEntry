@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from fairentry.config import load_config
 from fairentry.store import Store
-from fairentry.backtest.seed import snapshots_for, _ma
+from fairentry.backtest.seed import snapshots_for, sec_fundamental_snapshots, _ma
 from fairentry.backtest.harness import run_rolling
 
 
@@ -28,6 +28,74 @@ def test_snapshots_scale_ratios_with_price():
     assert abs(d0["fwd_pe"] - 10.0) < 0.01      # halved with price
     assert abs(d1["fwd_pe"] - 20.0) < 0.01
     assert consts["gross_margin"] == 55          # fundamentals held constant
+
+
+def _fact(concept, unit, vals):
+    return {concept: {"units": {unit: vals}}}
+
+
+def _usd(start, end, filed, val, form="10-Q", fp="Q1"):
+    return {"start": start, "end": end, "filed": filed, "val": val, "form": form, "fp": fp}
+
+
+def _shares(end, filed, val):
+    return {"end": end, "filed": filed, "val": val, "form": "10-Q", "fp": "Q1"}
+
+
+def test_sec_fundamental_snapshots_use_filing_dates():
+    facts = {"facts": {"us-gaap": {}}}
+    facts["facts"]["us-gaap"].update(_fact("Revenues", "USD", [
+        _usd("2023-01-01", "2023-03-31", "2023-05-01", 100),
+        _usd("2023-04-01", "2023-06-30", "2023-08-01", 125),
+    ]))
+    facts["facts"]["us-gaap"].update(_fact("GrossProfit", "USD", [
+        _usd("2023-04-01", "2023-06-30", "2023-08-01", 75),
+    ]))
+    facts["facts"]["us-gaap"].update(_fact("OperatingIncomeLoss", "USD", [
+        _usd("2023-04-01", "2023-06-30", "2023-08-01", 25),
+    ]))
+    facts["facts"]["us-gaap"].update(_fact("NetIncomeLoss", "USD", [
+        _usd("2023-04-01", "2023-06-30", "2023-08-01", 20),
+    ]))
+    facts["facts"]["us-gaap"].update(_fact("Assets", "USD", [
+        _usd("2023-04-01", "2023-06-30", "2023-08-01", 500),
+    ]))
+    facts["facts"]["us-gaap"].update(_fact("Liabilities", "USD", [
+        _usd("2023-04-01", "2023-06-30", "2023-08-01", 200),
+    ]))
+    facts["facts"]["us-gaap"].update(_fact("StockholdersEquity", "USD", [
+        _usd("2023-04-01", "2023-06-30", "2023-08-01", 300),
+    ]))
+    facts["facts"]["us-gaap"].update(_fact("AssetsCurrent", "USD", [
+        _usd("2023-04-01", "2023-06-30", "2023-08-01", 150),
+    ]))
+    facts["facts"]["us-gaap"].update(_fact("LiabilitiesCurrent", "USD", [
+        _usd("2023-04-01", "2023-06-30", "2023-08-01", 75),
+    ]))
+    facts["facts"]["us-gaap"].update(_fact("CommonStockSharesOutstanding", "shares", [
+        _shares("2023-03-31", "2023-05-01", 9),
+        _shares("2023-06-30", "2023-08-01", 10),
+    ]))
+    facts["facts"]["us-gaap"].update(_fact("NetCashProvidedByUsedInOperatingActivities", "USD", [
+        _usd("2023-04-01", "2023-06-30", "2023-08-01", 30),
+    ]))
+    facts["facts"]["us-gaap"].update(_fact("PaymentsToAcquirePropertyPlantAndEquipment", "USD", [
+        _usd("2023-04-01", "2023-06-30", "2023-08-01", 5),
+    ]))
+
+    snaps = dict(sec_fundamental_snapshots(facts, [
+        ("2023-04-28", 8.0), ("2023-07-28", 10.0), ("2023-08-04", 12.0),
+    ]))
+
+    assert "2023-08-01" in snaps
+    s = snaps["2023-08-01"]
+    assert s["gross_margin"] == 60
+    assert s["oper_margin"] == 20
+    assert s["current_ratio"] == 2
+    assert s["market_cap"] == 100       # filing-date uses latest prior close, not Aug 4
+    assert s["ps_ratio"] == 0.8
+    assert s["rev_growth_qoq"] == 25
+    assert round(s["share_count_yoy"], 2) == 11.11
 
 
 # ---- rolling backtest end to end (synthetic, no network) --------------------
