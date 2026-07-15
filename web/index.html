@@ -87,11 +87,16 @@
   .tile .vstripe{ height:4px; }
   .tile-in{ padding:14px 15px 15px; }
   .tile-top{ display:flex; align-items:flex-start; gap:10px; }
+  .tile-main{ min-width:0; }
   .tick{ font-family:var(--mono); font-weight:700; font-size:17px; letter-spacing:-.01em; }
   .co{ font-size:12px; color:var(--ink-faint); margin-top:1px; }
   .verdict{ margin-left:auto; text-align:right; }
   .vpill{ font-size:12px; font-weight:800; letter-spacing:.02em; padding:4px 10px; border-radius:20px; display:inline-block; }
   .action-lbl{ font-size:11px; color:var(--ink-faint); font-family:var(--mono); margin-top:4px; }
+  .tile-actions{ display:flex; justify-content:flex-end; margin-top:8px; }
+  .addbtn{ border:1px solid var(--line); background:var(--panel-2); color:var(--accent-ink); border-radius:8px;
+    padding:5px 10px; font-size:12px; font-weight:800; cursor:pointer; }
+  .addbtn:hover{ border-color:var(--accent); background:var(--accent-soft); }
   .scorebar-wrap{ display:flex; align-items:center; gap:9px; margin:13px 0 11px; }
   .scoreval{ font-family:var(--mono); font-weight:800; font-size:20px; min-width:30px; }
   .scoreval span{ font-size:11px; color:var(--ink-faint); font-weight:600; }
@@ -344,6 +349,7 @@ var DEFAULTS={ weights:{quality:16,survival:18,growth:14,valuation:18,confirmati
 var S=JSON.parse(JSON.stringify(DEFAULTS));
 var PRESETS={};                       // filled from board.json meta
 var SKEY='fairentry_settings_v1';
+var PORTKEY='fairentry_dummy_portfolio_v1';
 function saveS(){ try{ localStorage.setItem(SKEY, JSON.stringify(S)); }catch(e){} }
 function restoreS(){ try{ var raw=localStorage.getItem(SKEY); if(raw){ var o=JSON.parse(raw);
   if(o&&o.weights){ S=Object.assign(JSON.parse(JSON.stringify(DEFAULTS)), o);
@@ -546,10 +552,10 @@ function tileHTML(s){ var c=compute(s), vk=c.verdict.toLowerCase();
   var labs=s.labels.slice(0,4).map(function(l){return '<span class="lab '+l[1]+'">'+esc(l[0])+'</span>';}).join('');
   var nuance=actionNuance(c);
   return '<div class="tile" data-t="'+esc(s.ticker)+'" role="button" tabindex="0" aria-label="'+esc(s.ticker+' '+s.company+' — '+c.verdict+', score '+Math.round(c.prelim))+'"><div class="vstripe st-'+vk+'"></div><div class="tile-in">'+
-    '<div class="tile-top"><div><div class="tick">'+esc(s.ticker)+'</div><div class="co">'+esc(s.company)+' · '+esc(s.sector)+'</div></div>'+
+    '<div class="tile-top"><div class="tile-main"><div class="tick">'+esc(s.ticker)+'</div><div class="co">'+esc(s.company)+' · '+esc(s.sector)+'</div></div>'+
     '<div class="verdict"><span class="vpill bg-'+vk+' v-'+vk+'">'+c.verdict+'</span>'+(nuance?'<div class="action-lbl">'+esc(nuance)+'</div>':'')+'</div></div>'+
     '<div class="scorebar-wrap"><span class="scoreval tnum" style="color:'+HUET(c.prelim)+'">'+Math.round(c.prelim)+'<span>/100</span></span>'+bar(Math.round(c.prelim))+'</div>'+
-    kv+'<div class="labels">'+labs+'</div></div></div>'; }
+    kv+'<div class="labels">'+labs+'</div><div class="tile-actions"><button class="addbtn" data-add="'+esc(s.ticker)+'" type="button">Add 100</button></div></div></div>'; }
 
 function currentList(){
   var q=$('#search').value.trim().toLowerCase(), sec=$('#sector').value, vf=$('#vfilter .on').dataset.v, sort=$('#sort').value;
@@ -566,6 +572,28 @@ function renderBoard(){ var list=currentList();
   $('#board').innerHTML=list.map(function(o){return tileHTML(o.s);}).join('')||'<div style="color:var(--ink-faint);padding:30px">No stocks match.</div>';
   var byv={Buy:0,Watch:0,Avoid:0}; list.forEach(function(o){byv[o.c.verdict]++;});
   $('#count').textContent=list.length+' shown · '+byv.Buy+' Buy · '+byv.Watch+' Watch · '+byv.Avoid+' Avoid';
+}
+function today(){ return new Date().toISOString().slice(0,10); }
+function portfolioLoad(){ try{return JSON.parse(localStorage.getItem(PORTKEY)||'[]');}catch(e){return [];} }
+function portfolioSave(xs){ try{localStorage.setItem(PORTKEY, JSON.stringify(xs));}catch(e){} }
+function addToPortfolio(ticker){
+  var s=STOCKS.find(function(x){return x.ticker===ticker;}); if(!s)return;
+  var price=Number(s.price)||0, shares=100, xs=portfolioLoad();
+  var existing=xs.find(function(p){return String(p.ticker||'').toUpperCase()===ticker;});
+  if(existing){
+    var oldShares=Number(existing.shares)||0, oldEntry=Number(existing.entry)||0;
+    var totalShares=oldShares+shares;
+    existing.entry=totalShares?+(((oldShares*oldEntry)+(shares*price))/totalShares).toFixed(4):price;
+    existing.shares=totalShares;
+    existing.date=existing.date||today();
+    existing.strategy=existing.strategy||((s.strategy||[]).indexOf('deepvalue')>=0?'deep_value':'quality_growth');
+    existing.notes=existing.notes||'Added from board tile.';
+  } else {
+    xs.push({id:String(Date.now()), ticker:ticker, shares:shares, entry:price, date:today(),
+      strategy:(s.strategy||[]).indexOf('deepvalue')>=0?'deep_value':'quality_growth',
+      notes:'Added from board tile.'});
+  }
+  portfolioSave(xs);
 }
 
 /* ---------- detail drill-down ---------- */
@@ -808,12 +836,16 @@ function openDrawer(sel){ $('#scrim').classList.add('on'); $(sel).classList.add(
 function closeAll(){ $('#scrim').classList.remove('on'); $('#detail').classList.remove('on'); $('#settings').classList.remove('on'); }
 
 document.addEventListener('click',function(e){
+  var add=e.target.closest('[data-add]'); if(add){ e.preventDefault(); e.stopPropagation();
+    addToPortfolio(add.dataset.add); add.textContent='Added'; setTimeout(function(){add.textContent='Add 100';},900); return; }
   var tile=e.target.closest('.tile'); if(tile){ openDetail(tile.dataset.t); return; }
   var exp=e.target.closest('[data-exp]'); if(exp && e.target.closest('.row')){ exp.classList.toggle('open'); return; }
 });
 // Keyboard: Enter/Space opens a focused tile; Escape closes any open overlay.
 document.addEventListener('keydown',function(e){
   if(e.key==='Escape'){ closeAll(); return; }
+  if((e.key==='Enter'||e.key===' '||e.key==='Spacebar') && e.target.closest && e.target.closest('[data-add]')){
+    e.preventDefault(); e.target.click(); return; }
   if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){ var tile=e.target.closest&&e.target.closest('.tile');
     if(tile){ e.preventDefault(); openDetail(tile.dataset.t); } }
 });
