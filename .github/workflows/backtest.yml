@@ -1,0 +1,90 @@
+name: FairEntry — backtest the Buy filter
+
+# Seeds a point-in-time history from real Yahoo Finance prices and runs the
+# rolling, benchmark-relative backtest, reporting the Buy/Watch/Avoid alpha
+# ladder into the run summary. Weekly + on demand. Read-only: never deploys and
+# never writes back to the live store cache.
+on:
+  # Runs itself when the backtest code changes (so a real result appears now and
+  # whenever the logic is edited), plus weekly and on demand.
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/backtest.yml"
+      - "fairentry/backtest/**"
+      - "scripts/backtest.py"
+      - "scripts/seed_backtest.py"
+  schedule:
+    - cron: "0 6 * * 0"        # Sundays 06:00 UTC
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "How many names to seed (top-N by market cap; blank = all)"
+        type: string
+        default: "150"
+      hold:
+        description: "Forward holding window in days"
+        type: string
+        default: "30"
+      step:
+        description: "Days between cohort entries"
+        type: string
+        default: "7"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fairentry-backtest
+  cancel-in-progress: true
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    env:
+      FINVIZ_API_KEY: ${{ secrets.FINVIZ_API_KEY }}
+      SEC_CONTACT_EMAIL: ${{ secrets.SEC_CONTACT_EMAIL }}
+      PYTHONUTF8: "1"
+      LIMIT: ${{ github.event.inputs.limit || '150' }}
+      HOLD: ${{ github.event.inputs.hold || '30' }}
+      STEP: ${{ github.event.inputs.step || '7' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install deps
+        run: pip install -r requirements.txt
+      # Reuse the live store (current metrics) the refresh workflow persists.
+      # Restore-only: this job must not overwrite that cache.
+      - name: Restore live store
+        uses: actions/cache/restore@v4
+        with:
+          path: data
+          key: fairentry-backtest-placeholder
+          restore-keys: |
+            fairentry-store-
+      - name: Ensure current metrics exist
+        run: |
+          if [ ! -f data/fairentry.db ]; then
+            echo "No restored store — doing a quick refresh to get current metrics."
+            python scripts/build_all.py --refresh
+          else
+            echo "Using restored live store."
+          fi
+      - name: Seed history from real prices (yfinance)
+        run: python scripts/seed_backtest.py --limit "$LIMIT"
+      - name: Run rolling backtest -> summary
+        run: |
+          python scripts/backtest.py --db data/backtest.db --rolling \
+            --hold "$HOLD" --step "$STEP" \
+            --md-out "$GITHUB_STEP_SUMMARY" --json | tee backtest_result.txt
+      - name: Upload backtest result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fairentry-backtest
+          path: |
+            backtest_result.txt
+            data/backtest.db
+          retention-days: 14

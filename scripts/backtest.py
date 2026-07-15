@@ -21,6 +21,30 @@ from fairentry.store.db import DEFAULT_DB
 from fairentry.backtest.harness import run, run_rolling
 
 
+def _markdown_rolling(res):
+    if not res["ok"]:
+        return f"### Backtest not ready\n\n{res['reason']}\n"
+    w = res["window"]
+    L = [f"### Rolling backtest — Buy-filter alpha",
+         f"`{w[0]} → {w[1]}` · **{res['cohorts']} cohorts** · hold {res['hold_days']}d / step {res['step_days']}d",
+         "",
+         "| verdict | n | mean α | median α | hit-rate | raw ret |",
+         "|---|--:|--:|--:|--:|--:|"]
+    for v in ("Buy", "Watch", "Avoid"):
+        d = res["by_verdict"].get(v)
+        if d:
+            L.append(f"| {v} | {d['n']} | {d['mean_alpha_pct']:+.2f}% | {d['median_alpha_pct']:+.2f}% "
+                     f"| {d['hit_rate_pct']:.1f}% | {d['mean_raw_return_pct']:+.2f}% |")
+    spread, mono = res.get("buy_minus_avoid_pct"), res.get("monotonic")
+    verdict = "✅ working" if (mono and (spread or 0) > 0) else "⚠️ check"
+    L += ["",
+          f"**Buy − Avoid alpha spread:** {spread:+.2f}%  ·  **monotonic (Buy≥Watch≥Avoid):** {mono}  ·  {verdict}",
+          "",
+          "> α = each name's return minus its cohort's cross-sectional mean "
+          "(measures stock selection, not market direction)."]
+    return "\n".join(L) + "\n"
+
+
 def _print_rolling(res):
     if not res["ok"]:
         print("Backtest not ready:", res["reason"])
@@ -47,6 +71,7 @@ def main():
     ap.add_argument("--hold", type=int, default=30, help="forward holding window in days (rolling)")
     ap.add_argument("--step", type=int, default=7, help="days between cohort entries (rolling)")
     ap.add_argument("--json", action="store_true", help="also dump the full result JSON")
+    ap.add_argument("--md-out", default=None, help="write a markdown report to this path (e.g. $GITHUB_STEP_SUMMARY)")
     args = ap.parse_args()
 
     cfg = load_config()
@@ -63,6 +88,9 @@ def main():
         for v, d in res["by_verdict"].items():
             print(f"  {v:6} n={d['n']:4}  avg forward {d['avg_return_pct']:+.2f}%  "
                   f"hit-rate {d['hit_rate_pct']}%")
+    if args.md_out and args.rolling:
+        with open(args.md_out, "a", encoding="utf-8") as fh:
+            fh.write(_markdown_rolling(res))
     if args.json:
         print(json.dumps(res, indent=1))
 
