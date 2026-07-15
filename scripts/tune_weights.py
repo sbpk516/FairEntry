@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""Search category weights that widen the Buy-filter's alpha spread, validated
-on held-out (later) cohorts so we don't overfit.
+"""Regime-robust category-weight tuning against the backtest.
+
+A weight set is only recommended if it improves the Buy-Avoid alpha spread
+across MULTIPLE hold windows AND MULTIPLE time folds (worst-case, not average),
+stays close to the current weights (regularized), and still wins on a final
+held-out time fold. This kills single-regime overfitting. It recommends only —
+it never edits config.
 
   python scripts/tune_weights.py --db data/backtest.db
-  python scripts/tune_weights.py --db data/backtest.db --hold 30 --step 7 --test-frac 0.3
-
-Reports the train and TEST Buy-Avoid alpha spread for the current defaults, each
-preset, and a tuned weight vector. Only adopt the tuned weights if they beat the
-defaults on TEST. This does NOT edit config — it recommends.
+  python scripts/tune_weights.py --db data/backtest.db --holds 20,30,60 --folds 4
+  python scripts/tune_weights.py --db data/backtest.db --simple   # old single-window
 """
 import argparse
 import json
@@ -19,63 +21,77 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from fairentry.config import load_config
 from fairentry.store import Store
 from fairentry.store.db import DEFAULT_DB
-from fairentry.backtest.tune import tune
+from fairentry.backtest.tune import tune, robust_tune
 
 
-def _fmt_spread(e):
-    s = e.get("spread")
-    return f"{s:+.2f}%" if s is not None else "  n/a"
+def _s(x):
+    return f"{x:+.2f}%" if isinstance(x, (int, float)) else "  n/a"
+
+
+def _print_robust(res, emit):
+    if not res["ok"]:
+        emit("Tuning not ready: " + res["reason"]); return
+    holds = res["holds"]
+    emit(f"Regime-robust weight tuning — {res['cohorts']} cohorts · {res['folds']} time folds "
+         f"· holds {holds}d · step {res['step_days']}d · reg {res['reg']}")
+    emit(f"Objective: worst-case Buy-Avoid alpha spread across (fold x hold), "
+         f"confirmed on held-out fold {res['holdout_range'][0]}..{res['holdout_range'][1]}")
+    emit("")
+    hdr = "".join(f"{('h'+str(h)):>10}" for h in holds)
+    emit(f"{'slice':22}{hdr}")
+    for label, rep in (("DEFAULT worst-sel", res["default"]), ("TUNED   worst-sel", res["tuned"])):
+        emit(f"{label:22}{_s(rep['worst_selection_spread']):>10}")
+    emit("  — final holdout (out-of-sample) —")
+    for label, rep in (("DEFAULT holdout", res["default"]), ("TUNED   holdout", res["tuned"])):
+        emit(f"{label:22}" + "".join(f"{_s(rep['holdout'][h]):>10}" for h in holds))
+    emit("")
+    mark = {"adopt": "✅ ADOPT", "overfit": "⚠️ KEEP DEFAULT (overfit)", "no_gain": "≈ KEEP DEFAULT (no gain)"}
+    emit(f"{mark.get(res['verdict'], res['verdict'])} — {res['note']}")
+    if res["verdict"] == "adopt":
+        emit("Recommended weights:")
+        emit("  " + json.dumps(res["tuned"]["weights"]))
+
+
+def _print_simple(res, emit):
+    if not res["ok"]:
+        emit("Tuning not ready: " + res["reason"]); return
+    emit(f"Weight tuning — {res['cohorts']} cohorts (train {res['train_cohorts']}/test {res['test_cohorts']})")
+    emit(f"{'candidate':28}{'train':>10}{'TEST':>10}{'mono':>7}")
+    for name, c in res["candidates"].items():
+        emit(f"{name:28}{_s(c['train']['spread']):>10}{_s(c['test']['spread']):>10}{str(c['test']['monotonic']):>7}")
+    emit("Tuned weights: " + json.dumps(res["candidates"]["tuned"]["weights"]))
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--db", default=str(DEFAULT_DB.parent / "backtest.db"))
-    ap.add_argument("--hold", type=int, default=30)
+    ap.add_argument("--holds", default="20,30,60", help="comma-separated hold windows (robust mode)")
+    ap.add_argument("--folds", type=int, default=4)
     ap.add_argument("--step", type=int, default=7)
-    ap.add_argument("--test-frac", type=float, default=0.3)
-    ap.add_argument("--md-out", default=None, help="append a markdown report (e.g. $GITHUB_STEP_SUMMARY)")
+    ap.add_argument("--reg", type=float, default=0.15, help="pull toward current weights (higher = more conservative)")
+    ap.add_argument("--simple", action="store_true", help="old single-window train/test tuner")
+    ap.add_argument("--hold", type=int, default=30, help="hold window for --simple")
+    ap.add_argument("--md-out", default=None, help="append markdown report (e.g. $GITHUB_STEP_SUMMARY)")
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
 
     cfg = load_config()
-    with Store(args.db) as store:
-        res = tune(store, cfg, hold_days=args.hold, step_days=args.step, test_frac=args.test_frac)
-
-    if not res["ok"]:
-        print("Tuning not ready:", res["reason"])
-        return
-
     lines = []
-    def out(s=""):
+    def emit(s=""):
         print(s); lines.append(s)
 
-    out(f"Weight tuning — {res['cohorts']} cohorts "
-        f"(train {res['train_cohorts']} / test {res['test_cohorts']}, split at {res['cut_date']})")
-    out(f"hold {res['hold_days']}d / step {res['step_days']}d · objective: Buy−Avoid alpha spread")
-    out("")
-    out(f"{'candidate':28} {'train α-spread':>14} {'TEST α-spread':>14} {'test Buy n':>11} {'mono':>6}")
-    for name, c in res["candidates"].items():
-        out(f"{name:28} {_fmt_spread(c['train']):>14} {_fmt_spread(c['test']):>14} "
-            f"{c['test']['n_buy']:>11} {str(c['test']['monotonic']):>6}")
-
-    d = res["default_test_spread"]
-    t = res["tuned_test_spread"]
-    out("")
-    if d is not None and t is not None:
-        delta = t - d
-        if delta > 0.1:
-            out(f"✅ tuned beats default on TEST by {delta:+.2f}% — candidate worth adopting.")
-        elif delta < -0.1:
-            out(f"⚠️ tuned is WORSE on TEST ({delta:+.2f}%) — overfit; keep the defaults.")
+    with Store(args.db) as store:
+        if args.simple:
+            res = tune(store, cfg, hold_days=args.hold, step_days=args.step)
+            _print_simple(res, emit)
         else:
-            out(f"≈ tuned ≈ default on TEST ({delta:+.2f}%) — no real gain; keep the defaults.")
-    out("")
-    out("Tuned weights (only adopt if it wins on TEST):")
-    out("  " + json.dumps(res["candidates"]["tuned"]["weights"]))
+            holds = tuple(int(x) for x in args.holds.split(","))
+            res = robust_tune(store, cfg, holds=holds, step_days=args.step, folds=args.folds, reg=args.reg)
+            _print_robust(res, emit)
 
     if args.md_out:
         with open(args.md_out, "a", encoding="utf-8") as fh:
-            fh.write("### Weight tuning — Buy alpha spread\n\n```\n" + "\n".join(lines) + "\n```\n")
+            fh.write("### Regime-robust weight tuning\n\n```\n" + "\n".join(lines) + "\n```\n")
     if args.json:
         print(json.dumps(res, indent=1))
 

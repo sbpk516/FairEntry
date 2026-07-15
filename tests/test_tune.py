@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from fairentry.config import load_config
 from fairentry.store import Store
 from fairentry.backtest.seed import snapshots_for
-from fairentry.backtest.tune import precompute, evaluate, tune
+from fairentry.backtest.tune import precompute, evaluate, tune, robust_tune
 
 
 def _seed_world(store):
@@ -74,4 +74,23 @@ def test_tuner_reports_and_never_worsens_train_spread():
     # weights are a normalized simplex
     tw = cands["tuned"]["weights"]
     assert abs(sum(tw.values()) - 100) < 0.5
+    assert all(v >= 0 for v in tw.values())
+
+
+def test_robust_tuner_multi_hold_multi_fold():
+    cfg = load_config()
+    store = Store(tempfile.mktemp(suffix=".db"))
+    _seed_world(store)
+    res = robust_tune(store, cfg, holds=(20, 30, 60), step_days=14, folds=3, reg=0.15)
+    store.close()
+
+    assert res["ok"], res
+    assert res["verdict"] in ("adopt", "overfit", "no_gain")
+    assert set(res["holds"]) <= {20, 30, 60}
+    # every reported holdout slice is either a number or None (had coverage or not)
+    for h, s in res["tuned"]["holdout"].items():
+        assert s is None or isinstance(s, (int, float))
+    tw = res["tuned"]["weights"]
+    assert abs(sum(tw.values()) - 100) < 0.5
+    # regularization keeps the tuned vector from gutting any category to zero
     assert all(v >= 0 for v in tw.values())

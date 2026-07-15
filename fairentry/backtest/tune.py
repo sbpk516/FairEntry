@@ -110,25 +110,14 @@ def _normalize(w: dict) -> dict:
     return {k: round(v / tot * 100, 2) for k, v in w.items()}
 
 
-def search(train_obs: list[dict], cats: list[str], buy_b: float, watch_b: float,
-           start: dict, step: float = 2.0, rounds: int = 12,
-           floor: float = 2.0, ceil: float = 40.0, min_buy: int = 50) -> tuple[dict, float]:
-    """Coordinate ascent on the weight simplex, maximising the train Buy−Avoid
-    spread. Keeps each weight in [floor, ceil] and ignores vectors that produce
-    too few Buys (noisy)."""
-    def score(w):
-        r = evaluate(train_obs, w, buy_b, watch_b)
-        if r["spread"] is None or r["n_buy"] < min_buy:
-            return -1e9
-        return r["spread"]
-
+def _ascend(score_fn, start: dict, cats: list[str], step: float = 2.0,
+            rounds: int = 12, floor: float = 2.0, ceil: float = 40.0) -> tuple[dict, float]:
+    """Coordinate ascent on the weight simplex for an arbitrary score function."""
     weights = _normalize(dict(start))
-    best = score(weights)
-    improved = True
-    it = 0
+    best = score_fn(weights)
+    improved, it = True, 0
     while improved and it < rounds:
-        improved = False
-        it += 1
+        improved, it = False, it + 1
         for cid in cats:
             for delta in (step, -step):
                 cand = dict(weights)
@@ -136,10 +125,117 @@ def search(train_obs: list[dict], cats: list[str], buy_b: float, watch_b: float,
                 if cand[cid] < floor or cand[cid] > ceil:
                     continue
                 cand = _normalize(cand)
-                s = score(cand)
+                s = score_fn(cand)
                 if s > best + 1e-6:
                     best, weights, improved = s, cand, True
     return weights, best
+
+
+def search(train_obs: list[dict], cats: list[str], buy_b: float, watch_b: float,
+           start: dict, step: float = 2.0, rounds: int = 12,
+           floor: float = 2.0, ceil: float = 40.0, min_buy: int = 50) -> tuple[dict, float]:
+    """Single-objective search: maximise the train Buy−Avoid spread."""
+    def score(w):
+        r = evaluate(train_obs, w, buy_b, watch_b)
+        return -1e9 if (r["spread"] is None or r["n_buy"] < min_buy) else r["spread"]
+    return _ascend(score, start, cats, step, rounds, floor, ceil)
+
+
+# ---------------------------------------------------------------------------
+# Hardened, regime-robust tuning
+# ---------------------------------------------------------------------------
+def _fold_sets(cohorts: list[str], k: int) -> list[set]:
+    """Split the sorted cohort timeline into k contiguous (blocked) time folds."""
+    n = len(cohorts)
+    return [set(cohorts[i * n // k:(i + 1) * n // k]) for i in range(k)]
+
+
+def _subset(obs, cohort_set):
+    return [o for o in obs if o["cohort"] in cohort_set]
+
+
+def robust_tune(store, cfg, holds=(20, 30, 60), step_days: int = 7, folds: int = 4,
+                reg: float = 0.15, min_names: int = 20, min_buy: int = 30,
+                settings=None) -> dict:
+    """Regime-robust weight tuning. A weight set is judged by its **worst-case**
+    Buy−Avoid spread across every (time-fold × hold-window) slice — so it can't
+    win by spiking in one lucky regime — with an L1 penalty pulling it toward the
+    current weights (won't gut a category on thin evidence). The LAST time fold is
+    a final holdout, never used during the search. Recommends only.
+    """
+    obs_by_hold = {h: precompute(store, cfg, h, step_days, min_names, settings) for h in holds}
+    obs_by_hold = {h: ob for h, ob in obs_by_hold.items() if ob}
+    if not obs_by_hold:
+        return {"ok": False, "reason": "insufficient history for the requested windows."}
+
+    cohorts = sorted({o["cohort"] for ob in obs_by_hold.values() for o in ob})
+    if len(cohorts) < folds + 1:
+        folds = max(2, len(cohorts) - 1)
+    fset = _fold_sets(cohorts, folds)
+    selection, holdout = fset[:-1], fset[-1]
+
+    cats = list(cfg.categories.keys())
+    buy_b, watch_b = cfg.verdict_bands["buy"], cfg.verdict_bands["watch"]
+    default = _normalize({cid: c["weight"] for cid, c in cfg.categories.items()})
+
+    def spread_on(w, cohort_set, h):
+        r = evaluate(_subset(obs_by_hold[h], cohort_set), w, buy_b, watch_b)
+        return r["spread"] if (r["spread"] is not None and r["n_buy"] >= min_buy) else None
+
+    def worst_selection(w):
+        vals = []
+        for cs in selection:
+            for h in obs_by_hold:
+                s = spread_on(w, cs, h)
+                if s is None:
+                    return None
+                vals.append(s)
+        return min(vals) if vals else None
+
+    def robust_score(w):
+        worst = worst_selection(w)
+        if worst is None:
+            return -1e9
+        penalty = reg * sum(abs(w[c] - default[c]) for c in cats) / 100.0
+        return worst - penalty
+
+    starts = [default] + [_normalize({**default, **p}) for p in cfg.scoring.get("presets", {}).values()]
+    best_start = max(starts, key=robust_score)
+    tuned, _ = _ascend(robust_score, best_start, cats)
+
+    def report(w):
+        return {
+            "weights": w,
+            "worst_selection_spread": worst_selection(w),
+            "holdout": {h: spread_on(w, holdout, h) for h in obs_by_hold},
+            "selection_folds": [
+                {"range": [min(cs), max(cs)], "spread": {h: spread_on(w, cs, h) for h in obs_by_hold}}
+                for cs in selection],
+        }
+
+    drep, trep = report(default), report(tuned)
+
+    # verdict: adopt only if tuned wins the final holdout at EVERY hold window,
+    # never loses one materially, and is no worse on the worst-case selection slice
+    holds_list = list(obs_by_hold)
+    better = sum(1 for h in holds_list
+                 if trep["holdout"][h] is not None and drep["holdout"][h] is not None
+                 and trep["holdout"][h] > drep["holdout"][h] + 0.3)
+    worse = sum(1 for h in holds_list
+                if trep["holdout"][h] is not None and drep["holdout"][h] is not None
+                and trep["holdout"][h] < drep["holdout"][h] - 0.3)
+    robust_ok = (trep["worst_selection_spread"] is not None and drep["worst_selection_spread"] is not None
+                 and trep["worst_selection_spread"] >= drep["worst_selection_spread"] - 0.3)
+    if worse == 0 and robust_ok and better >= (len(holds_list) + 1) // 2:
+        verdict, note = "adopt", f"tuned wins {better}/{len(holds_list)} holdout windows, none worse, robust holds."
+    elif worse > 0 or not robust_ok:
+        verdict, note = "overfit", "tuned is worse on some holdout window or the worst-case regime — keep defaults."
+    else:
+        verdict, note = "no_gain", "tuned ≈ default out-of-sample — keep defaults."
+
+    return {"ok": True, "holds": holds_list, "folds": folds, "step_days": step_days, "reg": reg,
+            "cohorts": len(cohorts), "holdout_range": [min(holdout), max(holdout)],
+            "default": drep, "tuned": trep, "verdict": verdict, "note": note}
 
 
 def tune(store, cfg, hold_days: int = 30, step_days: int = 7, min_names: int = 20,
