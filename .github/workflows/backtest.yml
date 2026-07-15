@@ -79,10 +79,11 @@ jobs:
           python scripts/backtest.py --db data/backtest.db --rolling \
             --hold "$HOLD" --step "$STEP" \
             --md-out "$GITHUB_STEP_SUMMARY" --json | tee backtest_result.txt
-      - name: Tune weights (regime-robust, multi-hold + folds) -> summary
+      - name: Tune weights (regime-robust, downside-protected) -> summary
         run: |
           python scripts/tune_weights.py --db data/backtest.db \
             --holds 20,30,60 --folds 4 --step "$STEP" \
+            --reg 0.4 --protect risk,survival --protect-band 3 \
             --md-out "$GITHUB_STEP_SUMMARY" | tee -a backtest_result.txt
       - name: Upload backtest result
         if: always()

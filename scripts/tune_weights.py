@@ -32,8 +32,10 @@ def _print_robust(res, emit):
     if not res["ok"]:
         emit("Tuning not ready: " + res["reason"]); return
     holds = res["holds"]
+    prot = ", ".join(res.get("protect") or []) or "none"
     emit(f"Regime-robust weight tuning — {res['cohorts']} cohorts · {res['folds']} time folds "
-         f"· holds {holds}d · step {res['step_days']}d · reg {res['reg']}")
+         f"· holds {holds}d · step {res['step_days']}d · reg {res['reg']} "
+         f"· protect [{prot}] ±{res.get('protect_band')}")
     emit(f"Objective: worst-case Buy-Avoid alpha spread across (fold x hold), "
          f"confirmed on held-out fold {res['holdout_range'][0]}..{res['holdout_range'][1]}")
     emit("")
@@ -69,6 +71,9 @@ def main():
     ap.add_argument("--folds", type=int, default=4)
     ap.add_argument("--step", type=int, default=7)
     ap.add_argument("--reg", type=float, default=0.15, help="pull toward current weights (higher = more conservative)")
+    ap.add_argument("--protect", default="risk,survival",
+                    help="comma-separated categories pinned near default (downside guardrail); '' to disable")
+    ap.add_argument("--protect-band", type=float, default=3.0, help="± weight points protected categories may move")
     ap.add_argument("--simple", action="store_true", help="old single-window train/test tuner")
     ap.add_argument("--hold", type=int, default=30, help="hold window for --simple")
     ap.add_argument("--md-out", default=None, help="append markdown report (e.g. $GITHUB_STEP_SUMMARY)")
@@ -86,7 +91,9 @@ def main():
             _print_simple(res, emit)
         else:
             holds = tuple(int(x) for x in args.holds.split(","))
-            res = robust_tune(store, cfg, holds=holds, step_days=args.step, folds=args.folds, reg=args.reg)
+            protect = frozenset(c.strip() for c in args.protect.split(",") if c.strip())
+            res = robust_tune(store, cfg, holds=holds, step_days=args.step, folds=args.folds,
+                              reg=args.reg, protect=protect, protect_band=args.protect_band)
             _print_robust(res, emit)
 
     if args.md_out:

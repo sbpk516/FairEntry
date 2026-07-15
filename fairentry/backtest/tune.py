@@ -110,11 +110,14 @@ def _normalize(w: dict) -> dict:
     return {k: round(v / tot * 100, 2) for k, v in w.items()}
 
 
-def _ascend(score_fn, start: dict, cats: list[str], step: float = 2.0,
-            rounds: int = 12, floor: float = 2.0, ceil: float = 40.0) -> tuple[dict, float]:
-    """Coordinate ascent on the weight simplex for an arbitrary score function."""
+def _ascend(score_fn, start: dict, cats: list[str], bounds: dict,
+            step: float = 2.0, rounds: int = 14) -> tuple[dict, float]:
+    """Coordinate ascent on the weight simplex, honouring per-category bounds
+    {cid: (lo, hi)} (checked AFTER renormalisation, so guardrails actually hold)."""
+    def in_bounds(w):
+        return all(bounds[c][0] - 1e-9 <= w[c] <= bounds[c][1] + 1e-9 for c in cats)
     weights = _normalize(dict(start))
-    best = score_fn(weights)
+    best = score_fn(weights) if in_bounds(weights) else -1e9
     improved, it = True, 0
     while improved and it < rounds:
         improved, it = False, it + 1
@@ -122,23 +125,36 @@ def _ascend(score_fn, start: dict, cats: list[str], step: float = 2.0,
             for delta in (step, -step):
                 cand = dict(weights)
                 cand[cid] = cand[cid] + delta
-                if cand[cid] < floor or cand[cid] > ceil:
-                    continue
                 cand = _normalize(cand)
+                if not in_bounds(cand):
+                    continue
                 s = score_fn(cand)
                 if s > best + 1e-6:
                     best, weights, improved = s, cand, True
     return weights, best
 
 
+def _bounds(cats, default, floor=2.0, ceil=40.0, protect=frozenset(), band=3.0) -> dict:
+    """Per-category (lo, hi). Protected categories are pinned to default ± band."""
+    out = {}
+    for c in cats:
+        if c in protect:
+            out[c] = (max(floor, default[c] - band), min(ceil, default[c] + band))
+        else:
+            out[c] = (floor, ceil)
+    return out
+
+
 def search(train_obs: list[dict], cats: list[str], buy_b: float, watch_b: float,
-           start: dict, step: float = 2.0, rounds: int = 12,
-           floor: float = 2.0, ceil: float = 40.0, min_buy: int = 50) -> tuple[dict, float]:
+           start: dict, floor: float = 2.0, ceil: float = 40.0, min_buy: int = 50,
+           default: dict = None, protect=frozenset(), band: float = 3.0) -> tuple[dict, float]:
     """Single-objective search: maximise the train Buy−Avoid spread."""
     def score(w):
         r = evaluate(train_obs, w, buy_b, watch_b)
         return -1e9 if (r["spread"] is None or r["n_buy"] < min_buy) else r["spread"]
-    return _ascend(score, start, cats, step, rounds, floor, ceil)
+    bounds = _bounds(cats, default or _normalize({c: 100 / len(cats) for c in cats}),
+                     floor, ceil, protect, band)
+    return _ascend(score, start, cats, bounds)
 
 
 # ---------------------------------------------------------------------------
@@ -156,12 +172,17 @@ def _subset(obs, cohort_set):
 
 def robust_tune(store, cfg, holds=(20, 30, 60), step_days: int = 7, folds: int = 4,
                 reg: float = 0.15, min_names: int = 20, min_buy: int = 30,
-                settings=None) -> dict:
+                protect=frozenset(), protect_band: float = 3.0, settings=None) -> dict:
     """Regime-robust weight tuning. A weight set is judged by its **worst-case**
     Buy−Avoid spread across every (time-fold × hold-window) slice — so it can't
     win by spiking in one lucky regime — with an L1 penalty pulling it toward the
     current weights (won't gut a category on thin evidence). The LAST time fold is
-    a final holdout, never used during the search. Recommends only.
+    a final holdout, never used during the search.
+
+    `protect` (e.g. {"risk", "survival"}) pins those categories to default ±
+    `protect_band` weight points — an explicit downside guardrail so the tuner
+    can chase offensive tilt without cutting the defensive categories on data
+    that only covers one macro regime. Recommends only.
     """
     obs_by_hold = {h: precompute(store, cfg, h, step_days, min_names, settings) for h in holds}
     obs_by_hold = {h: ob for h, ob in obs_by_hold.items() if ob}
@@ -199,9 +220,15 @@ def robust_tune(store, cfg, holds=(20, 30, 60), step_days: int = 7, folds: int =
         penalty = reg * sum(abs(w[c] - default[c]) for c in cats) / 100.0
         return worst - penalty
 
+    bounds = _bounds(cats, default, protect=protect, band=protect_band)
+
+    def _valid(w):
+        return all(bounds[c][0] - 1e-9 <= w[c] <= bounds[c][1] + 1e-9 for c in cats)
+
     starts = [default] + [_normalize({**default, **p}) for p in cfg.scoring.get("presets", {}).values()]
+    starts = [w for w in starts if _valid(w)] or [default]   # protected starts only
     best_start = max(starts, key=robust_score)
-    tuned, _ = _ascend(robust_score, best_start, cats)
+    tuned, _ = _ascend(robust_score, best_start, cats, bounds)
 
     def report(w):
         return {
@@ -234,6 +261,7 @@ def robust_tune(store, cfg, holds=(20, 30, 60), step_days: int = 7, folds: int =
         verdict, note = "no_gain", "tuned ≈ default out-of-sample — keep defaults."
 
     return {"ok": True, "holds": holds_list, "folds": folds, "step_days": step_days, "reg": reg,
+            "protect": sorted(protect), "protect_band": protect_band,
             "cohorts": len(cohorts), "holdout_range": [min(holdout), max(holdout)],
             "default": drep, "tuned": trep, "verdict": verdict, "note": note}
 

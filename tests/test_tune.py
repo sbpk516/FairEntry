@@ -87,10 +87,27 @@ def test_robust_tuner_multi_hold_multi_fold():
     assert res["ok"], res
     assert res["verdict"] in ("adopt", "overfit", "no_gain")
     assert set(res["holds"]) <= {20, 30, 60}
-    # every reported holdout slice is either a number or None (had coverage or not)
     for h, s in res["tuned"]["holdout"].items():
         assert s is None or isinstance(s, (int, float))
     tw = res["tuned"]["weights"]
     assert abs(sum(tw.values()) - 100) < 0.5
-    # regularization keeps the tuned vector from gutting any category to zero
     assert all(v >= 0 for v in tw.values())
+
+
+def test_protect_guardrail_pins_defensive_weights():
+    """With risk/survival protected, the tuned vector must keep them within
+    default ± band no matter what the search wants."""
+    cfg = load_config()
+    store = Store(tempfile.mktemp(suffix=".db"))
+    _seed_world(store)
+    band = 3.0
+    res = robust_tune(store, cfg, holds=(20, 30, 60), step_days=14, folds=3,
+                      reg=0.15, protect=frozenset({"risk", "survival"}), protect_band=band)
+    store.close()
+    assert res["ok"], res
+    default = {cid: c["weight"] for cid, c in cfg.categories.items()}
+    tot = sum(default.values())
+    tw = res["tuned"]["weights"]
+    for c in ("risk", "survival"):
+        base = default[c] / tot * 100
+        assert base - band - 0.6 <= tw[c] <= base + band + 0.6, (c, tw[c], base)
