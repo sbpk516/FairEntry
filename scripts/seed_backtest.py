@@ -27,7 +27,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--src", default=str(DEFAULT_DB), help="live store to read current metrics from")
     ap.add_argument("--dst", default=str(DEFAULT_DB.parent / "backtest.db"), help="backtest store to write")
-    ap.add_argument("--weeks", type=int, default=156, help="weeks of price history to pull (~3y)")
+    ap.add_argument("--weeks", type=int, default=208, help="weeks of price history to pull (~4y; >=200 for the 200-week MA)")
     ap.add_argument("--limit", type=int, default=None, help="cap to top-N by market cap")
     ap.add_argument("--tickers", nargs="*", default=None, help="only these tickers")
     ap.add_argument("--sec-history", action="store_true",

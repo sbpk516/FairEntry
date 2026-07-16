@@ -27,9 +27,16 @@ hand and recorded in the Decision log below.
 
 **The Buy filter is validated when the rolling backtest shows:**
 - **Monotonic** ladder: Buy α ≥ Watch α ≥ Avoid α.
-- A **positive Buy − Avoid alpha spread**.
+- A **positive Buy − Avoid alpha spread** whose **block-bootstrap 90% CI excludes
+  zero** (`significant: true`) — the CI resamples whole cohorts, so it reflects
+  the real independent sample despite heavy cohort overlap.
 - Buy **hit-rate > 50%** and clearly above Avoid's.
 - It **holds across many cohorts**, not one window.
+
+The backtest scores only **screener-passing names as-of** (matching the live
+board), skips a **warmup** so momentum/trend metrics exist, and reports the spread
+with its CI. Absolute α is still **optimistic** (see survivorship below) — trust
+the *relative* ladder and the CI, not the absolute magnitude.
 
 **A weight change is worth adopting only when the regime-robust tuner shows:**
 - It **wins the final held-out fold at every hold window** (20/30/60d), loses none materially.
@@ -118,19 +125,36 @@ _(Weights unchanged since project start.)_
 
 ## Known limitations & when to revisit
 
-- **One macro regime.** All seeded history (2023–26) is a recovery/bull market.
-  Blocked cross-validation guards against *sampling* overfit, not *macro-regime*
-  overfit. **Revisit** the defensive weights once a real drawdown is in the data.
-- **Free historical fundamentals are partial.** Use
-  `python scripts/seed_backtest.py --sec-history` to reconstruct core filing
-  fundamentals from SEC companyfacts by filing date. It improves the old
-  price-only seed materially, but analyst targets/recommendations, short float,
-  beta, news, and some insider/institutional signals are still current, omitted,
-  or approximate.
-- **Deterministic gate only.** The backtest validates the numbers-based Buy
-  filter, not the LLM thesis nudge.
-- **Alpha is vs the universe average, not a formal index**, and prices exclude
-  dividends.
+**Fixed (2026-07-15 review):**
+- ~~Backtest scored the full universe, not the screened board~~ → now **screens
+  as-of** and only scores screener-passing names (matches the live board).
+- ~~`n` over-counted (overlapping cohorts)~~ → the spread now ships with a
+  **block-bootstrap 90% CI** that resamples whole cohorts.
+- ~~200-week MA always missing~~ → seeder now pulls **≥208 weeks**; a **warmup**
+  skips the early cohorts that lacked momentum history.
+- ~~All fundamentals frozen at today's values~~ → `scripts/seed_backtest.py
+  --sec-history` reconstructs core filing fundamentals (margins, growth, debt,
+  Altman inputs, dilution) from **SEC companyfacts by filing date**, materially
+  reducing the frozen-fundamentals look-ahead.
+
+**Residual — the honest ceiling:**
+- **Survivorship bias (biggest residual).** The seeded universe is *today's*
+  Finviz survivors — names that delisted or went to zero are absent, so **absolute
+  α is optimistic**, worst for the Avoid tail. No free point-in-time-universe
+  source exists in the stack to add delisted names. **The real fix is time:** the
+  *live* `metrics_history` keeps names after they leave the universe, so a
+  live-history run (`scripts/backtest.py --rolling` on `data/fairentry.db`) is
+  survivorship-clean **going forward**. Cross-check against it as history deepens.
+- **One macro regime.** All history (2023–26) is a recovery/bull market. Blocked
+  CV guards *sampling* overfit, not *macro-regime* overfit. **Revisit** the
+  defensive weights once a real drawdown is in the data.
+- **Fundamentals still partial even with `--sec-history`.** Analyst targets and
+  recommendations, short float, beta, news, and some insider/institutional
+  signals remain current, omitted, or approximate; without `--sec-history` the
+  seed is valuation/momentum-accurate only. The live-history run has no such
+  limitation.
+- **Deterministic gate only** (no LLM thesis nudge); **α is vs the universe
+  average, not a formal index**; prices exclude dividends and trading costs.
 
 Treat every result as **strong evidence, not proof**, and lean on the live
 paper-portfolio track record (`fairentry/tracking/`) as it accrues true

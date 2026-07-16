@@ -322,7 +322,7 @@ def snapshots_for(closes: list[tuple[str, float]], price_now: float,
     return constants, per_date
 
 
-def weekly_closes(ticker: str, weeks: int = 156) -> list[tuple[str, float]]:
+def weekly_closes(ticker: str, weeks: int = 208) -> list[tuple[str, float]]:
     """Fetch weekly closes from yfinance (network). Returns [] on any failure."""
     try:
         import yfinance as yf
@@ -336,7 +336,7 @@ def weekly_closes(ticker: str, weeks: int = 156) -> list[tuple[str, float]]:
 
 
 def seed(src_db: Path | str, dst_db: Path | str = None, tickers=None,
-         weeks: int = 156, limit: int | None = None, verbose: bool = True,
+         weeks: int = 208, limit: int | None = None, verbose: bool = True,
          use_sec_history: bool = False) -> dict:
     """Read the live store's current metrics, fetch price history, and write a
     point-in-time metrics_history into a fresh backtest store.

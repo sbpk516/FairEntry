@@ -25,10 +25,12 @@ def _markdown_rolling(res):
     if not res["ok"]:
         return f"### Backtest not ready\n\n{res['reason']}\n"
     w = res["window"]
+    scope = "screened candidates" if res.get("screened_only", True) else "full universe"
     lines = [
         "### Rolling backtest - Buy-filter alpha",
         f"`{w[0]} -> {w[1]}` - **{res['cohorts']} cohorts** - "
-        f"hold {res['hold_days']}d / step {res['step_days']}d",
+        f"hold {res['hold_days']}d / step {res['step_days']}d - {scope} - "
+        f"warmup {res.get('warmup_days', 0)}d",
         "",
         "| verdict | n | mean alpha | median alpha | hit-rate | raw ret |",
         "|---|--:|--:|--:|--:|--:|",
@@ -42,14 +44,18 @@ def _markdown_rolling(res):
                 f"{row['mean_raw_return_pct']:+.2f}% |"
             )
     spread, mono = res.get("buy_minus_avoid_pct"), res.get("monotonic")
-    verdict = "working" if (mono and (spread or 0) > 0) else "check"
+    ci, sig = res.get("spread_ci90"), res.get("significant")
+    ci_txt = f" (90% CI {ci[0]:+.2f}%..{ci[1]:+.2f}%)" if ci else ""
+    tag = "working" if (mono and sig) else "check" if mono else "not monotonic"
     lines += [
         "",
-        f"**Buy - Avoid alpha spread:** {spread:+.2f}% - "
-        f"**monotonic (Buy>=Watch>=Avoid):** {mono} - {verdict}",
+        f"**Buy - Avoid alpha spread:** {spread:+.2f}%{ci_txt} - "
+        f"**monotonic:** {mono} - **CI excludes 0:** {sig} - {tag}",
         "",
         "> alpha = each name's return minus its cohort's cross-sectional mean "
-        "(measures stock selection, not market direction).",
+        "(selection, not market). CI = block-bootstrap over cohorts (respects overlap). "
+        "Population = screener-passing names as-of (matches the live board). "
+        "Absolute alpha is optimistic (survivorship: universe = today's survivors).",
     ]
     return "\n".join(lines) + "\n"
 
@@ -102,8 +108,12 @@ def _print_rolling(res):
                 f"{row['mean_raw_return_pct']:>+8.2f}%"
             )
     spread, mono = res.get("buy_minus_avoid_pct"), res.get("monotonic")
-    print(f"\nBuy - Avoid alpha spread: {spread:+.2f}%   monotonic (Buy>=Watch>=Avoid): {mono}")
-    print("alpha = return minus the cohort's cross-sectional mean (stock selection, not market).")
+    ci, sig = res.get("spread_ci90"), res.get("significant")
+    ci_txt = f"  90% CI [{ci[0]:+.2f}%, {ci[1]:+.2f}%]" if ci else ""
+    scope = "screened candidates" if res.get("screened_only", True) else "full universe"
+    print(f"\nBuy - Avoid alpha spread: {spread:+.2f}%{ci_txt}   monotonic: {mono}   CI>0: {sig}")
+    print(f"population: {scope} - warmup {res.get('warmup_days', 0)}d")
+    print("alpha = return minus cohort mean (selection, not market). Absolute alpha optimistic (survivorship).")
 
 
 def main():

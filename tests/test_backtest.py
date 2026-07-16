@@ -155,7 +155,10 @@ def test_rolling_backtest_detects_buy_alpha():
         _seed(store, f"MID{i}", "Technology", closes, MID)
     store.commit()
 
-    res = run_rolling(store, cfg, hold_days=30, step_days=14, min_names=20)
+    # screened_only=False / warmup_days=0 keeps this controlled full-population
+    # world intact (the LOSE names would be screened out otherwise).
+    res = run_rolling(store, cfg, hold_days=30, step_days=14, min_names=20,
+                      screened_only=False, warmup_days=0)
     store.close()
 
     assert res["ok"], res
@@ -166,3 +169,39 @@ def test_rolling_backtest_detects_buy_alpha():
     assert bv["Buy"]["mean_alpha_pct"] > bv["Avoid"]["mean_alpha_pct"]
     assert res["buy_minus_avoid_pct"] > 0
     assert bv["Buy"]["hit_rate_pct"] > bv["Avoid"]["hit_rate_pct"]
+    # a strong, consistent edge -> the block-bootstrap 90% CI excludes zero
+    assert res["spread_ci90"] is not None
+    assert res["spread_ci90"][0] <= res["spread_ci90"][1]
+    assert res["significant"] is True
+
+
+def test_screened_only_reduces_population():
+    """screened_only=True (product-faithful) drops names that fail every screener
+    (the LOSE names), so it scores fewer observations than the full universe."""
+    cfg = load_config()
+    store = Store(tempfile.mktemp(suffix=".db"))
+    weeks = 60
+    dts = _weekly_dates(weeks)
+    WIN = _fund(gross_margin=70, oper_margin=35, roic=30, debt_eq=0.2, current_ratio=3.2,
+                altman_z=8, rev_growth_qoq=25, eps_growth_next_y=30, fwd_pe=12, ps_ratio=2,
+                pb_ratio=2, pfcf_ratio=10, target_price=200, analyst_recom=1.3,
+                red_flags_score=100, red_flags_critical=0, short_float=3, beta=1.0)
+    LOSE = _fund(gross_margin=15, oper_margin=-5, roic=-3, debt_eq=3.5, current_ratio=0.8,
+                 altman_z=1.0, rev_growth_qoq=-10, eps_growth_next_y=-8, fwd_pe=40, ps_ratio=9,
+                 pb_ratio=5, pfcf_ratio=35, target_price=40, analyst_recom=3.2,
+                 red_flags_score=50, red_flags_critical=1, short_float=25, beta=2.0)
+    for i in range(15):
+        _seed(store, f"WIN{i}", "Technology", [(dts[w], round(50 * 1.012 ** w, 4)) for w in range(weeks)], WIN)
+    for i in range(15):
+        _seed(store, f"LOSE{i}", "Technology", [(dts[w], round(100 * 0.988 ** w, 4)) for w in range(weeks)], LOSE)
+    store.commit()
+
+    def total(r):
+        return sum(d["n"] for d in r["by_verdict"].values())
+    full = run_rolling(store, cfg, hold_days=30, step_days=14, min_names=5,
+                       screened_only=False, warmup_days=0, bootstrap=0)
+    scr = run_rolling(store, cfg, hold_days=30, step_days=14, min_names=5,
+                      screened_only=True, warmup_days=0, bootstrap=0)
+    store.close()
+    assert full["ok"] and scr["ok"]
+    assert total(scr) < total(full)          # LOSE names filtered out when screened

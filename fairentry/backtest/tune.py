@@ -23,20 +23,25 @@ from __future__ import annotations
 import statistics
 
 from ..scoring.engine import score_ticker, medians_from
-from .harness import _dates, _asof_metrics, _price_on, _first_exit, _days
+from .harness import _dates, _asof_metrics, _price_on, _first_exit, _days, passes_screen
 
 
 def precompute(store, cfg, hold_days: int = 30, step_days: int = 7,
-               min_names: int = 20, settings=None) -> list[dict]:
+               min_names: int = 20, settings=None, screened_only: bool = True,
+               warmup_days: int = 300) -> list[dict]:
     """One observation per (name, cohort): weight-independent category scores +
-    veto/gate flags + benchmark-relative alpha. This is the only expensive pass."""
+    veto/gate flags + benchmark-relative alpha. Screener-filtered + warmup-skipped
+    to match run_rolling / the live board. This is the only expensive pass."""
     settings = dict(settings or {"margin_of_safety_pct": 15, "target_upside_pct": 30})
     settings.pop("weights", None)   # category scores don't depend on weights
     dates = _dates(store)
-    if len(dates) < 2 or _days(dates[0], dates[-1]) < hold_days:
+    if len(dates) < 2 or _days(dates[0], dates[-1]) < hold_days + warmup_days:
         return []
+    warmup_cut = next((d for d in dates if _days(dates[0], d) >= warmup_days), dates[0])
     entries, last_pick = [], None
     for d in dates:
+        if d < warmup_cut:
+            continue
         if _days(d, dates[-1]) < hold_days:
             break
         if last_pick is None or _days(last_pick, d) >= step_days:
@@ -51,8 +56,11 @@ def precompute(store, cfg, hold_days: int = 30, step_days: int = 7,
         asof = {}
         for sec in secs:
             m = _asof_metrics(store, sec["ticker"], entry)
-            if "price" in m:
-                asof[sec["ticker"]] = (sec, m)
+            if "price" not in m:
+                continue
+            if screened_only and not passes_screen(m):
+                continue
+            asof[sec["ticker"]] = (sec, m)
         med = medians_from(cfg, [(sec["sector"], m) for sec, m in asof.values()])
         rows = []
         for tkr, (sec, m) in asof.items():
@@ -172,7 +180,8 @@ def _subset(obs, cohort_set):
 
 def robust_tune(store, cfg, holds=(20, 30, 60), step_days: int = 7, folds: int = 4,
                 reg: float = 0.15, min_names: int = 20, min_buy: int = 30,
-                protect=frozenset(), protect_band: float = 3.0, settings=None) -> dict:
+                protect=frozenset(), protect_band: float = 3.0, settings=None,
+                screened_only: bool = True, warmup_days: int = 300) -> dict:
     """Regime-robust weight tuning. A weight set is judged by its **worst-case**
     Buy−Avoid spread across every (time-fold × hold-window) slice — so it can't
     win by spiking in one lucky regime — with an L1 penalty pulling it toward the
@@ -184,7 +193,8 @@ def robust_tune(store, cfg, holds=(20, 30, 60), step_days: int = 7, folds: int =
     can chase offensive tilt without cutting the defensive categories on data
     that only covers one macro regime. Recommends only.
     """
-    obs_by_hold = {h: precompute(store, cfg, h, step_days, min_names, settings) for h in holds}
+    obs_by_hold = {h: precompute(store, cfg, h, step_days, min_names, settings,
+                                 screened_only, warmup_days) for h in holds}
     obs_by_hold = {h: ob for h, ob in obs_by_hold.items() if ob}
     if not obs_by_hold:
         return {"ok": False, "reason": "insufficient history for the requested windows."}
@@ -267,11 +277,13 @@ def robust_tune(store, cfg, holds=(20, 30, 60), step_days: int = 7, folds: int =
 
 
 def tune(store, cfg, hold_days: int = 30, step_days: int = 7, min_names: int = 20,
-         test_frac: float = 0.3, settings=None) -> dict:
+         test_frac: float = 0.3, settings=None, screened_only: bool = True,
+         warmup_days: int = 300) -> dict:
     """Precompute, split cohorts train/test chronologically, search weights on
     train, and report train+test spreads for the default weights, each preset,
     and the tuned vector."""
-    obs = precompute(store, cfg, hold_days, step_days, min_names, settings)
+    obs = precompute(store, cfg, hold_days, step_days, min_names, settings,
+                     screened_only, warmup_days)
     if not obs:
         return {"ok": False, "reason": "insufficient history for the requested window."}
 

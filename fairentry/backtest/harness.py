@@ -11,10 +11,50 @@ for a first harness, refine once history is deep.
 """
 from __future__ import annotations
 
+import random
 import statistics
 from datetime import date, timedelta
 
 from ..scoring.engine import sector_medians, medians_from, score_ticker
+from ..screeners import REGISTRY as SCREENERS
+
+
+def passes_screen(metrics: dict) -> bool:
+    """True if the name passes ANY strategy screener as-of these metrics — mirrors
+    build_board, which only scores/shows screened names. Backtesting the full
+    universe would score names the live board never displays."""
+    for mod in SCREENERS.values():
+        try:
+            if mod.passes(metrics)[0]:
+                return True
+        except Exception:
+            continue
+    return False
+
+
+def _block_bootstrap_spread(per_obs, cohorts, B=1000, seed=42):
+    """Block bootstrap the Buy−Avoid spread by RESAMPLING WHOLE COHORTS (blocks),
+    which respects the heavy overlap between cohorts — so the CI reflects the true
+    (much smaller) independent sample, not the inflated observation count.
+    per_obs: {cohort: [(verdict, alpha)]}. Returns (lo, hi) 90% CI or None."""
+    if len(cohorts) < 4:
+        return None
+    rng = random.Random(seed)
+    spreads = []
+    for _ in range(B):
+        buys, avoids = [], []
+        for _ in cohorts:
+            c = rng.choice(cohorts)
+            for v, a in per_obs[c]:
+                (buys if v == "Buy" else avoids if v == "Avoid" else []).append(a)
+        if buys and avoids:
+            spreads.append(statistics.mean(buys) - statistics.mean(avoids))
+    if len(spreads) < B // 2:
+        return None
+    spreads.sort()
+    lo = spreads[int(0.05 * len(spreads))]
+    hi = spreads[int(0.95 * len(spreads)) - 1]
+    return round(lo, 2), round(hi, 2)
 
 DEFAULT_HORIZONS = {"1w": 7, "1m": 30, "3m": 90, "6m": 180, "12m": 365}
 
@@ -175,33 +215,40 @@ def _first_exit(dates: list[str], entry: str, hold_days: int) -> str | None:
 
 
 def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
-                min_names: int = 20, settings=None) -> dict:
+                min_names: int = 20, settings=None, screened_only: bool = True,
+                warmup_days: int = 300, bootstrap: int = 1000) -> dict:
     """Rolling, benchmark-relative backtest.
 
-    Instead of one entry->exit window, this replays MANY overlapping cohorts:
-    every ~`step_days` it takes an entry date, scores the whole universe as-of
-    then, and measures each name's forward return over ~`hold_days`. Returns are
-    made benchmark-relative by subtracting that cohort's cross-sectional mean
-    (the average of every scored name that cohort) — so we measure *stock
-    selection* (did Buys beat the average stock?), not market direction.
+    Replays MANY overlapping cohorts: every ~`step_days` it takes an entry date,
+    scores the names that pass a screener as-of then (matching the live board,
+    which only shows screened names), and measures each name's forward return
+    over ~`hold_days`. Returns are made benchmark-relative by subtracting that
+    cohort's cross-sectional mean (the average scored name) — so we measure
+    *stock selection* (did Buys beat the average candidate?), not market drift.
 
-    Aggregated across all cohorts we report, per verdict: n, mean & median
-    alpha, hit-rate (alpha > 0), and mean raw return. The headline is
-    `buy_minus_avoid` (Buy mean alpha − Avoid mean alpha) and `monotonic`
-    (Buy >= Watch >= Avoid on mean alpha) — a healthy gate is monotonic with a
-    positive spread.
+    `screened_only` restricts to screener-passing names (True = product-faithful).
+    `warmup_days` skips the earliest cohorts so momentum/trend metrics have enough
+    price history. Because cohorts overlap heavily (n over-counts), the Buy−Avoid
+    spread comes with a **block-bootstrap 90% CI** (resampling whole cohorts).
     """
     settings = settings or {"margin_of_safety_pct": 15, "target_upside_pct": 30}
     dates = _dates(store)
     if len(dates) < 2:
         return {"ok": False, "reason": f"insufficient history: {len(dates)} snapshot date(s)."}
-    if _days(dates[0], dates[-1]) < hold_days:
+    if _days(dates[0], dates[-1]) < hold_days + warmup_days:
         return {"ok": False, "reason": f"history spans {_days(dates[0], dates[-1])}d; "
-                f"need >= hold_days ({hold_days}d) to measure one forward window."}
+                f"need >= warmup ({warmup_days}d) + hold ({hold_days}d)."}
 
-    # entry dates: spaced >= step_days apart, each with a full hold window ahead
+    warmup_cut = dates[0]
+    for d in dates:                       # first date past the warmup window
+        if _days(dates[0], d) >= warmup_days:
+            warmup_cut = d
+            break
+    # entry dates: after warmup, spaced >= step_days apart, each with a full hold ahead
     entries, last_pick = [], None
     for d in dates:
+        if d < warmup_cut:
+            continue
         if _days(d, dates[-1]) < hold_days:
             break
         if last_pick is None or _days(last_pick, d) >= step_days:
@@ -211,17 +258,21 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
     alpha = {"Buy": [], "Watch": [], "Avoid": []}
     raw = {"Buy": [], "Watch": [], "Avoid": []}
     cohorts = []
+    per_obs = {}        # {cohort_entry: [(verdict, alpha)]} for the block bootstrap
     for entry in entries:
         exit_ = _first_exit(dates, entry, hold_days)
         if not exit_:
             continue
-        # point-in-time sector medians: computed from each name's AS-OF metrics
-        # at the entry date (no look-ahead), not the current snapshot.
+        # candidates = screener-passing names as-of `entry` (matches the live board)
         asof = {}
         for sec in secs:
             m = _asof_metrics(store, sec["ticker"], entry)
-            if "price" in m:
-                asof[sec["ticker"]] = (sec, m)
+            if "price" not in m:
+                continue
+            if screened_only and not passes_screen(m):
+                continue
+            asof[sec["ticker"]] = (sec, m)
+        # point-in-time sector medians from those names' AS-OF metrics (no look-ahead)
         med = medians_from(cfg, [(sec["sector"], m) for sec, m in asof.values()])
         rows = []
         for tkr, (sec, m) in asof.items():
@@ -235,10 +286,12 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
             continue
         mkt = statistics.mean(r for _, r in rows)   # cross-sectional benchmark
         cohort_alpha = {"Buy": [], "Watch": [], "Avoid": []}
+        per_obs[entry] = []
         for v, r in rows:
             alpha.setdefault(v, []).append(r - mkt)
             raw.setdefault(v, []).append(r)
             cohort_alpha.setdefault(v, []).append(r - mkt)
+            per_obs[entry].append((v, r - mkt))
         cohorts.append({
             "entry": entry, "exit": exit_, "n": len(rows),
             "mkt_return_pct": round(mkt, 2),
@@ -247,7 +300,7 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
         })
 
     if not cohorts:
-        return {"ok": False, "reason": "no cohort had enough names with a full forward window."}
+        return {"ok": False, "reason": "no cohort had enough screened names with a full forward window."}
 
     def stats(vals):
         return {"n": len(vals),
@@ -265,7 +318,15 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
     if None not in (buy_a, watch_a, avoid_a):
         monotonic = buy_a >= watch_a >= avoid_a
 
+    # block-bootstrap 90% CI for the spread (resamples whole cohorts, so it
+    # reflects the real independent sample despite heavy cohort overlap)
+    entry_list = [c["entry"] for c in cohorts]
+    ci = _block_bootstrap_spread(per_obs, entry_list, B=bootstrap) if bootstrap else None
+    significant = bool(ci and ci[0] > 0)   # 90% CI lower bound above zero
+
     return {"ok": True, "hold_days": hold_days, "step_days": step_days,
             "cohorts": len(cohorts), "window": [dates[0], dates[-1]],
+            "screened_only": screened_only, "warmup_days": warmup_days,
             "by_verdict": by_verdict, "buy_minus_avoid_pct": spread,
+            "spread_ci90": list(ci) if ci else None, "significant": significant,
             "monotonic": monotonic, "per_cohort": cohorts}

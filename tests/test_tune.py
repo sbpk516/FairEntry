@@ -48,7 +48,7 @@ def test_evaluate_is_pure_and_deterministic():
     cfg = load_config()
     store = Store(tempfile.mktemp(suffix=".db"))
     _seed_world(store)
-    obs = precompute(store, cfg, hold_days=30, step_days=14, min_names=20)
+    obs = precompute(store, cfg, hold_days=30, step_days=14, min_names=20, screened_only=False, warmup_days=0)
     store.close()
     assert obs, "precompute should produce observations"
     w = {cid: c["weight"] for cid, c in cfg.categories.items()}
@@ -63,7 +63,7 @@ def test_tuner_reports_and_never_worsens_train_spread():
     cfg = load_config()
     store = Store(tempfile.mktemp(suffix=".db"))
     _seed_world(store)
-    res = tune(store, cfg, hold_days=30, step_days=14, min_names=20, test_frac=0.3)
+    res = tune(store, cfg, hold_days=30, step_days=14, min_names=20, test_frac=0.3, screened_only=False, warmup_days=0)
     store.close()
 
     assert res["ok"], res
@@ -81,7 +81,7 @@ def test_robust_tuner_multi_hold_multi_fold():
     cfg = load_config()
     store = Store(tempfile.mktemp(suffix=".db"))
     _seed_world(store)
-    res = robust_tune(store, cfg, holds=(20, 30, 60), step_days=14, folds=3, reg=0.15)
+    res = robust_tune(store, cfg, holds=(20, 30, 60), step_days=14, folds=3, reg=0.15, screened_only=False, warmup_days=0)
     store.close()
 
     assert res["ok"], res
@@ -102,7 +102,8 @@ def test_protect_guardrail_pins_defensive_weights():
     _seed_world(store)
     band = 3.0
     res = robust_tune(store, cfg, holds=(20, 30, 60), step_days=14, folds=3,
-                      reg=0.15, protect=frozenset({"risk", "survival"}), protect_band=band)
+                      reg=0.15, protect=frozenset({"risk", "survival"}), protect_band=band,
+                      screened_only=False, warmup_days=0)
     store.close()
     assert res["ok"], res
     default = {cid: c["weight"] for cid, c in cfg.categories.items()}
