@@ -662,6 +662,23 @@ function watchHTML(s){ var w=s.thesis.watchlist; if(!w||!w.length) return '';
   return '<div class="sub-h">Who &amp; what to follow <span style="font-weight:400;color:var(--ink-faint);font-size:12px">(sources to track this thesis — reasoning layer)</span></div>'+
     '<div class="wl-list">'+rows+'</div>'; }
 
+// Demand & Momentum — CONTEXT ONLY. Explicitly NOT part of the score and does
+// not affect the Buy / Watch / Avoid verdict (that comes only from the scored,
+// backtest-verified model). Purely a human read with its supporting evidence.
+function contextHTML(s){ var c=s.context; if(!c) return '';
+  function block(title, d){
+    if(!d) return '';
+    var cls = (d.label==='strong'||d.label==='rotating in') ? 'good'
+            : (d.label==='soft'||d.label==='out of favor') ? 'bad' : 'info';
+    var ev = (d.evidence||[]).map(function(e){return '<span class="lab info">'+esc(e)+'</span>';}).join(' ');
+    return '<div style="margin:9px 0"><span class="lab '+cls+'">'+esc(title)+': '+esc(d.label)+'</span> '+
+      '<span style="color:var(--ink-soft);font-size:12.5px">'+esc(d.read)+'</span>'+
+      (ev?'<div style="margin-top:6px">'+ev+'</div>':'')+'</div>'; }
+  return '<div class="sub-h">Demand &amp; Momentum '+
+      '<span style="font-weight:400;color:var(--ink-faint);font-size:12px">(context only — NOT scored; does not affect Buy / Watch / Avoid)</span></div>'+
+    block('Demand', c.demand)+block('Momentum', c.momentum)+
+    '<div style="font-size:11.5px;color:var(--ink-faint);margin-top:4px">'+esc(c.disclaimer||'')+'</div>'; }
+
 // Growth entry plan — for Quality Growth names: fair-price cases, entry zone,
 // upside now vs at entry, and the buy-now/wait decision.
 var EV_LABEL={buy_now:['Buy Now','good'],starter:['Starter','info'],wait_for_pullback:['Wait for Pullback','warn'],
@@ -768,7 +785,7 @@ function openDetail(tk){ var s=STOCKS.find(function(x){return x.ticker===tk;}); 
     .map(function(a){return '<div class="acard"><div class="l">'+a[0]+'</div><div class="v">'+esc(a[1])+'</div></div>';}).join('')+'</div>';
   var mathSec='<div class="sub-h">How the '+Math.round(c.prelim)+' was computed</div>'+scoreMathHTML(s,c);
   var scorecard='<div class="sub-h">Scorecard — click a category for its arithmetic, then any item for expected vs actual</div>'+s.cats.map(catHTML).join('');
-  $('#d-body').innerHTML=hero+mathSec+scorecard+valHTML(s)+growthEntryHTML(s)+situationHTML(s)+newsHTML(s)+watchHTML(s)+action;
+  $('#d-body').innerHTML=hero+mathSec+scorecard+valHTML(s)+growthEntryHTML(s)+contextHTML(s)+situationHTML(s)+newsHTML(s)+watchHTML(s)+action;
   openDrawer('#detail');
 }
 

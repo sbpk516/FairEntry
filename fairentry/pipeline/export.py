@@ -120,6 +120,71 @@ def _action(rec):
             else "Not yet actionable."), "add": "—", "stop": "—", "review": "—"}
 
 
+# ---------------------------------------------------------------------------
+# Demand & Momentum — CONTEXT ONLY.
+# This is a human-readable read of "is demand growing / is money rotating in",
+# built purely from data already in the store. It is deliberately NOT part of
+# the score and does NOT influence Buy / Watch / Avoid — those come only from the
+# config-driven, backtest-verifiable scoring model. Anything we can't verify in
+# the backtest stays out of the verdict and lives here as context instead.
+# ---------------------------------------------------------------------------
+def _dm_num(mt, k):
+    v = mt.get(k, {})
+    v = v.get("value") if isinstance(v, dict) else v
+    return v if isinstance(v, (int, float)) else None
+
+
+def demand_momentum(mt: dict) -> dict:
+    """Informational only. Returns {demand, momentum} each with a label, a
+    one-line read, and the evidence numbers behind it. Never feeds the score."""
+    rev = _dm_num(mt, "rev_growth_qoq")          # sales growth Q/Q
+    epsn = _dm_num(mt, "eps_growth_next_y")       # forward EPS growth estimate
+    perf = _dm_num(mt, "perf_year")               # 1-year price performance
+    relv = _dm_num(mt, "rel_volume")              # relative volume (activity)
+    revs = _dm_num(mt, "estimate_revision_score")  # 0-100, >50 = targets rising
+    rec_ = _dm_num(mt, "analyst_recom")           # 1=Strong Buy .. 5=Sell
+
+    # ---- Demand: is the business winning growth, and are estimates rising? ----
+    d_ev = []
+    if rev is not None:
+        d_ev.append(f"Sales {rev:+.0f}% q/q")
+    if epsn is not None:
+        d_ev.append(f"EPS est next yr {epsn:+.0f}%")
+    if revs is not None:
+        d_ev.append("analyst targets " + ("rising" if revs >= 55 else "falling" if revs <= 45 else "flat"))
+    strong = ((rev is not None and rev >= 15) or (epsn is not None and epsn >= 20)) \
+        and (revs is None or revs >= 50)
+    soft = (rev is not None and rev < 0) and (epsn is None or epsn < 5)
+    d_label = "strong" if strong else "soft" if soft else "steady" if d_ev else "n/a"
+    d_read = {"strong": "Demand growing and expectations holding up.",
+              "steady": "Moderate demand; nothing decisive either way.",
+              "soft": "Demand shrinking — top line under pressure.",
+              "n/a": "Not enough data to read demand."}[d_label]
+
+    # ---- Momentum: is money rotating into the stock right now? ----
+    m_ev = []
+    if perf is not None:
+        m_ev.append(f"1-yr {perf:+.0f}%")
+    if relv is not None:
+        m_ev.append(f"rel. volume {relv:.1f}x")
+    if rec_ is not None:
+        m_ev.append("analyst consensus " + ("Buy" if rec_ <= 2 else "Sell" if rec_ >= 3.5 else "Hold"))
+    rotating = (perf is not None and perf >= 15) and (relv is None or relv >= 1.0)
+    outfav = (perf is not None and perf < -10)
+    m_label = "rotating in" if rotating else "out of favor" if outfav else "neutral" if m_ev else "n/a"
+    m_read = {"rotating in": "Uptrend with active interest — money is showing up.",
+              "neutral": "No clear accumulation or distribution.",
+              "out of favor": "Downtrend — money is leaving, not arriving.",
+              "n/a": "Not enough data to read momentum."}[m_label]
+
+    return {
+        "demand": {"label": d_label, "read": d_read, "evidence": d_ev},
+        "momentum": {"label": m_label, "read": m_read, "evidence": m_ev},
+        "disclaimer": "Context only — not part of the score. Does not affect the "
+                      "Buy / Watch / Avoid verdict.",
+    }
+
+
 def _map(rec, strategies, strategy_key):
     fv = rec["valuation"]
     th = rec.get("_thesis")
@@ -227,6 +292,8 @@ def _map(rec, strategies, strategy_key):
         "soft": [g["reason"] for g in rec["soft_gates"]],
         "soft_gates": [g["reason"] for g in rec["soft_gates"]],
         "labels": labels, "action": action, "action_plan": action,
+        # informational only — see demand_momentum(); NOT used in the score/verdict
+        "context": rec.get("_context"),
     }
 
 
@@ -244,6 +311,7 @@ def _rescore_with_thesis(cfg, secs, store, rec, th, settings, med):
     r2 = score_ticker(cfg, secs[rec["ticker"]], store.metrics_for(rec["ticker"]), med, s)
     r2["_primary"] = primary; r2["_strategies"] = rec["_strategies"]; r2["_thesis"] = th
     r2["_sm_flow"] = rec.get("_sm_flow")   # preserve rec-attached extras across re-score
+    r2["_context"] = rec.get("_context")   # informational only
     return r2, mod
 
 
@@ -388,6 +456,7 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
         rec["_primary"] = primary; rec["_strategies"] = strategies
         smf = mt.get("thirteenf_flow", {})
         rec["_sm_flow"] = smf.get("value") if isinstance(smf, dict) else None
+        rec["_context"] = demand_momentum(mt)   # informational only — not scored
         recs.append(rec)
 
     reasoning_summary = {}
