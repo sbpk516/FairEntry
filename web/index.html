@@ -110,6 +110,13 @@
   .lab.warn{ color:var(--watch-text); background:var(--watch-bg); border-color:transparent; }
   .lab.bad{ color:var(--avoid-text); background:var(--avoid-bg); border-color:transparent; }
   .lab.info{ color:var(--accent-ink); background:var(--accent-soft); border-color:transparent; }
+  /* context-only chips (demand/momentum) — dashed + "read" prefix marks them as NOT scored */
+  .ctx-row{ display:flex; flex-wrap:wrap; gap:5px; align-items:center; margin-top:7px; }
+  .ctx-row::before{ content:"read"; font-size:9px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint); font-weight:700; }
+  .ctag{ font-size:10.5px; padding:2px 7px; border-radius:999px; font-weight:600; border:1px dashed var(--line-soft); background:transparent; color:var(--ink-soft); }
+  .ctag.good{ color:var(--buy-text); border-color:var(--buy-text); }
+  .ctag.bad{ color:var(--avoid-text); border-color:var(--avoid-text); }
+  .ctag.info{ color:var(--ink-soft); border-color:var(--line-soft); }
 
   .v-buy{ color:var(--buy-text);} .bg-buy{ background:var(--buy-bg);} .st-buy{ background:var(--buy);}
   .v-watch{ color:var(--watch-text);} .bg-watch{ background:var(--watch-bg);} .st-watch{ background:var(--watch);}
@@ -546,6 +553,17 @@ function thesisPlain(s){
            moderate:'moderate durability', fragile:'fragile — growth at risk'};
   return map[l] || (l && l!=='—' && l!=='unknown' ? l : 'AI read n/a'); }
 function bar(sc){ return '<div class="track"><i style="width:'+sc+'%;background:'+HUE(sc)+'"></i></div>'; }
+// compact demand/momentum chips for the board grid — context only, NEVER scored.
+// dashed border + "read" prefix (see .ctx-row CSS) marks them apart from scoring labels.
+function contextChips(s){ var c=s.context; if(!c) return '';
+  var parts=[];
+  function chip(name, d){ if(!d||d.label==='n/a') return;
+    var cls=(d.label==='strong'||d.label==='rotating in')?'good':(d.label==='soft'||d.label==='out of favor')?'bad':'info';
+    parts.push('<span class="ctag '+cls+'">'+esc(name)+' '+esc(d.label)+'</span>'); }
+  chip('Demand', c.demand); chip('Flow', c.momentum);
+  if(!parts.length) return '';
+  return '<div class="ctx-row" title="Context only - not part of the score. Does not affect Buy / Watch / Avoid.">'+parts.join('')+'</div>';
+}
 function tileHTML(s){ var c=compute(s), vk=c.verdict.toLowerCase();
   var kv='<div class="kv"><span>Upside <b>'+(s.valuation.upside>=0?'+':'')+s.valuation.upside+'%</b></span>'+
     '<span>Fair gap <b>'+s.valuation.label+'</b></span>'+
@@ -556,7 +574,7 @@ function tileHTML(s){ var c=compute(s), vk=c.verdict.toLowerCase();
     '<div class="tile-top"><div class="tile-main"><div class="tick">'+esc(s.ticker)+'</div><div class="co">'+esc(s.company)+' · '+esc(s.sector)+'</div></div>'+
     '<div class="verdict"><span class="vpill bg-'+vk+' v-'+vk+'">'+c.verdict+'</span>'+(nuance?'<div class="action-lbl">'+esc(nuance)+'</div>':'')+'</div></div>'+
     '<div class="scorebar-wrap"><span class="scoreval tnum" style="color:'+HUET(c.prelim)+'">'+Math.round(c.prelim)+'<span>/100</span></span>'+bar(Math.round(c.prelim))+'</div>'+
-    kv+'<div class="labels">'+labs+'</div><div class="tile-actions"><button class="addbtn" data-add="'+esc(s.ticker)+'" type="button">Add 100</button></div></div></div>'; }
+    kv+'<div class="labels">'+labs+'</div>'+contextChips(s)+'<div class="tile-actions"><button class="addbtn" data-add="'+esc(s.ticker)+'" type="button">Add 100</button></div></div></div>'; }
 
 function currentList(){
   var q=$('#search').value.trim().toLowerCase(), sec=$('#sector').value, vf=$('#vfilter .on').dataset.v, sort=$('#sort').value;
