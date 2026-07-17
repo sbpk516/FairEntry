@@ -8,6 +8,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
+from ..analytics.demand_momentum import build_context as build_demand_momentum
 from ..scoring.engine import sector_medians, score_ticker
 from ..screeners import REGISTRY as SCREENERS
 
@@ -288,6 +289,7 @@ def _map(rec, strategies, strategy_key):
                       "upside": round(fv["upside_pct"]), "label": fv["valuation_label"],
                       "methods": fv.get("methods", [])},
         "growth_entry": growth_entry,
+        "demand_momentum": rec.get("_demand_momentum"),
         "vetoes": [v["reason"] for v in rec["vetoes"]],
         "soft": [g["reason"] for g in rec["soft_gates"]],
         "soft_gates": [g["reason"] for g in rec["soft_gates"]],
@@ -445,6 +447,7 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
     store.commit()
 
     recs = []
+    metrics_by_ticker = {}
     for t, strategies in quals.items():
         primary = "deep_value" if "deepvalue" in strategies else "quality_growth"
         s = dict(settings)
@@ -452,6 +455,7 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
         if pw:
             s["weights"] = pw
         mt = store.metrics_for(t)
+        metrics_by_ticker[t] = mt
         rec = score_ticker(cfg, secs[t], mt, med, s)
         rec["_primary"] = primary; rec["_strategies"] = strategies
         smf = mt.get("thirteenf_flow", {})
@@ -467,9 +471,11 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
     reattached = _attach_stored_theses(cfg, secs, store, recs, settings, med)
 
     stocks = []
+    demand_context = build_demand_momentum([(r, metrics_by_ticker.get(r["ticker"], {})) for r in recs])
     for rec in recs:
         store.set_score_result(rec["ticker"], rec["_primary"], rec["base_score"],
                                rec["preliminary"], rec["verdict"], rec)
+        rec["_demand_momentum"] = demand_context.get(rec["ticker"])
         stocks.append(_map(rec, rec["_strategies"], rec["_primary"]))
     store.commit()
 

@@ -185,6 +185,22 @@
   .stg.improving{ color:var(--buy-text); background:var(--buy-bg); border-color:transparent; }
   .stg.worsening,.stg.structural{ color:var(--avoid-text); background:var(--avoid-bg); border-color:transparent; }
 
+  /* demand & momentum context (not scored) */
+  .dm-box{ border:1px solid var(--line); border-radius:11px; overflow:hidden; background:var(--panel); }
+  .dm-head{ display:flex; align-items:center; gap:10px; padding:13px 15px; border-bottom:1px solid var(--line-soft); }
+  .dm-summary{ flex:1; color:var(--ink); line-height:1.45; font-size:13.5px; }
+  .dm-note{ font-family:var(--mono); font-size:11px; color:var(--ink-faint); background:var(--panel-2); border:1px solid var(--line-soft); border-radius:999px; padding:3px 8px; white-space:nowrap; }
+  .dm-grid{ display:grid; grid-template-columns:1fr 260px; gap:0; }
+  .dm-table{ width:100%; border-collapse:collapse; font-size:13px; }
+  .dm-table th{ text-align:right; font-size:10.5px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.05em; padding:9px 10px; border-bottom:1px solid var(--line-soft); }
+  .dm-table th:first-child,.dm-table td:first-child{ text-align:left; }
+  .dm-table td{ text-align:right; padding:9px 10px; border-bottom:1px solid var(--line-soft); font-family:var(--mono); }
+  .dm-side{ padding:12px 14px; border-left:1px solid var(--line-soft); background:var(--panel-2); }
+  .dm-side .k{ font-size:10.5px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.05em; font-weight:700; margin-top:10px; }
+  .dm-side .k:first-child{ margin-top:0; }
+  .dm-side .v{ font-family:var(--mono); font-size:15px; font-weight:800; margin-top:2px; }
+  @media (max-width:720px){ .dm-grid{ grid-template-columns:1fr; } .dm-side{ border-left:none; border-top:1px solid var(--line-soft); } }
+
   /* recent news (reasoning evidence) */
   .news-list{ border:1px solid var(--line); border-radius:11px; padding:2px 15px; }
   .news-row{ padding:11px 0; border-top:1px solid var(--line-soft); }
@@ -701,6 +717,29 @@ function contextHTML(s){ var c=s.context; if(!c) return '';
 // upside now vs at entry, and the buy-now/wait decision.
 var EV_LABEL={buy_now:['Buy Now','good'],starter:['Starter','info'],wait_for_pullback:['Wait for Pullback','warn'],
   wait_for_confirmation:['Wait for Confirmation','warn'],watch:['Watch','warn'],avoid:['Avoid','bad']};
+function pct2(x){ return (x==null||!isFinite(Number(x)))?'n/a':((Number(x)>=0?'+':'')+Number(x).toFixed(1)+'%'); }
+function signedStyle(x){ return (x==null||!isFinite(Number(x)))?'':(' style="color:'+(Number(x)>=0?'var(--buy-text)':'var(--avoid-text)')+'"'); }
+function demandMomentumHTML(s){
+  var d=s.demand_momentum; if(!d) return '';
+  var rows=(d.relative_strength||[]).map(function(r){
+    return '<tr><td>'+esc(r.period)+'</td>'+
+      '<td'+signedStyle(r.stock_return_pct)+'>'+pct2(r.stock_return_pct)+'</td>'+
+      '<td'+signedStyle(r.market_alpha_pct)+'>'+pct2(r.market_alpha_pct)+'</td>'+
+      '<td'+signedStyle(r.sector_alpha_pct)+'>'+pct2(r.sector_alpha_pct)+'</td></tr>';
+  }).join('');
+  var vol=d.volume||{}, tone=d.tone||'mixed';
+  var lab=tone==='strong'||tone==='improving'?'good':tone==='weak'?'bad':'warn';
+  return '<div class="sub-h">Demand &amp; Momentum <span style="font-weight:400;color:var(--ink-faint);font-size:12px">(context only &mdash; NOT scored; does not affect Buy / Watch / Avoid)</span></div>'+
+    '<div class="dm-box"><div class="dm-head"><span class="lab '+lab+'">'+esc(tone)+'</span><div class="dm-summary">'+esc(d.summary||'Demand context unavailable.')+'</div><span class="dm-note">not scored</span></div>'+
+    '<div class="dm-grid"><table class="dm-table"><thead><tr><th>Period</th><th>Stock</th><th>vs SPY</th><th>vs sector</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+    '<div class="dm-side">'+
+      '<div class="k">Market benchmark</div><div class="v">'+esc(d.market_benchmark||'SPY')+'</div>'+
+      '<div class="k">Sector benchmark</div><div class="v">'+esc(d.sector_benchmark||'n/a')+'</div>'+
+      '<div class="k">Relative volume</div><div class="v">'+(vol.relative_volume==null?'n/a':Number(vol.relative_volume).toFixed(2)+'x')+'</div>'+
+      '<div class="k">20d up/down volume</div><div class="v">'+(vol.up_down_volume_20d==null?'n/a':Number(vol.up_down_volume_20d).toFixed(2)+'x')+'</div>'+
+      '<div class="k">Volume read</div><div class="v">'+esc(vol.accumulation_label||'unknown')+'</div>'+
+    '</div></div></div>';
+}
 function num$(x){ return (x==null)?'—':('$'+x); }
 function growthEntryHTML(s){ var g=s.growth_entry; if(!g) return '';
   var ev=EV_LABEL[g.entry_view]||['Watch','warn'];
@@ -803,7 +842,7 @@ function openDetail(tk){ var s=STOCKS.find(function(x){return x.ticker===tk;}); 
     .map(function(a){return '<div class="acard"><div class="l">'+a[0]+'</div><div class="v">'+esc(a[1])+'</div></div>';}).join('')+'</div>';
   var mathSec='<div class="sub-h">How the '+Math.round(c.prelim)+' was computed</div>'+scoreMathHTML(s,c);
   var scorecard='<div class="sub-h">Scorecard — click a category for its arithmetic, then any item for expected vs actual</div>'+s.cats.map(catHTML).join('');
-  $('#d-body').innerHTML=hero+mathSec+scorecard+valHTML(s)+growthEntryHTML(s)+contextHTML(s)+situationHTML(s)+newsHTML(s)+watchHTML(s)+action;
+  $('#d-body').innerHTML=hero+mathSec+scorecard+demandMomentumHTML(s)+valHTML(s)+growthEntryHTML(s)+contextHTML(s)+situationHTML(s)+newsHTML(s)+watchHTML(s)+action;
   openDrawer('#detail');
 }
 
