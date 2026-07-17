@@ -110,6 +110,17 @@
   .lab.warn{ color:var(--watch-text); background:var(--watch-bg); border-color:transparent; }
   .lab.bad{ color:var(--avoid-text); background:var(--avoid-bg); border-color:transparent; }
   .lab.info{ color:var(--accent-ink); background:var(--accent-soft); border-color:transparent; }
+  .aspects{ display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px; margin:10px 0 9px; }
+  .aspect{ border:1px solid var(--line-soft); border-radius:7px; padding:5px 4px; min-width:0; background:var(--panel-2); }
+  .aspect .an{ display:block; font-size:9.5px; line-height:1.05; color:var(--ink-faint); font-weight:800; text-transform:uppercase; letter-spacing:.035em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .aspect .av{ display:block; margin-top:3px; font-family:var(--mono); font-size:13px; line-height:1; font-weight:900; }
+  .aspect.good{ background:var(--buy-bg); border-color:transparent; }
+  .aspect.good .av{ color:var(--buy-text); }
+  .aspect.warn{ background:var(--watch-bg); border-color:transparent; }
+  .aspect.warn .av{ color:var(--watch-text); }
+  .aspect.bad{ background:var(--avoid-bg); border-color:transparent; }
+  .aspect.bad .av{ color:var(--avoid-text); }
+  @media (max-width:520px){ .aspects{ grid-template-columns:repeat(4,minmax(0,1fr)); } }
   /* context-only chips (demand/momentum) — dashed + "read" prefix marks them as NOT scored */
   .ctx-row{ display:flex; flex-wrap:wrap; gap:5px; align-items:center; margin-top:7px; }
   .ctx-row::before{ content:"read"; font-size:9px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint); font-weight:700; }
@@ -569,14 +580,35 @@ function thesisPlain(s){
            moderate:'moderate durability', fragile:'fragile — growth at risk'};
   return map[l] || (l && l!=='—' && l!=='unknown' ? l : 'AI read n/a'); }
 function bar(sc){ return '<div class="track"><i style="width:'+sc+'%;background:'+HUE(sc)+'"></i></div>'; }
+function scoreClass(sc){ return sc>=67?'good':sc>=45?'warn':'bad'; }
+function aspectStrip(s){
+  var names={quality:'Quality',survival:'Financials',growth:'Growth',valuation:'Value',confirmation:'Market',catalysts:'Catalysts',risk:'Risk'};
+  var order=['quality','survival','growth','valuation','confirmation','catalysts','risk'];
+  var by={}; (s.cats||[]).forEach(function(c){ by[c.id]=c; });
+  var html=order.map(function(id){
+    var cat=by[id], val=cat&&isFinite(Number(cat.score))?Math.round(Number(cat.score)):null;
+    var cls=val==null?'warn':scoreClass(val);
+    return '<span class="aspect '+cls+'" title="'+esc((CATLBL[id]||names[id])+' score')+'"><span class="an">'+esc(names[id])+'</span><span class="av">'+(val==null?'n/a':val)+'</span></span>';
+  }).join('');
+  return '<div class="aspects" aria-label="Seven aspect scores">'+html+'</div>';
+}
+function dmToneClass(tone){ return tone==='strong'||tone==='improving'?'good':tone==='weak'?'bad':'info'; }
+function dmShort(d){
+  var r=(d.relative_strength||[]).find(function(x){return x.period==='3m';}) || (d.relative_strength||[])[0] || {};
+  var a=r.market_alpha_pct;
+  return a==null?'':(' 3m '+(Number(a)>=0?'+':'')+Number(a).toFixed(0)+'% vs SPY');
+}
 // compact demand/momentum chips for the board grid — context only, NEVER scored.
 // dashed border + "read" prefix (see .ctx-row CSS) marks them apart from scoring labels.
-function contextChips(s){ var c=s.context; if(!c) return '';
+function contextChips(s){ var c=s.context||{};
   var parts=[];
   function chip(name, d){ if(!d||d.label==='n/a') return;
     var cls=(d.label==='strong'||d.label==='rotating in')?'good':(d.label==='soft'||d.label==='out of favor')?'bad':'info';
     parts.push('<span class="ctag '+cls+'">'+esc(name)+' '+esc(d.label)+'</span>'); }
-  chip('Demand', c.demand); chip('Flow', c.momentum);
+  chip('Biz demand', c.demand); chip('Expectations', c.momentum);
+  if(s.demand_momentum&&s.demand_momentum.tone){
+    parts.push('<span class="ctag '+dmToneClass(s.demand_momentum.tone)+'">Price demand '+esc(s.demand_momentum.tone)+esc(dmShort(s.demand_momentum))+'</span>');
+  }
   if(!parts.length) return '';
   return '<div class="ctx-row" title="Context only - not part of the score. Does not affect Buy / Watch / Avoid.">'+parts.join('')+'</div>';
 }
@@ -590,7 +622,7 @@ function tileHTML(s){ var c=compute(s), vk=c.verdict.toLowerCase();
     '<div class="tile-top"><div class="tile-main"><div class="tick">'+esc(s.ticker)+'</div><div class="co">'+esc(s.company)+' · '+esc(s.sector)+'</div></div>'+
     '<div class="verdict"><span class="vpill bg-'+vk+' v-'+vk+'">'+c.verdict+'</span>'+(nuance?'<div class="action-lbl">'+esc(nuance)+'</div>':'')+'</div></div>'+
     '<div class="scorebar-wrap"><span class="scoreval tnum" style="color:'+HUET(c.prelim)+'">'+Math.round(c.prelim)+'<span>/100</span></span>'+bar(Math.round(c.prelim))+'</div>'+
-    kv+'<div class="labels">'+labs+'</div>'+contextChips(s)+'<div class="tile-actions"><button class="addbtn" data-add="'+esc(s.ticker)+'" type="button">Add 100</button></div></div></div>'; }
+    kv+aspectStrip(s)+'<div class="labels">'+labs+'</div>'+contextChips(s)+'<div class="tile-actions"><button class="addbtn" data-add="'+esc(s.ticker)+'" type="button">Add 100</button></div></div></div>'; }
 
 function currentList(){
   var q=$('#search').value.trim().toLowerCase(), sec=$('#sector').value, vf=$('#vfilter .on').dataset.v, sort=$('#sort').value;
