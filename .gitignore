@@ -12,6 +12,7 @@ data/cache/
 data/xbrl_cache/
 data/ten_k_cache/
 .fe_cache/
+data/mcp_state.json
 
 # python
 __pycache__/

@@ -16,6 +16,7 @@ python scripts/refresh.py             # pull the universe into data/fairentry.db
 python scripts/build_all.py           # screen -> score -> export web/data/board.json
 python scripts/build_all.py --refresh --reason   # full run incl. LLM reasoning
 python scripts/backtest.py            # prospective signal backtest once signals mature
+python -m fairentry.mcp.stdio_server  # local MCP for Codex / Claude / ChatGPT clients
 
 # view the app
 cd web && python -m http.server 8795   # open http://localhost:8795
@@ -38,6 +39,8 @@ config/*.yaml → catalog refresh (adapters) → SQLite store
   `scoring/` (transparent Layer A), `reasoning/` (Layer B, provider-abstracted),
   `pipeline/` (build + export).
 - **`web/`** — the progressive-disclosure UI; reads `web/data/board.json`.
+- **`fairentry/mcp/`** — local/remote MCP tools so ChatGPT, Codex, and Claude
+  can query the FairEntry board, backtests, dummy portfolio, and notes.
 
 ## Status
 
@@ -48,4 +51,5 @@ backtesting, and the web app includes a browser-local dummy portfolio tracker at
 `web/portfolio.html`. SEC/insider/news enrichment adapters port from BagHunter v1 next.
 
 See `docs/IMPLEMENTATION_PLAN.md` for the full plan and traceability matrix, and
-`docs/methodology.md` (generated from config) for the live scoring model.
+`docs/methodology.md` (generated from config) for the live scoring model. See
+`docs/fairentry-mcp.md` for ChatGPT/Codex/Claude connection steps.
