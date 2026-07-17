@@ -160,6 +160,16 @@
   .acard{ background:var(--panel-2); border:1px solid var(--line-soft); border-radius:10px; padding:10px 12px; }
   .acard .l{ font-size:11px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.05em; }
   .acard .v{ font-size:13.5px; font-weight:600; margin-top:3px; }
+  .bizbox{ border:1px solid var(--line); border-radius:11px; background:var(--panel); overflow:hidden; }
+  .biztop{ padding:13px 15px; border-bottom:1px solid var(--line-soft); }
+  .bizplain{ font-size:14px; line-height:1.55; color:var(--ink); }
+  .bizexample{ margin-top:8px; font-size:13px; line-height:1.5; color:var(--ink-soft); }
+  .bizgrid{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:0; }
+  .bizpart{ padding:11px 13px; border-left:1px solid var(--line-soft); background:var(--panel-2); }
+  .bizpart:first-child{ border-left:none; }
+  .bizpart .k{ font-size:10.5px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.05em; font-weight:800; }
+  .bizpart .v{ margin-top:4px; font-size:13px; line-height:1.35; font-weight:650; }
+  @media (max-width:720px){ .bizgrid{ grid-template-columns:1fr; } .bizpart{ border-left:none; border-top:1px solid var(--line-soft); } }
 
   /* drill rows */
   .cat{ border:1px solid var(--line); border-radius:11px; margin-bottom:8px; overflow:hidden; background:var(--panel); }
@@ -613,7 +623,9 @@ function contextChips(s){ var c=s.context||{};
   return '<div class="ctx-row" title="Context only - not part of the score. Does not affect Buy / Watch / Avoid.">'+parts.join('')+'</div>';
 }
 function tileHTML(s){ var c=compute(s), vk=c.verdict.toLowerCase();
-  var kv='<div class="kv"><span>Upside <b>'+(s.valuation.upside>=0?'+':'')+s.valuation.upside+'%</b></span>'+
+  var kv='<div class="kv"><span>Price <b>$'+esc(s.price)+'</b></span>'+
+    '<span>Fair <b>$'+esc(s.valuation.base)+'</b></span>'+
+    '<span>Upside <b>'+(s.valuation.upside>=0?'+':'')+s.valuation.upside+'%</b></span>'+
     '<span>Fair gap <b>'+s.valuation.label+'</b></span>'+
     '<span>AI read <b>'+esc(thesisPlain(s))+'</b></span></div>';
   var labs=s.labels.slice(0,4).map(function(l){return '<span class="lab '+l[1]+'">'+esc(l[0])+'</span>';}).join('');
@@ -694,6 +706,68 @@ function scoreMathHTML(s,c){
   return '<div class="mathbox"><table class="mtable"><thead><tr><th>Category</th><th class="n">Weight</th><th class="n">Score</th><th class="n">Weight×Score</th></tr></thead>'+
     '<tbody>'+rows+'</tbody><tfoot><tr><td>Totals</td><td class="n">'+wsum+'</td><td></td><td class="n">'+num+'</td></tr></tfoot></table>'+
     '<div class="mformula">Base = '+num+' ÷ '+wsum+' = <b>'+c.base.toFixed(1)+'</b> &nbsp;·&nbsp; thesis modifier <b>'+(c.mod>=0?'+':'')+c.mod+'</b> (recovery/growth '+s.thesis.score+'/100) &nbsp;·&nbsp; = preliminary <b>'+c.prelim.toFixed(1)+'</b> &nbsp;→&nbsp; <b>'+band+'</b></div></div>'; }
+
+function businessModel(s){
+  var name=(s.company||s.ticker||'This company'), txt=(s.ticker+' '+name+' '+(s.sector||'')).toLowerCase();
+  function out(plain, sources, example){ return {plain:plain, sources:sources, example:example}; }
+  if(/atat|atour|hotel|lodging|resort|casino/.test(txt)) return out(
+    name+' makes money when guests stay in its hotels and when partner/franchise hotels use its brand and operating system.',
+    ['Room stays and hotel services','Franchise / management fees','Member, food, retail, or travel add-ons'],
+    'A traveler books a room; part of that stay becomes revenue. If a partner hotel uses the brand, the company can also collect a recurring fee.'
+  );
+  if(/rely|remit|money transfer|payment|paypal|block|visa|mastercard|adyen|shift4|toast/.test(txt)) return out(
+    name+' makes money by helping people or businesses move money and taking a small fee or spread on each transaction.',
+    ['Transaction fees','Foreign-exchange or processing spread','Business/customer service fees'],
+    'A customer sends $500 to family overseas; the company earns a fee and may also earn a small spread on the currency conversion.'
+  );
+  if(/sk hynix|micron|microchip|semiconductor|chip|foundry|tower|tsem|nvda|amd|qualcomm|broadcom|marvell|analog/.test(txt)) return out(
+    name+' makes money by designing, making, or supplying chips and chip-related components that other companies put into electronics, data centers, cars, and industrial equipment.',
+    ['Chip or wafer sales','Long-term supply/customer contracts','Higher-margin specialized products'],
+    'A device maker needs memory or specialty chips; it buys those chips, and the company earns revenue on each shipment.'
+  );
+  if(/cloud|software|saas|data|cyber|security|app|platform|crm|digital/.test(txt)) return out(
+    name+' makes money by selling software access, subscriptions, or usage-based digital services to customers.',
+    ['Subscriptions','Usage-based fees','Support, implementation, or add-on modules'],
+    'A customer pays monthly or yearly to use the platform; as more users or features are added, revenue can grow.'
+  );
+  if(/bank|banc|financial|capital|insurance|broker|asset management/.test(txt)) return out(
+    name+' makes money by handling money: lending it, investing it, insuring risk, or charging fees for financial services.',
+    ['Interest income or investment spread','Service / advisory fees','Insurance premiums or transaction fees'],
+    'A bank lends at a higher rate than it pays depositors; the difference is part of its profit.'
+  );
+  if(/biotech|pharma|therapeutics|medical|health|clinic|care|hospital|device/.test(txt)) return out(
+    name+' makes money by selling healthcare products or services, such as drugs, medical devices, treatments, or care delivery.',
+    ['Product sales','Treatment / service revenue','Licensing, reimbursement, or partner payments'],
+    'A patient or insurer pays for a treatment, device, or care visit; that payment becomes revenue.'
+  );
+  if(/retail|store|restaurant|food|apparel|auto|consumer|travel|leisure/.test(txt) || s.sector==='Consumer Cyclical') return out(
+    name+' makes money by selling products or services directly to consumers, usually through stores, online channels, memberships, or brand partnerships.',
+    ['Product/service sales','Membership or loyalty revenue','Franchise, marketplace, or financing fees'],
+    'A customer buys a product or books a service; the company keeps the sale after paying suppliers and operating costs.'
+  );
+  if(s.sector==='Technology') return out(
+    name+' makes money by selling technology products or services to businesses or consumers.',
+    ['Product or service sales','Subscriptions / usage fees','Support, licensing, or customer contracts'],
+    'A customer buys the technology or pays to use it over time; revenue grows when more customers adopt it or existing customers spend more.'
+  );
+  if(s.sector==='Communication Services') return out(
+    name+' makes money by selling media, connectivity, advertising, subscriptions, or digital communication services.',
+    ['Subscriptions / access fees','Advertising or content revenue','Platform, licensing, or service fees'],
+    'Users watch, subscribe, communicate, or advertise through the platform; the company earns fees from that activity.'
+  );
+  return out(
+    name+' makes money by selling its core products or services to customers and trying to keep a profit after direct costs, staff, marketing, and overhead.',
+    ['Core product/service sales','Recurring customer contracts or repeat purchases','Add-on services, fees, or partner revenue'],
+    'A customer buys what the company offers; the company makes money if the selling price is meaningfully higher than the total cost to deliver it.'
+  );
+}
+function businessHTML(s){
+  var b=businessModel(s);
+  var src=b.sources.map(function(x,i){ return '<div class="bizpart"><div class="k">Source '+(i+1)+'</div><div class="v">'+esc(x)+'</div></div>'; }).join('');
+  return '<div class="sub-h">How this company makes money <span style="font-weight:400;color:var(--ink-faint);font-size:12px">(plain English, not exact segment %)</span></div>'+
+    '<div class="bizbox"><div class="biztop"><div class="bizplain">'+esc(b.plain)+'</div><div class="bizexample"><b>Example:</b> '+esc(b.example)+'</div></div>'+
+    '<div class="bizgrid">'+src+'</div></div>';
+}
 
 function situationHTML(s){ if(!s.thesis.situation||!s.thesis.situation.length) return '';
   var rows=s.thesis.situation.map(function(r){ return '<div class="sit-row"><div class="sit-q">'+esc(r[0])+'</div>'+
@@ -874,7 +948,7 @@ function openDetail(tk){ var s=STOCKS.find(function(x){return x.ticker===tk;}); 
     .map(function(a){return '<div class="acard"><div class="l">'+a[0]+'</div><div class="v">'+esc(a[1])+'</div></div>';}).join('')+'</div>';
   var mathSec='<div class="sub-h">How the '+Math.round(c.prelim)+' was computed</div>'+scoreMathHTML(s,c);
   var scorecard='<div class="sub-h">Scorecard — click a category for its arithmetic, then any item for expected vs actual</div>'+s.cats.map(catHTML).join('');
-  $('#d-body').innerHTML=hero+mathSec+scorecard+demandMomentumHTML(s)+valHTML(s)+growthEntryHTML(s)+contextHTML(s)+situationHTML(s)+newsHTML(s)+watchHTML(s)+action;
+  $('#d-body').innerHTML=hero+businessHTML(s)+mathSec+scorecard+demandMomentumHTML(s)+valHTML(s)+growthEntryHTML(s)+contextHTML(s)+situationHTML(s)+newsHTML(s)+watchHTML(s)+action;
   openDrawer('#detail');
 }
 
