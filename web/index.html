@@ -125,9 +125,18 @@
   .ctx-row{ display:flex; flex-wrap:wrap; gap:5px; align-items:center; margin-top:7px; }
   .ctx-row::before{ content:"read"; font-size:9px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint); font-weight:700; }
   .ctag{ font-size:10.5px; padding:2px 7px; border-radius:999px; font-weight:600; border:1px dashed var(--line-soft); background:transparent; color:var(--ink-soft); }
+  .ctag.clickable{ cursor:pointer; }
+  .ctag.clickable:hover{ background:var(--panel-2); }
   .ctag.good{ color:var(--buy-text); border-color:var(--buy-text); }
   .ctag.bad{ color:var(--avoid-text); border-color:var(--avoid-text); }
   .ctag.info{ color:var(--ink-soft); border-color:var(--line-soft); }
+  .breakout-pop{ position:fixed; z-index:90; width:min(360px,calc(100vw - 28px)); background:var(--panel);
+    border:1px solid var(--line); border-radius:11px; box-shadow:0 18px 45px rgba(0,0,0,.22); padding:13px 14px; }
+  .bh-top{ display:flex; align-items:center; gap:10px; margin-bottom:7px; }
+  .bh-title{ font-weight:800; font-size:13.5px; color:var(--ink); flex:1; }
+  .bh-x{ border:none; background:transparent; color:var(--ink-faint); font-size:18px; line-height:1; cursor:pointer; }
+  .bh-text{ font-size:13px; line-height:1.5; color:var(--ink-soft); }
+  .bh-note{ margin-top:8px; font-family:var(--mono); font-size:11px; color:var(--ink-faint); }
 
   .v-buy{ color:var(--buy-text);} .bg-buy{ background:var(--buy-bg);} .st-buy{ background:var(--buy);}
   .v-watch{ color:var(--watch-text);} .bg-watch{ background:var(--watch-bg);} .st-watch{ background:var(--watch);}
@@ -609,6 +618,29 @@ function dmToneClass(tone){ return tone==='strong'||tone==='improving'?'good':to
 function setupToneClass(tone){ return tone==='confirmed'||tone==='building'||tone==='improving'||tone==='supportive'||tone==='easing'||tone==='breakout'||tone==='basing'?'good':
   tone==='failed'||tone==='worsening'||tone==='deteriorating'||tone==='hostile'||tone==='rising'||tone==='crowded'?'bad':
   tone==='unknown'?'warn':'info'; }
+var BREAKOUT_HELP={
+  early:'Buy + breakout early = cheap, but wait for proof or use smaller position.',
+  building:'Buy + breakout building = cheap and signs are starting to line up.',
+  confirmed:'Buy + breakout confirmed = cheap/value thesis plus market confirmation.',
+  failed:'Buy + breakout failed = be careful; value thesis may be turning into a value trap.',
+  unknown:'Breakout setup unknown = not enough clean data yet to read the leading indicators.'
+};
+function showBreakoutHelp(label, anchor){
+  var old=document.querySelector('.breakout-pop'); if(old) old.remove();
+  label=String(label||'unknown').toLowerCase();
+  var box=document.createElement('div'), r=anchor.getBoundingClientRect();
+  box.className='breakout-pop';
+  box.innerHTML='<div class="bh-top"><span class="lab '+setupToneClass(label)+'">Breakout '+esc(label)+'</span>'+
+    '<div class="bh-title">What this means</div><button class="bh-x" type="button" aria-label="Close">×</button></div>'+
+    '<div class="bh-text">'+esc(BREAKOUT_HELP[label]||BREAKOUT_HELP.unknown)+'</div>'+
+    '<div class="bh-note">Context only - not used in FairEntry score, Buy / Watch / Avoid, or backtest verdicts.</div>';
+  document.body.appendChild(box);
+  var left=Math.min(window.innerWidth-box.offsetWidth-14, Math.max(14, r.left));
+  var top=Math.min(window.innerHeight-box.offsetHeight-14, r.bottom+8);
+  if(top<14) top=14;
+  box.style.left=left+'px'; box.style.top=top+'px';
+  box.querySelector('.bh-x').addEventListener('click',function(){ box.remove(); });
+}
 function dmShort(d){
   var r=(d.relative_strength||[]).find(function(x){return x.period==='3m';}) || (d.relative_strength||[])[0] || {};
   var a=r.market_alpha_pct;
@@ -626,7 +658,7 @@ function contextChips(s){ var c=s.context||{};
     parts.push('<span class="ctag '+dmToneClass(s.demand_momentum.tone)+'">Price demand '+esc(s.demand_momentum.tone)+esc(dmShort(s.demand_momentum))+'</span>');
   }
   if(s.breakout_setup&&s.breakout_setup.overall){
-    parts.push('<span class="ctag '+setupToneClass(s.breakout_setup.overall)+'">Breakout '+esc(s.breakout_setup.overall)+'</span>');
+    parts.push('<span class="ctag clickable '+setupToneClass(s.breakout_setup.overall)+'" role="button" tabindex="0" data-breakout="'+esc(s.breakout_setup.overall)+'">Breakout '+esc(s.breakout_setup.overall)+'</span>');
   }
   if(!parts.length) return '';
   return '<div class="ctx-row" title="Context only - not part of the score. Does not affect Buy / Watch / Avoid.">'+parts.join('')+'</div>';
@@ -1044,11 +1076,13 @@ function renderAiStatus(ai){
 
 /* ---------- events ---------- */
 function openDrawer(sel){ $('#scrim').classList.add('on'); $(sel).classList.add('on'); }
-function closeAll(){ $('#scrim').classList.remove('on'); $('#detail').classList.remove('on'); $('#settings').classList.remove('on'); }
+function closeAll(){ $('#scrim').classList.remove('on'); $('#detail').classList.remove('on'); $('#settings').classList.remove('on'); var pop=document.querySelector('.breakout-pop'); if(pop) pop.remove(); }
 
 document.addEventListener('click',function(e){
   var add=e.target.closest('[data-add]'); if(add){ e.preventDefault(); e.stopPropagation();
     addToPortfolio(add.dataset.add); add.textContent='Added'; setTimeout(function(){add.textContent='Add 100';},900); return; }
+  var bh=e.target.closest('[data-breakout]'); if(bh){ e.preventDefault(); e.stopPropagation(); showBreakoutHelp(bh.dataset.breakout,bh); return; }
+  if(!e.target.closest('.breakout-pop')){ var pop=document.querySelector('.breakout-pop'); if(pop) pop.remove(); }
   var tile=e.target.closest('.tile'); if(tile){ openDetail(tile.dataset.t); return; }
   var exp=e.target.closest('[data-exp]'); if(exp && e.target.closest('.row')){ exp.classList.toggle('open'); return; }
 });
@@ -1056,6 +1090,8 @@ document.addEventListener('click',function(e){
 document.addEventListener('keydown',function(e){
   if(e.key==='Escape'){ closeAll(); return; }
   if((e.key==='Enter'||e.key===' '||e.key==='Spacebar') && e.target.closest && e.target.closest('[data-add]')){
+    e.preventDefault(); e.target.click(); return; }
+  if((e.key==='Enter'||e.key===' '||e.key==='Spacebar') && e.target.closest && e.target.closest('[data-breakout]')){
     e.preventDefault(); e.target.click(); return; }
   if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){ var tile=e.target.closest&&e.target.closest('.tile');
     if(tile){ e.preventDefault(); openDetail(tile.dataset.t); } }
