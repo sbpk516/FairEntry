@@ -8,6 +8,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
+from ..analytics.breakout_setup import build_context as build_breakout_setup
 from ..analytics.demand_momentum import build_context as build_demand_momentum
 from ..scoring.engine import sector_medians, score_ticker
 from ..screeners import REGISTRY as SCREENERS
@@ -109,12 +110,12 @@ def _labels(rec):
 
 
 def _action(rec):
-    v = rec["verdict"]
+    v = rec.get("display_verdict", rec["verdict"])
     if v == "Avoid":
         return {"action": "Avoid", "size": "—", "entry": (rec["vetoes"][0]["reason"] if rec["vetoes"]
                 else "Weak score."), "add": "—", "stop": "—", "review": "—"}
-    if v == "Buy":
-        return {"action": "Buy Now", "size": "3%", "entry": "Clears the gates on the numbers.",
+    if v in {"Buy", "Quant Buy"}:
+        return {"action": "Quant Buy" if v == "Quant Buy" else "Buy Now", "size": "3%", "entry": "Clears the quantitative gates.",
                 "add": "On confirmation.", "stop": "Thesis kill-switch (reasoning layer, pending).",
                 "review": "Next earnings"}
     return {"action": "Watch", "size": "starter", "entry": (rec["soft_gates"][0]["reason"] if rec["soft_gates"]
@@ -216,6 +217,17 @@ def _map(rec, strategies, strategy_key):
                              "weekly shortlist, so this name doesn't have one yet.",
                   "situation": [], "kill": "", "provider": "—", "reviewed_at": None,
                   "news": [], "watchlist": []}
+    thesis["drivers"] = th.get("thesis_drivers", []) if th else []
+    thesis["leading_indicators"] = th.get("leading_indicators", []) if th else []
+    thesis["risks"] = th.get("thesis_risks", []) if th else []
+    thesis["capital_allocation"] = th.get("capital_allocation", []) if th else []
+    thesis["driver_history"] = {
+        "point_in_time_ready": False,
+        "backtest_eligible": False,
+        "reason": "Structured thesis drivers remain context-only until dated histories exist."
+    }
+    display_verdict = ("Quant Buy" if rec["verdict"] == "Buy" and not th else rec["verdict"])
+    rec["display_verdict"] = display_verdict
     # Growth-entry plan (for Quality Growth names): fair-price cases + entry zone
     # + upside now vs at the entry zone + the buy-now/wait decision.
     growth_entry = None
@@ -264,9 +276,11 @@ def _map(rec, strategies, strategy_key):
     return {
         "ticker": rec["ticker"], "company": rec["company"], "sector": rec["sector"],
         "country": rec.get("country"), "strategy": strategies, "price": rec["price"],
-        "score": rec["score"], "verdict": rec["verdict"],
+        "score": rec["score"], "verdict": display_verdict,
+        "model_verdict": rec["verdict"],
         "base_score": rec["base_score"], "thesis_modifier": rec["thesis_modifier"],
         "preliminary": rec["preliminary"], "coverage_pct": rec.get("coverage_pct"),
+        "coverage_confidence": rec.get("coverage_confidence"),
         "cats": [{"id": c["id"], "label": c["label"], "score": c["score"] or 0,
                   "items": [{"label": i["label"], "weight": i["weight"], "score": i["score"] or 0,
                              "actual": (rec.get("_sm_flow") if i.get("id") == "smart_money" and rec.get("_sm_flow")
@@ -287,9 +301,15 @@ def _map(rec, strategies, strategy_key):
         "thesis": thesis,
         "valuation": {"low": fv["fair_low"], "base": fv["fair_base"], "high": fv["fair_high"],
                       "upside": round(fv["upside_pct"]), "label": fv["valuation_label"],
-                      "methods": fv.get("methods", [])},
+                      "methods": fv.get("methods", []),
+                      "excluded_methods": fv.get("excluded_methods", []),
+                      "dispersion_pct": fv.get("dispersion_pct"),
+                      "method_agreement_pct": fv.get("method_agreement_pct"),
+                      "confidence": fv.get("valuation_confidence"),
+                      "warnings": fv.get("warnings", [])},
         "growth_entry": growth_entry,
         "demand_momentum": rec.get("_demand_momentum"),
+        "breakout_setup": rec.get("_breakout_setup"),
         "vetoes": [v["reason"] for v in rec["vetoes"]],
         "soft": [g["reason"] for g in rec["soft_gates"]],
         "soft_gates": [g["reason"] for g in rec["soft_gates"]],
@@ -471,11 +491,14 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
     reattached = _attach_stored_theses(cfg, secs, store, recs, settings, med)
 
     stocks = []
-    demand_context = build_demand_momentum([(r, metrics_by_ticker.get(r["ticker"], {})) for r in recs])
+    context_records = [(r, metrics_by_ticker.get(r["ticker"], {})) for r in recs]
+    demand_context = build_demand_momentum(context_records)
+    breakout_context = build_breakout_setup(store, context_records)
     for rec in recs:
         store.set_score_result(rec["ticker"], rec["_primary"], rec["base_score"],
                                rec["preliminary"], rec["verdict"], rec)
         rec["_demand_momentum"] = demand_context.get(rec["ticker"])
+        rec["_breakout_setup"] = breakout_context.get(rec["ticker"])
         stocks.append(_map(rec, rec["_strategies"], rec["_primary"]))
     store.commit()
 

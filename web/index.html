@@ -554,9 +554,11 @@ function settingsChanged(){
 function compute(s){
   if(!settingsChanged() && typeof s.preliminary==='number' && s.verdict){
     var vetoed=!!(s.vetoes&&s.vetoes.length);
-    var capped=(s.verdict==='Watch' && s.preliminary>=S.buyBand && !vetoed);  // would-be Buy, gated
+    var modelVerdict=s.model_verdict||(s.verdict==='Quant Buy'?'Buy':s.verdict);
+    var capped=(modelVerdict==='Watch' && s.preliminary>=S.buyBand && !vetoed);  // would-be Buy, gated
     return {base:s.base_score||0, mod:s.thesis_modifier||0, prelim:s.preliminary,
-      gates:s.soft||[], verdict:s.verdict, capped:capped, vetoed:vetoed, backend:true};
+      gates:s.soft||[], verdict:modelVerdict, displayVerdict:s.verdict,
+      capped:capped, vetoed:vetoed, backend:true};
   }
   var base=baseScore(s), mod=thesisMod(s), prelim=base+mod-(s.riskPenalty||0);
   var out={base:base, mod:mod, prelim:prelim, gates:[], vetoed:false};
@@ -574,6 +576,7 @@ function compute(s){
 // ONLY when it adds meaning beyond the verdict word, so a clean Buy isn't
 // labelled "Buy" twice.
 function verdictAction(c){
+  if(c.displayVerdict==='Quant Buy') return 'Quant Buy — qualitative review pending';
   if(c.verdict==='Avoid') return c.vetoed?'Avoid — vetoed':'Avoid';
   if(c.verdict==='Buy') return 'Buy Now';
   return c.capped?'Would-be Buy — gated':'Watch'; }
@@ -603,6 +606,9 @@ function aspectStrip(s){
   return '<div class="aspects" aria-label="Seven aspect scores">'+html+'</div>';
 }
 function dmToneClass(tone){ return tone==='strong'||tone==='improving'?'good':tone==='weak'?'bad':'info'; }
+function setupToneClass(tone){ return tone==='confirmed'||tone==='building'||tone==='improving'||tone==='supportive'||tone==='easing'||tone==='breakout'||tone==='basing'?'good':
+  tone==='failed'||tone==='worsening'||tone==='deteriorating'||tone==='hostile'||tone==='rising'||tone==='crowded'?'bad':
+  tone==='unknown'?'warn':'info'; }
 function dmShort(d){
   var r=(d.relative_strength||[]).find(function(x){return x.period==='3m';}) || (d.relative_strength||[])[0] || {};
   var a=r.market_alpha_pct;
@@ -619,10 +625,13 @@ function contextChips(s){ var c=s.context||{};
   if(s.demand_momentum&&s.demand_momentum.tone){
     parts.push('<span class="ctag '+dmToneClass(s.demand_momentum.tone)+'">Price demand '+esc(s.demand_momentum.tone)+esc(dmShort(s.demand_momentum))+'</span>');
   }
+  if(s.breakout_setup&&s.breakout_setup.overall){
+    parts.push('<span class="ctag '+setupToneClass(s.breakout_setup.overall)+'">Breakout '+esc(s.breakout_setup.overall)+'</span>');
+  }
   if(!parts.length) return '';
   return '<div class="ctx-row" title="Context only - not part of the score. Does not affect Buy / Watch / Avoid.">'+parts.join('')+'</div>';
 }
-function tileHTML(s){ var c=compute(s), vk=c.verdict.toLowerCase();
+function tileHTML(s){ var c=compute(s), shown=c.displayVerdict||c.verdict, vk=c.verdict.toLowerCase();
   var kv='<div class="kv"><span>Price <b>$'+esc(s.price)+'</b></span>'+
     '<span>Fair <b>$'+esc(s.valuation.base)+'</b></span>'+
     '<span>Upside <b>'+(s.valuation.upside>=0?'+':'')+s.valuation.upside+'%</b></span>'+
@@ -630,9 +639,9 @@ function tileHTML(s){ var c=compute(s), vk=c.verdict.toLowerCase();
     '<span>AI read <b>'+esc(thesisPlain(s))+'</b></span></div>';
   var labs=s.labels.slice(0,4).map(function(l){return '<span class="lab '+l[1]+'">'+esc(l[0])+'</span>';}).join('');
   var nuance=actionNuance(c);
-  return '<div class="tile" data-t="'+esc(s.ticker)+'" role="button" tabindex="0" aria-label="'+esc(s.ticker+' '+s.company+' — '+c.verdict+', score '+Math.round(c.prelim))+'"><div class="vstripe st-'+vk+'"></div><div class="tile-in">'+
+  return '<div class="tile" data-t="'+esc(s.ticker)+'" role="button" tabindex="0" aria-label="'+esc(s.ticker+' '+s.company+' — '+shown+', score '+Math.round(c.prelim))+'"><div class="vstripe st-'+vk+'"></div><div class="tile-in">'+
     '<div class="tile-top"><div class="tile-main"><div class="tick">'+esc(s.ticker)+'</div><div class="co">'+esc(s.company)+' · '+esc(s.sector)+'</div></div>'+
-    '<div class="verdict"><span class="vpill bg-'+vk+' v-'+vk+'">'+c.verdict+'</span>'+(nuance?'<div class="action-lbl">'+esc(nuance)+'</div>':'')+'</div></div>'+
+    '<div class="verdict"><span class="vpill bg-'+vk+' v-'+vk+'">'+shown+'</span>'+(nuance?'<div class="action-lbl">'+esc(nuance)+'</div>':'')+'</div></div>'+
     '<div class="scorebar-wrap"><span class="scoreval tnum" style="color:'+HUET(c.prelim)+'">'+Math.round(c.prelim)+'<span>/100</span></span>'+bar(Math.round(c.prelim))+'</div>'+
     kv+aspectStrip(s)+'<div class="labels">'+labs+'</div>'+contextChips(s)+'<div class="tile-actions"><button class="addbtn" data-add="'+esc(s.ticker)+'" type="button">Add 100</button></div></div></div>'; }
 
@@ -846,6 +855,27 @@ function demandMomentumHTML(s){
       '<div class="k">Volume read</div><div class="v">'+esc(vol.accumulation_label||'unknown')+'</div>'+
     '</div></div></div>';
 }
+function fmtBool(x){ return x==null?'n/a':(x?'yes':'no'); }
+function setupHTML(s){
+  var b=s.breakout_setup; if(!b) return '';
+  var f=b.fundamental_stabilization||{}, sr=b.support_resistance||{}, sp=b.short_pressure||{}, sec=b.sector_trend||{};
+  function val(x,suffix){ return x==null?'n/a':Number(x).toFixed(1)+(suffix||''); }
+  function pill(label){ return '<span class="lab '+setupToneClass(label)+'">'+esc(label||'unknown')+'</span>'; }
+  var rows=[
+    ['Fundamental stabilization', pill(f.label), 'Revenue '+esc(f.revenue_trend||'unknown')+', gross margin '+esc(f.gross_margin_trend||'unknown')+', operating margin '+esc(f.operating_margin_trend||'unknown')+', P/FCF proxy '+esc(f.fcf_proxy_trend||'unknown')],
+    ['Support / resistance setup', pill(sr.label), '52w low distance '+val(sr.distance_to_52w_low_pct,'%')+', resistance distance '+val(sr.distance_to_resistance_pct,'%')+', support holds '+esc(sr.support_touches||0)+', breakout '+fmtBool(sr.breakout)],
+    ['Short interest pressure', pill(sp.label), 'Short float '+val(sp.short_float,'%')+', short trend '+esc(sp.short_float_trend||'unknown')+', days-to-cover '+esc(sp.days_to_cover==null?'n/a':sp.days_to_cover)],
+    ['Sector trend', pill(sec.label), 'ETF '+esc(sec.sector_etf||'n/a')+', above 50d '+fmtBool(sec.above_50d)+', above 200d '+fmtBool(sec.above_200d)+', 3m vs SPY '+val(sec.sector_vs_spy_3m_pct,'%')]
+  ].map(function(r){
+    return '<tr><td>'+esc(r[0])+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>';
+  }).join('');
+  return '<div class="sub-h">Deep Value Breakout Setup <span style="font-weight:400;color:var(--ink-faint);font-size:12px">(context only &mdash; NOT scored; leading indicators)</span></div>'+
+    '<div class="dm-box"><div class="dm-head"><span class="lab '+setupToneClass(b.overall)+'">'+esc(b.overall||'unknown')+'</span><div class="dm-summary">'+esc(b.summary||'Breakout setup unavailable.')+'</div><span class="dm-note">not scored</span></div>'+
+    '<table class="dm-table"><thead><tr><th>Area</th><th>Label</th><th>Evidence</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+    '<div style="font-size:11.5px;color:var(--ink-faint);padding:10px 14px;border-top:1px solid var(--line-soft);line-height:1.45">'+
+      esc(f.fcf_proxy_note||'')+(sp.days_to_cover_note?' '+esc(sp.days_to_cover_note):'')+' '+esc(b.note||'')+
+    '</div></div>';
+}
 function num$(x){ return (x==null)?'—':('$'+x); }
 function growthEntryHTML(s){ var g=s.growth_entry; if(!g) return '';
   var ev=EV_LABEL[g.entry_view]||['Watch','warn'];
@@ -948,7 +978,7 @@ function openDetail(tk){ var s=STOCKS.find(function(x){return x.ticker===tk;}); 
     .map(function(a){return '<div class="acard"><div class="l">'+a[0]+'</div><div class="v">'+esc(a[1])+'</div></div>';}).join('')+'</div>';
   var mathSec='<div class="sub-h">How the '+Math.round(c.prelim)+' was computed</div>'+scoreMathHTML(s,c);
   var scorecard='<div class="sub-h">Scorecard — click a category for its arithmetic, then any item for expected vs actual</div>'+s.cats.map(catHTML).join('');
-  $('#d-body').innerHTML=hero+businessHTML(s)+mathSec+scorecard+demandMomentumHTML(s)+valHTML(s)+growthEntryHTML(s)+contextHTML(s)+situationHTML(s)+newsHTML(s)+watchHTML(s)+action;
+  $('#d-body').innerHTML=hero+businessHTML(s)+mathSec+scorecard+demandMomentumHTML(s)+setupHTML(s)+valHTML(s)+growthEntryHTML(s)+contextHTML(s)+situationHTML(s)+newsHTML(s)+watchHTML(s)+action;
   openDrawer('#detail');
 }
 
