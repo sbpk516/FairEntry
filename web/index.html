@@ -1133,11 +1133,24 @@ function sma(points, days){
   }
   return out;
 }
-function drawLine(ctx, vals, mapX, mapY, color){
+function drawLine(ctx, vals, mapX, mapY, color, label){
   ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=1.5; ctx.beginPath();
   var started=false;
   vals.forEach(function(v,i){ if(v==null)return; var x=mapX(i), y=mapY(v); if(!started){ctx.moveTo(x,y); started=true;} else ctx.lineTo(x,y); });
-  ctx.stroke(); ctx.restore();
+  ctx.stroke();
+  if(label){
+    for(var j=vals.length-1;j>=0;j--){
+      if(vals[j]==null) continue;
+      var lx=Math.min(mapX(j)+7, ctx.canvas.width/(window.devicePixelRatio||1)-68);
+      var ly=Math.max(14, Math.min(mapY(vals[j])-5, ctx.canvas.height/(window.devicePixelRatio||1)-12));
+      ctx.setLineDash([]);
+      ctx.fillStyle=color;
+      ctx.font='bold 11px sans-serif';
+      ctx.fillText(label,lx,ly);
+      break;
+    }
+  }
+  ctx.restore();
 }
 function drawH(ctx, y, x1, x2, color, label){
   ctx.save(); ctx.strokeStyle=color; ctx.setLineDash([5,4]); ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x1,y); ctx.lineTo(x2,y); ctx.stroke();
@@ -1170,14 +1183,14 @@ function drawChart(){
     var y1=mapY(Math.max(p.o,p.c)), y2=mapY(Math.min(p.o,p.c)); ctx.fillRect(x-bw/2,y1,bw,Math.max(1,y2-y1));
     var vh=(p.v||0)/maxV*volH; ctx.globalAlpha=.45; ctx.fillRect(x-bw/2,volTop+volH-vh,bw,vh); ctx.globalAlpha=1;
   });
-  drawLine(ctx,sma(points,CHART.mode==='weekly'?10:50),mapX,mapY,'#4a5ee0');
-  drawLine(ctx,sma(points,CHART.mode==='weekly'?40:200),mapX,mapY,'#b07d13');
+  drawLine(ctx,sma(points,CHART.mode==='weekly'?10:50),mapX,mapY,'#4a5ee0',CHART.mode==='weekly'?'10W SMA':'50D SMA');
+  drawLine(ctx,sma(points,CHART.mode==='weekly'?40:200),mapX,mapY,'#b07d13',CHART.mode==='weekly'?'40W SMA':'200D SMA');
   if(levels.support!=null) drawH(ctx,mapY(Number(levels.support)),padL,w-padR,'#1f9d55','support '+fmtLevel(levels.support));
   if(levels.resistance!=null) drawH(ctx,mapY(Number(levels.resistance)),padL,w-padR,'#cf3a54','resistance '+fmtLevel(levels.resistance));
   if(levels.fair_value!=null) drawH(ctx,mapY(Number(levels.fair_value)),padL,w-padR,'#4a5ee0','fair '+fmtLevel(levels.fair_value));
   ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--ink-faint')||'#666';
-  ctx.fillText(CHART.mode==='weekly'?'10w average':'50d average', padL, h-8);
-  ctx.fillStyle='#b07d13'; ctx.fillText(CHART.mode==='weekly'?'40w average':'200d average', padL+110, h-8);
+  ctx.fillText(CHART.mode==='weekly'?'10W SMA':'50D SMA', padL, h-8);
+  ctx.fillStyle='#b07d13'; ctx.fillText(CHART.mode==='weekly'?'40W SMA':'200D SMA', padL+90, h-8);
 }
 function renderChartLoaded(){
   var s=CHART.stock, data=CHART.data;
