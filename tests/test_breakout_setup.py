@@ -1,5 +1,7 @@
 from fairentry.analytics.breakout_setup import (
+    _decision_label,
     _fundamental_label,
+    _market_factors,
     _overall,
     _sector_trend,
     _short_label,
@@ -55,3 +57,31 @@ def test_overall_is_context_label_not_score():
     assert _overall("improving", "breakout", "easing", "supportive") == "confirmed"
     assert _overall("stabilizing", "basing", "moderate", "neutral") == "building"
     assert _overall("worsening", "neutral", "rising", "hostile") == "failed"
+
+
+def test_confirmed_requires_price_volume_market_and_business_support():
+    closes = [100.0] * 210 + [103.0]
+    volumes = [100.0] * 210 + [200.0]
+    bench = [100.0] * 211
+    sr, factors, metrics, volume_ratio, alpha = _market_factors(
+        closes, volumes, bench, bench)
+
+    assert sr["breakout"] is True
+    assert volume_ratio == 2.0
+    assert alpha > 0
+    assert metrics["breakout_price_score"] >= 85
+    assert metrics["breakout_volume_score"] == 100
+    assert all(f["formula"] and f["expected"] and f["source"] for f in factors)
+    assert _decision_label("quality_growth", "stable", sr, volume_ratio, alpha,
+                           metrics["trend_regime_score"], "supportive", True) == "confirmed"
+
+
+def test_price_only_move_is_not_breakout_confirmed():
+    closes = [100.0] * 210 + [103.0]
+    volumes = [100.0] * 211  # no participation surge
+    bench = [100.0] * 211
+    sr, _, metrics, volume_ratio, alpha = _market_factors(closes, volumes, bench, bench)
+    assert sr["breakout"] is True
+    assert volume_ratio == 1.0
+    assert _decision_label("deep_value", "improving", sr, volume_ratio, alpha,
+                           metrics["trend_regime_score"], "supportive", True) != "confirmed"

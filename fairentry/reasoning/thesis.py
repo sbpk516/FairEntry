@@ -10,7 +10,7 @@ from . import cache
 from .provider import get_provider
 from ..adapters.finnhub import fetch_news
 
-PROMPT_VERSION = "v3"   # v2 added real news; v3 adds watchlist-source discovery
+PROMPT_VERSION = "v5"   # v5 standardizes management/catalyst evidence rows
 
 _SYS = ("You are a disciplined value+growth equity analyst. Think like a careful "
         "investor, not a hype machine. Reply with a single JSON object only, no prose.")
@@ -27,6 +27,16 @@ _WATCHLIST_SCHEMA = (
     "unsure, describe the source type generically), "
     "why (short: what tracking it tells you about THIS name's thesis specifically)})")
 
+_BREAKOUT_EVIDENCE_SCHEMA = (
+    "breakout_evidence (array of up to 5 objects. Always include one object with id "
+    "management_execution and group management, and one with id catalyst_visibility "
+    "and group catalyst; use status unknown when supplied facts/headlines do not support "
+    "a decision. Each object: {id (short stable snake_case), "
+    "label, group (one of: catalyst, management, investor_behavior, contradiction), "
+    "status (one of: satisfied, partial, failed, contradicted, unknown), evidence "
+    "(specific metric, event, or headline supplied in this prompt; never invent evidence), "
+    "source (metric name or supplied headline source), date (supplied date or '')}), ")
+
 _RECOVERY_SCHEMA = (
     "Return JSON with exactly these keys: "
     "recovery_score (integer 0-100, higher = more credible recovery), "
@@ -36,7 +46,7 @@ _RECOVERY_SCHEMA = (
     "resolved/worsening), severity(low/medium/high/critical), evidence(short, cite a metric)}), "
     "key_catalyst (short string or ''), expected_timeframe (short string), "
     "kill_switch (short string: what would prove the thesis wrong), "
-    "summary (<=40 words), " + _WATCHLIST_SCHEMA)
+    "summary (<=40 words), " + _BREAKOUT_EVIDENCE_SCHEMA + _WATCHLIST_SCHEMA)
 
 _GROWTH_SCHEMA = (
     "Return JSON with exactly these keys: "
@@ -44,7 +54,8 @@ _GROWTH_SCHEMA = (
     "required_growth_to_justify_price (short string), "
     "durability (one of: durable, moderate, fragile, unknown), "
     "entry_view (one of: buy_now, starter, wait_for_pullback, wait_for_confirmation, avoid), "
-    "summary (<=40 words), kill_switch (short string), " + _WATCHLIST_SCHEMA)
+    "summary (<=40 words), kill_switch (short string), "
+    + _BREAKOUT_EVIDENCE_SCHEMA + _WATCHLIST_SCHEMA)
 
 
 def _facts(sec, metrics):

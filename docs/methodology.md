@@ -27,9 +27,9 @@ _Generated from `config/scoring.yaml`. Do not edit by hand._
 
 | Item | Weight | Metric | Expected | Rule |
 |---|--:|---|---|---|
-| Revenue growth vs sector | 40 | `rev_growth_qoq` | ≥ sector median | `sector_rel` |
+| Revenue growth vs sector | 35 | `rev_growth_qoq` | ≥ sector median | `sector_rel` |
 | EPS growth (next yr) | 30 | `eps_growth_next_y` | ≥ 15% | `higher_better` |
-| Price momentum (1y) | 30 | `perf_year` | positive vs market | `higher_better` |
+| Margin direction | 35 | `margin_trend_score` | stable or improving | `passthrough` |
 
 ### Valuation & Margin of Safety — weight 18
 
@@ -43,11 +43,13 @@ _Generated from `config/scoring.yaml`. Do not edit by hand._
 
 | Item | Weight | Metric | Expected | Rule |
 |---|--:|---|---|---|
-| 200-week MA proximity | 25 | `dist_200wma_pct` | within ±15% = near | `band` |
-| Above 200-day MA | 20 | `sma200` | price > 200DMA | `higher_better` |
-| Institutional flow | 20 | `inst_trans` | net buying | `higher_better` |
-| Smart-money 13F | 20 | `thirteenf_score` | owned / added by respected funds | `passthrough` |
-| Insider buying | 30 | `insider_score` | fresh / cluster / top-exec buys | `passthrough` |
+| Price above resistance | 25 | `breakout_price_score` | close ≥2% above resistance | `passthrough` |
+| Breakout volume | 20 | `breakout_volume_score` | ≥1.5× prior 50-day average | `passthrough` |
+| Relative strength | 15 | `relative_strength_score` | outperform sector and SPY | `passthrough` |
+| Trend regime | 15 | `trend_regime_score` | supportive moving-average trend | `passthrough` |
+| Institutional ownership change | 10 | `inst_trans` | positive change in reported institutional ownership | `higher_better` |
+| Smart-money SEC 13F | 5 | `thirteenf_score` | owned / added by respected tracked funds | `passthrough` |
+| Insider buying | 10 | `insider_score` | fresh / cluster / top-exec buys | `passthrough` |
 
 ### Catalysts & Narrative — weight 9
 
@@ -55,7 +57,7 @@ _Generated from `config/scoring.yaml`. Do not edit by hand._
 |---|--:|---|---|---|
 | News sentiment | 40 | `news_sentiment_score` | positive stance | `passthrough` |
 | Analyst consensus | 25 | `analyst_recom` | ≤ 2 (Buy) | `lower_better` |
-| Estimate revisions | 20 | `estimate_revision_score` | analyst targets rising | `passthrough` |
+| Analyst target revisions | 20 | `estimate_revision_score` | mean analyst price target rising | `passthrough` |
 | Short-squeeze fuel | 15 | `short_float` | elevated but not extreme | `band` |
 
 ### Risk, Red Flags & Fragility — weight 14

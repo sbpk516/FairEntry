@@ -5,6 +5,7 @@ shape (categories/items with actual/expected/rule/score, valuation, verdict).
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -122,6 +123,47 @@ def _action(rec):
             else "Not yet actionable."), "add": "—", "stop": "—", "review": "—"}
 
 
+def _export_categories(rec, breakout):
+    """Export the backend arithmetic plus the raw breakout evidence behind any
+    computed factor. The UI renders this object; it never recreates provenance."""
+    evidence_by_metric = {
+        f.get("scoring_metric"): f for f in ((breakout or {}).get("factors") or [])
+        if f.get("scoring_metric")
+    }
+    categories = []
+    for category in rec["categories"]:
+        items = []
+        for item in category["items"]:
+            evidence = evidence_by_metric.get(item["metric"], {})
+            items.append({
+                "id": item["id"], "metric": item["metric"], "label": item["label"],
+                "weight": item["weight"], "score": item["score"],
+                "status": item.get("status"), "contribution": item.get("contribution"),
+                "actual": "n/a" if item["actual"] is None else str(item["actual"]),
+                "raw_actual": evidence.get("actual"),
+                "expected": evidence.get("expected") or item["expected"],
+                "definition": item.get("definition", ""),
+                "rule": item["rule"],
+                "formula": evidence.get("formula") or item.get("formula", ""),
+                "evidence": evidence.get("evidence"),
+                "source": evidence.get("source") or item["source"] or "-",
+                "observed_at": evidence.get("observed_at"),
+                "fetched_at": item.get("fetched_at") or "-",
+                "calculation_version": evidence.get("calculation_version"),
+            })
+        categories.append({
+            "id": category["id"], "label": category["label"],
+            "score": category["score"], "weight": category["weight"],
+            "coverage": category.get("coverage"),
+            "contribution": category.get("contribution"),
+            "available_item_weight": category.get("available_item_weight"),
+            "configured_item_weight": category.get("configured_item_weight"),
+            "missing_item_weight": category.get("missing_item_weight"),
+            "items": items,
+        })
+    return categories
+
+
 # ---------------------------------------------------------------------------
 # Demand & Momentum — CONTEXT ONLY.
 # This is a human-readable read of "is demand growing / is money rotating in",
@@ -226,6 +268,70 @@ def _map(rec, strategies, strategy_key):
         "backtest_eligible": False,
         "reason": "Structured thesis drivers remain context-only until dated histories exist."
     }
+    breakout = deepcopy(rec.get("_breakout_setup"))
+    if breakout:
+        qualitative = []
+        raw_qualitative = list(((th or {}).get("breakout_evidence") or []))
+        used = set()
+        standard_qualitative = (
+            ("management_execution", "Management Execution", "management",
+             "specific, dated evidence that management delivered against guidance or a stated recovery/growth plan"),
+            ("catalyst_visibility", "Catalyst Visibility", "catalyst",
+             "a specific, dated catalyst with a credible path to affect business results or market expectations"),
+        )
+
+        def matching_evidence(factor_id, subgroup):
+            for index, evidence in enumerate(raw_qualitative):
+                if index in used:
+                    continue
+                if evidence.get("id") == factor_id or evidence.get("group") == subgroup:
+                    used.add(index)
+                    return evidence
+            return {}
+
+        ordered_evidence = []
+        for factor_id, label, subgroup, expected in standard_qualitative:
+            evidence = matching_evidence(factor_id, subgroup)
+            ordered_evidence.append((factor_id, label, subgroup, expected, evidence))
+        for index, evidence in enumerate(raw_qualitative):
+            if index not in used:
+                ordered_evidence.append((
+                    evidence.get("id") or "qualitative_evidence",
+                    evidence.get("label", "Qualitative evidence"),
+                    evidence.get("group", "catalyst"),
+                    "specific, dated evidence supporting durable continuation",
+                    evidence,
+                ))
+
+        for factor_id, label, subgroup, expected, ev in ordered_evidence:
+            status = ev.get("status", "unknown")
+            if status not in {"satisfied", "partial", "failed", "contradicted", "unknown"}:
+                status = "unknown"
+            qualitative.append({
+                "id": factor_id,
+                "group": "human_and_catalyst",
+                "subgroup": subgroup,
+                "label": label,
+                "status": status,
+                "actual": ev.get("evidence") or "n/a",
+                "expected": expected,
+                "score_metric": None,
+                "formula": "Existing thesis modifier only; not double-counted in the base score",
+                "evidence": ev.get("evidence") or "No specific evidence was supplied; status remains Unknown.",
+                "source": ev.get("source") or (th.get("_provider", "-") if th else "AI review pending"),
+                "observed_at": ev.get("date", ""),
+                "calculation_version": "thesis_v5",
+                "modifier_effect": f"Included collectively in the existing thesis modifier {rec['thesis_modifier']:+g}",
+            })
+        breakout["factors"] = (breakout.get("factors") or []) + qualitative
+        statuses = ("satisfied", "partial", "failed", "contradicted", "unknown")
+        breakout["counts"] = {k: sum(1 for f in breakout["factors"] if f.get("status") == k)
+                              for k in statuses}
+        breakout["counts"]["total"] = len(breakout["factors"])
+        breakout["qualitative_note"] = (
+            "Qualitative and human evidence affects only the existing thesis modifier; "
+            "the breakout label remains a deterministic rule outcome."
+        )
     display_verdict = ("Quant Buy" if rec["verdict"] == "Buy" and not th else rec["verdict"])
     rec["display_verdict"] = display_verdict
     # Growth-entry plan (for Quality Growth names): fair-price cases + entry zone
@@ -281,6 +387,8 @@ def _map(rec, strategies, strategy_key):
         "base_score": rec["base_score"], "thesis_modifier": rec["thesis_modifier"],
         "preliminary": rec["preliminary"], "coverage_pct": rec.get("coverage_pct"),
         "coverage_confidence": rec.get("coverage_confidence"),
+        "decision_trace": dict(rec.get("decision_trace") or {},
+                               thesis_evidence=qualitative if breakout else []),
         "cats": [{"id": c["id"], "label": c["label"], "score": c["score"] or 0,
                   "items": [{"label": i["label"], "weight": i["weight"], "score": i["score"] or 0,
                              "actual": (rec.get("_sm_flow") if i.get("id") == "smart_money" and rec.get("_sm_flow")
@@ -288,16 +396,7 @@ def _map(rec, strategies, strategy_key):
                              "expected": i["expected"], "rule": i["rule"],
                              "source": i["source"] or "—"} for i in c["items"] if i["score"] is not None]}
                  for c in rec["categories"] if c["score"] is not None],
-        "categories": [{"id": c["id"], "label": c["label"], "score": c["score"] or 0,
-                        "weight": c["weight"], "coverage": c.get("coverage"),
-                        "items": [{"label": i["label"], "weight": i["weight"],
-                                   "score": i["score"] or 0,
-                                   "actual": "n/a" if i["actual"] is None else str(i["actual"]),
-                                   "expected": i["expected"], "rule": i["rule"],
-                                   "source": i["source"] or "-",
-                                   "fetched_at": i.get("fetched_at") or "-"}
-                                  for i in c["items"] if i["score"] is not None]}
-                       for c in rec["categories"] if c["score"] is not None],
+        "categories": _export_categories(rec, breakout),
         "thesis": thesis,
         "valuation": {"low": fv["fair_low"], "base": fv["fair_base"], "high": fv["fair_high"],
                       "upside": round(fv["upside_pct"]), "label": fv["valuation_label"],
@@ -309,7 +408,7 @@ def _map(rec, strategies, strategy_key):
                       "warnings": fv.get("warnings", [])},
         "growth_entry": growth_entry,
         "demand_momentum": rec.get("_demand_momentum"),
-        "breakout_setup": rec.get("_breakout_setup"),
+        "breakout_setup": breakout,
         "vetoes": [v["reason"] for v in rec["vetoes"]],
         "soft": [g["reason"] for g in rec["soft_gates"]],
         "soft_gates": [g["reason"] for g in rec["soft_gates"]],
@@ -334,6 +433,7 @@ def _rescore_with_thesis(cfg, secs, store, rec, th, settings, med):
     r2["_primary"] = primary; r2["_strategies"] = rec["_strategies"]; r2["_thesis"] = th
     r2["_sm_flow"] = rec.get("_sm_flow")   # preserve rec-attached extras across re-score
     r2["_context"] = rec.get("_context")   # informational only
+    r2["_breakout_setup"] = rec.get("_breakout_setup")
     return r2, mod
 
 
@@ -466,10 +566,30 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
                 store.set_screen_result(t, sid, True, {})
     store.commit()
 
+    # Calculate one breakout evidence trace before scoring. Its individual
+    # quantitative metrics feed existing categories; the trace itself powers the
+    # existing breakout label and progressive-disclosure panel (no second score).
+    breakout_inputs = []
+    primary_by_ticker = {}
+    for t, strategies in quals.items():
+        primary = "deep_value" if "deepvalue" in strategies else "quality_growth"
+        primary_by_ticker[t] = primary
+        breakout_inputs.append(({
+            "ticker": t,
+            "sector": secs[t]["sector"],
+            "_primary": primary,
+        }, store.metrics_for(t)))
+    breakout_context = build_breakout_setup(store, breakout_inputs)
+    for ticker, context in breakout_context.items():
+        for metric_id, value in (context.get("scoring_metrics") or {}).items():
+            if value is not None:
+                store.set_metric(ticker, metric_id, value, "FairEntry breakout_v2")
+    store.commit()
+
     recs = []
     metrics_by_ticker = {}
     for t, strategies in quals.items():
-        primary = "deep_value" if "deepvalue" in strategies else "quality_growth"
+        primary = primary_by_ticker[t]
         s = dict(settings)
         pw = _preset_weights(cfg, primary)
         if pw:
@@ -481,6 +601,7 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
         smf = mt.get("thirteenf_flow", {})
         rec["_sm_flow"] = smf.get("value") if isinstance(smf, dict) else None
         rec["_context"] = demand_momentum(mt)   # informational only — not scored
+        rec["_breakout_setup"] = breakout_context.get(t)
         recs.append(rec)
 
     reasoning_summary = {}
@@ -493,7 +614,6 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
     stocks = []
     context_records = [(r, metrics_by_ticker.get(r["ticker"], {})) for r in recs]
     demand_context = build_demand_momentum(context_records)
-    breakout_context = build_breakout_setup(store, context_records)
     for rec in recs:
         store.set_score_result(rec["ticker"], rec["_primary"], rec["base_score"],
                                rec["preliminary"], rec["verdict"], rec)

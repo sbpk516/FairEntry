@@ -7,7 +7,7 @@ from fairentry.config import load_config
 from fairentry.scoring.rules import apply_rule
 from fairentry.scoring.engine import score_ticker
 from fairentry.scoring.fair_value import fair_value
-from fairentry.pipeline.export import _labels
+from fairentry.pipeline.export import _export_categories, _labels, _map
 
 _SEC = {"ticker": "T", "company": "Test", "sector": "Technology"}
 _SETTINGS = {"margin_of_safety_pct": 15, "target_upside_pct": 30}
@@ -67,6 +67,93 @@ def test_reproducible():
     assert r1["preliminary"] == r2["preliminary"]
     assert r1["verdict"] == r2["verdict"]
     assert r1["base_score"] > 0
+
+
+def test_decision_trace_reproduces_score_and_explains_every_effect():
+    cfg = load_config()
+    r = score_ticker(cfg, _SEC, _strong_metrics(), _MED, _SETTINGS)
+    trace = r["decision_trace"]
+    assert trace["base_score"] == r["base_score"]
+    assert trace["final_score"] == r["score"]
+    assert trace["final_verdict"] == r["verdict"]
+    assert trace["formula"]
+    assert abs(sum(c["contribution"] for c in r["categories"]
+                   if c["contribution"] is not None) - r["base_score"]) < 0.11
+    for category in r["categories"]:
+        for item in category["items"]:
+            assert "status" in item
+            if item["score"] is not None:
+                assert item["contribution"] is not None
+
+
+def test_missing_item_is_traced_and_excluded_not_neutralized():
+    cfg = load_config()
+    metrics = _strong_metrics()
+    metrics.pop("insider_score", None)
+    r = score_ticker(cfg, _SEC, metrics, _MED, _SETTINGS)
+    confirmation = next(c for c in r["categories"] if c["id"] == "confirmation")
+    insider = next(i for i in confirmation["items"] if i["id"] == "insider_buying")
+    assert insider["score"] is None
+    assert insider["status"] == "unknown"
+    assert insider["contribution"] is None
+    assert confirmation["missing_item_weight"] >= insider["weight"]
+
+
+def test_exported_drilldown_carries_raw_breakout_formula_and_provenance():
+    cfg = load_config()
+    metrics = _strong_metrics(breakout_price_score=90)
+    r = score_ticker(cfg, _SEC, metrics, _MED, _SETTINGS)
+    breakout = {"factors": [{
+        "scoring_metric": "breakout_price_score",
+        "actual": "+3.20%",
+        "expected": "close at least 2% above resistance",
+        "formula": "(latest close / resistance - 1) × 100",
+        "evidence": "Latest close cleared prior resistance.",
+        "source": "adjusted daily price history",
+        "observed_at": "2026-07-18",
+        "calculation_version": "breakout_v2",
+    }]}
+    cats = _export_categories(r, breakout)
+    confirmation = next(c for c in cats if c["id"] == "confirmation")
+    price = next(i for i in confirmation["items"] if i["id"] == "price_breakout")
+    assert price["raw_actual"] == "+3.20%"
+    assert price["formula"].startswith("(latest close")
+    assert price["source"] == "adjusted daily price history"
+    assert price["observed_at"] == "2026-07-18"
+
+    institutional = next(i for i in confirmation["items"] if i["id"] == "inst_flow")
+    assert "Finviz Institutional Transactions" in institutional["definition"]
+    assert "not FairEntry's curated SEC 13F" in institutional["definition"]
+    assert institutional["formula"].startswith("score = clamp")
+
+
+def test_management_execution_is_a_stable_progressive_disclosure_row():
+    cfg = load_config()
+    r = score_ticker(cfg, _SEC, _strong_metrics(), _MED, _SETTINGS)
+    r["_breakout_setup"] = {"overall": "building", "factors": [], "counts": {}}
+    r["_thesis"] = None
+    mapped = _map(r, ["growth"], "quality_growth")
+    management = next(f for f in mapped["breakout_setup"]["factors"]
+                      if f["id"] == "management_execution")
+    assert management["label"] == "Management Execution"
+    assert management["status"] == "unknown"
+    assert "No specific evidence" in management["evidence"]
+
+    r["_thesis"] = {
+        "thesis_score": 70,
+        "summary": "Management delivered its stated margin plan.",
+        "breakout_evidence": [{
+            "id": "management_execution", "label": "Management Execution",
+            "group": "management", "status": "satisfied",
+            "evidence": "Operating margin reached the supplied target.",
+            "source": "quarterly results", "date": "2026-07-18",
+        }],
+    }
+    mapped = _map(r, ["growth"], "quality_growth")
+    management = next(f for f in mapped["breakout_setup"]["factors"]
+                      if f["id"] == "management_execution")
+    assert management["status"] == "satisfied"
+    assert management["observed_at"] == "2026-07-18"
 
 
 def test_score_preserves_country():

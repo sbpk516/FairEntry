@@ -80,17 +80,27 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
             score, how = apply_rule(it["rule"], val, med.get(it["metric"]))
             rec = {"id": it["id"], "label": it["label"], "weight": it["weight"],
                    "metric": it["metric"], "actual": val, "expected": it.get("expected", ""),
+                   "definition": it.get("definition", ""), "formula": it.get("formula", ""),
                    "rule": how, "score": None if score is None else round(score),
                    "source": prov.get(it["metric"], {}).get("source"),
-                   "fetched_at": prov.get(it["metric"], {}).get("fetched_at")}
+                   "fetched_at": prov.get(it["metric"], {}).get("fetched_at"),
+                   "status": ("unknown" if score is None else "satisfied" if score >= 70
+                              else "partial" if score >= 45 else "failed")}
             items.append(rec)
             if score is not None:
                 num += it["weight"] * score
                 den += it["weight"]
         cscore = round(num / den) if den else None
+        configured_item_weight = sum(i["weight"] for i in cat["items"])
+        for item in items:
+            item["contribution"] = (round(item["weight"] * item["score"] / den, 2)
+                                    if item["score"] is not None and den else None)
         cat_scores[cid] = cscore
         categories.append({"id": cid, "label": cat["label"], "weight": weights.get(cid, cat["weight"]),
-                           "score": cscore, "coverage": round(den / sum(i["weight"] for i in cat["items"]) * 100),
+                           "score": cscore, "coverage": round(den / configured_item_weight * 100),
+                           "available_item_weight": den,
+                           "configured_item_weight": configured_item_weight,
+                           "missing_item_weight": configured_item_weight - den,
                            "items": items})
 
     # base score = weighted avg of covered categories
@@ -99,6 +109,10 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
     bden = sum(weights.get(cid, cfg.categories[cid]["weight"])
                for cid, s in cat_scores.items() if s is not None)
     base = round(bnum / bden, 1) if bden else 0.0
+    for category in categories:
+        category["contribution"] = (
+            round(category["weight"] * category["score"] / bden, 2)
+            if category["score"] is not None and bden else None)
 
     modifier = settings.get("thesis_modifier", 0)   # Phase 4 injects the real value
     preliminary = round(base + modifier, 1)
@@ -110,23 +124,47 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
     ns["upside_pct"] = fv["upside_pct"]
     ns["valuation_label"] = fv["valuation_label"]
 
-    vetoes = [{"id": v["id"], "reason": v["reason"]}
+    vetoes = [{"id": v["id"], "reason": v["reason"], "condition": v["when"],
+               "result": True, "effect": "Force Avoid"}
               for v in cfg.scoring.get("vetoes", []) if _safe_eval(v["when"], ns) is True]
     gates = []
     for g in cfg.scoring.get("soft_gates", []):
         fired = _safe_eval(g["when"], ns)
         if fired is True:
-            gates.append({"id": g["id"], "reason": g["reason"]})
+            gates.append({"id": g["id"], "reason": g["reason"], "condition": g["when"],
+                          "result": True, "effect": "Cap Buy to Watch"})
         elif fired is None:
-            gates.append({"id": g["id"], "reason": f"{g['reason']} (missing data)"})
+            gates.append({"id": g["id"], "reason": f"{g['reason']} (missing data)",
+                          "condition": g["when"], "result": None,
+                          "effect": "Cap Buy to Watch because required data is missing"})
 
     buy_b, watch_b = cfg.verdict_bands["buy"], cfg.verdict_bands["watch"]
     if vetoes:
+        score_band_verdict = "Buy" if preliminary >= buy_b else "Watch" if preliminary >= watch_b else "Avoid"
         verdict = "Avoid"
     else:
-        verdict = "Buy" if preliminary >= buy_b else "Watch" if preliminary >= watch_b else "Avoid"
+        score_band_verdict = "Buy" if preliminary >= buy_b else "Watch" if preliminary >= watch_b else "Avoid"
+        verdict = score_band_verdict
         if verdict == "Buy" and gates:
             verdict = "Watch"
+
+    decision_trace = {
+        "formula": "final score = round(base score + thesis modifier)",
+        "base_score": base,
+        "base_numerator": round(bnum, 2),
+        "available_category_weight": bden,
+        "thesis_modifier": modifier,
+        "preliminary_score": preliminary,
+        "final_score": round(preliminary),
+        "thresholds": {"buy": buy_b, "watch": watch_b},
+        "score_band_verdict": score_band_verdict,
+        "vetoes": vetoes,
+        "soft_gates": gates,
+        "final_verdict": verdict,
+        "explanation": ("A hard veto forced Avoid." if vetoes else
+                        "A soft gate capped Buy to Watch." if score_band_verdict == "Buy" and gates else
+                        "The final verdict follows the configured score band."),
+    }
 
     return {
         "ticker": sec["ticker"], "company": sec["company"], "sector": sec["sector"],
@@ -138,4 +176,5 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
         "vetoes": vetoes, "soft_gates": gates,
         "coverage_pct": round(bden / sum(weights.get(cid, cfg.categories[cid]["weight"])
                                          for cid in cfg.categories) * 100) if bden else 0,
+        "decision_trace": decision_trace,
     }
