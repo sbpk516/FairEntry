@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from ..analytics.breakout_setup import build_context as build_breakout_setup
+from ..analytics.chart_history import write_chart_files
 from ..analytics.demand_momentum import build_context as build_demand_momentum
 from ..scoring.engine import sector_medians, score_ticker
 from ..screeners import REGISTRY as SCREENERS
@@ -382,7 +383,8 @@ def _map(rec, strategies, strategy_key):
     return {
         "ticker": rec["ticker"], "company": rec["company"], "sector": rec["sector"],
         "country": rec.get("country"), "strategy": strategies, "price": rec["price"],
-        "score": rec["score"], "verdict": display_verdict,
+        "score": rec["score"], "verdict": rec["verdict"],
+        "display_verdict": display_verdict,
         "model_verdict": rec["verdict"],
         "base_score": rec["base_score"], "thesis_modifier": rec["thesis_modifier"],
         "preliminary": rec["preliminary"], "coverage_pct": rec.get("coverage_pct"),
@@ -657,5 +659,11 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
 
 def write_board(board: dict, path: Path = OUT):
     path.parent.mkdir(parents=True, exist_ok=True)
+    if path == OUT:
+        chart_paths = write_chart_files(board.get("stocks") or [], path.parent / "charts")
+        for stock in board.get("stocks") or []:
+            ticker = str(stock.get("ticker", "")).upper()
+            if ticker in chart_paths:
+                stock["chart_path"] = chart_paths[ticker]
     path.write_text(json.dumps(board, indent=1, ensure_ascii=False), encoding="utf-8")
     return path
