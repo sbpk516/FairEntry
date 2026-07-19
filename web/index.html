@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FairEntry — prototype</title>
+<title>FairEntry â€” prototype</title>
 <style>
   :root{
     --bg:#eef1f6; --panel:#ffffff; --panel-2:#f4f6fb; --sunk:#e8ecf4;
@@ -131,13 +131,19 @@
   .ctag.good{ color:var(--buy-text); border-color:var(--buy-text); }
   .ctag.bad{ color:var(--avoid-text); border-color:var(--avoid-text); }
   .ctag.info{ color:var(--ink-soft); border-color:var(--line-soft); }
-  .breakout-pop{ position:fixed; z-index:90; width:min(360px,calc(100vw - 28px)); background:var(--panel);
+  .breakout-pop{ position:fixed; z-index:90; width:min(520px,calc(100vw - 28px)); background:var(--panel);
     border:1px solid var(--line); border-radius:11px; box-shadow:0 18px 45px rgba(0,0,0,.22); padding:13px 14px; }
   .bh-top{ display:flex; align-items:center; gap:10px; margin-bottom:7px; }
   .bh-title{ font-weight:800; font-size:13.5px; color:var(--ink); flex:1; }
   .bh-x{ border:none; background:transparent; color:var(--ink-faint); font-size:18px; line-height:1; cursor:pointer; }
   .bh-text{ font-size:13px; line-height:1.5; color:var(--ink-soft); }
+  .bh-breakdown{ margin-top:10px; border-top:1px solid var(--line-soft); padding-top:9px; display:flex; flex-direction:column; gap:8px; }
+  .bh-row{ display:grid; grid-template-columns:138px 1fr; gap:10px; align-items:start; }
+  .bh-k{ font-size:11px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.04em; font-weight:800; }
+  .bh-v{ font-size:12.5px; line-height:1.45; color:var(--ink-soft); }
+  .bh-v b{ color:var(--ink); }
   .bh-note{ margin-top:8px; font-family:var(--mono); font-size:11px; color:var(--ink-faint); }
+  @media (max-width:560px){ .bh-row{ grid-template-columns:1fr; gap:3px; } }
 
   .v-buy{ color:var(--buy-text);} .bg-buy{ background:var(--buy-bg);} .st-buy{ background:var(--buy);}
   .v-watch{ color:var(--watch-text);} .bg-watch{ background:var(--watch-bg);} .st-watch{ background:var(--watch);}
@@ -347,7 +353,7 @@
 
 <div class="app" id="app">
   <div class="topbar">
-    <div class="brand"><span class="logo">Fair<b>Entry</b></span><span class="tag">working name · prototype</span></div>
+    <div class="brand"><span class="logo">Fair<b>Entry</b></span><span class="tag">working name Â· prototype</span></div>
     <div class="modes" id="modes">
       <button data-mode="all" class="on">All Stocks</button>
       <button data-mode="deepvalue">Deep Value</button>
@@ -357,12 +363,12 @@
     <span class="spacer"></span>
     <a class="iconbtn" href="backtest.html">Backtest</a>
     <a class="iconbtn" href="portfolio.html">Portfolio</a>
-    <button class="iconbtn" id="tunebtn">⚙ Tune weights</button>
-    <button class="iconbtn" id="themebtn">◐ Theme</button>
+    <button class="iconbtn" id="tunebtn">âš™ Tune weights</button>
+    <button class="iconbtn" id="themebtn">â— Theme</button>
   </div>
 
   <div class="controls">
-    <input id="search" placeholder="Search ticker or company…">
+    <input id="search" placeholder="Search ticker or companyâ€¦">
     <select id="sector"><option value="all">All sectors</option></select>
     <div class="seg" id="vfilter">
       <button data-v="all" class="on">All</button>
@@ -383,9 +389,9 @@
 </div>
 
 <div class="scrim" id="scrim"></div>
-<aside class="drawer" id="detail" role="dialog" aria-modal="true" aria-labelledby="d-title"><div class="dhead"><h2 id="d-title">—</h2><button class="x" id="d-close" aria-label="Close">×</button></div><div class="dbody" id="d-body"></div></aside>
+<aside class="drawer" id="detail" role="dialog" aria-modal="true" aria-labelledby="d-title"><div class="dhead"><h2 id="d-title">â€”</h2><button class="x" id="d-close" aria-label="Close">Ã—</button></div><div class="dbody" id="d-body"></div></aside>
 <aside class="drawer left" id="settings" role="dialog" aria-modal="true" aria-label="Tune the model">
-  <div class="dhead"><h2>Tune the model</h2><button class="x" id="s-close" aria-label="Close">×</button></div>
+  <div class="dhead"><h2>Tune the model</h2><button class="x" id="s-close" aria-label="Close">Ã—</button></div>
   <div class="dbody" id="s-body"></div>
 </aside>
 
@@ -430,7 +436,7 @@ function syncModelToMode(){
   if(!S.userTuned) S.weights=presetForMode();
   if(!S.userBands && META.verdict_bands){ S.buyBand=META.verdict_bands.buy; S.watchBand=META.verdict_bands.watch; }
 }
-// The mode's recommended model — used as the "def"/"changed-from" reference so
+// The mode's recommended model â€” used as the "def"/"changed-from" reference so
 // the applied preset doesn't read as a user change.
 function baseline(){ return { weights: presetForMode(),
   buyBand: META.verdict_bands ? META.verdict_bands.buy : DEFAULTS.buyBand,
@@ -443,7 +449,7 @@ var HUE=function(sc){ return sc>=67?'var(--buy)':sc>=45?'var(--watch)':'var(--av
 var HUET=function(sc){ return sc>=67?'var(--buy-text)':sc>=45?'var(--watch-text)':'var(--avoid-text)'; }; // readable text
 
 /* ---------- fallback data ---------- */
-/* item(label, weight, score, actual, expected, rule, source) — every score is justified:
+/* item(label, weight, score, actual, expected, rule, source) â€” every score is justified:
    actual vs expected, the rule that maps them, and the source. Category score is the
    weighted average of its items; base score the weighted average of the 7 categories. */
 function item(l,w,s,a,e,r,src){ return {label:l,weight:w,score:s,actual:a,expected:e,rule:r,source:src||'store'}; }
@@ -453,83 +459,83 @@ function cat(id,items){ var den=0,num=0; items.forEach(function(i){den+=i.weight
 var STOCKS=[
  { ticker:'AVNT', company:'Avanti Micro', sector:'Technology', strategy:['deepvalue'], price:29.4,
    cats:[
-     cat('quality',[item('Gross margin vs sector',30,72,'48%','≥ sector median (41%)','+7pp above sector → strong margins held through the downturn','fundamentals'),item('ROIC vs sector',35,64,'14%','≥ sector (12%)','above sector and not leverage-driven','fundamentals'),item('Customer concentration',35,80,'top customer 9%','< 15% = diversified','well diversified → near-full','10-K')]),
-     cat('survival',[item('Altman-Z',30,78,'3.1','> 2.6 = safe zone','comfortably out of distress','risk_model'),item('Interest coverage',25,70,'6.2x','> 6x = comfortable','debt easily serviced','fundamentals'),item('FCF margin',25,66,'+11%','> 0 and stable','cash-generative through the dip','fundamentals'),item('Dilution trend',20,74,'−1.2% shares YoY','≤ 0 (no dilution)','slight buyback','XBRL')]),
-     cat('growth',[item('Revenue growth vs sector',30,42,'−4% YoY','≥ sector (−3%)','slightly below sector, still declining','fundamentals'),item('Sequential trend',30,58,'q/q +2%','> 0 = bottoming','first sequential uptick after two down quarters','fundamentals'),item('Analyst revisions',40,55,'stabilizing','net up-revisions','down-revisions have stopped','analyst_revisions')]),
-     cat('valuation',[item('Intrinsic-value gap',40,86,'31% below fair','≥ 12% below = margin of safety','deep discount to conservative fair value','intrinsic_overlay'),item('FCF yield',30,78,'8.4%','> 6% = cheap','cheap on cash flow','fundamentals'),item('Peer-relative',30,72,'−22% vs peers','≤ quality-matched peers','cheaper than comparable peers','peers')]),
-     cat('confirmation',[item('200-week MA proximity',30,70,'−6% from 200WMA','within ±15% = near','sitting on its 4-year support line','yfinance'),item('Insider cluster buy',40,88,'3 buys / 21 days','a fresh cluster','CFO + 2 directors buying → high-value signal','Form 4'),item('Institutional ownership change (demo)',30,60,'net +0.8%','> 0','illustrative value only — rebuild board.json for live Finviz data','demo placeholder')]),
+     cat('quality',[item('Gross margin vs sector',30,72,'48%','â‰¥ sector median (41%)','+7pp above sector â†’ strong margins held through the downturn','fundamentals'),item('ROIC vs sector',35,64,'14%','â‰¥ sector (12%)','above sector and not leverage-driven','fundamentals'),item('Customer concentration',35,80,'top customer 9%','< 15% = diversified','well diversified â†’ near-full','10-K')]),
+     cat('survival',[item('Altman-Z',30,78,'3.1','> 2.6 = safe zone','comfortably out of distress','risk_model'),item('Interest coverage',25,70,'6.2x','> 6x = comfortable','debt easily serviced','fundamentals'),item('FCF margin',25,66,'+11%','> 0 and stable','cash-generative through the dip','fundamentals'),item('Dilution trend',20,74,'âˆ’1.2% shares YoY','â‰¤ 0 (no dilution)','slight buyback','XBRL')]),
+     cat('growth',[item('Revenue growth vs sector',30,42,'âˆ’4% YoY','â‰¥ sector (âˆ’3%)','slightly below sector, still declining','fundamentals'),item('Sequential trend',30,58,'q/q +2%','> 0 = bottoming','first sequential uptick after two down quarters','fundamentals'),item('Analyst revisions',40,55,'stabilizing','net up-revisions','down-revisions have stopped','analyst_revisions')]),
+     cat('valuation',[item('Intrinsic-value gap',40,86,'31% below fair','â‰¥ 12% below = margin of safety','deep discount to conservative fair value','intrinsic_overlay'),item('FCF yield',30,78,'8.4%','> 6% = cheap','cheap on cash flow','fundamentals'),item('Peer-relative',30,72,'âˆ’22% vs peers','â‰¤ quality-matched peers','cheaper than comparable peers','peers')]),
+     cat('confirmation',[item('200-week MA proximity',30,70,'âˆ’6% from 200WMA','within Â±15% = near','sitting on its 4-year support line','yfinance'),item('Insider cluster buy',40,88,'3 buys / 21 days','a fresh cluster','CFO + 2 directors buying â†’ high-value signal','Form 4'),item('Institutional ownership change (demo)',30,60,'net +0.8%','> 0','illustrative value only â€” rebuild board.json for live Finviz data','demo placeholder')]),
      cat('catalysts',[item('News sentiment (LLM)',40,68,'improving','positive stance','coverage turning constructive','news_judge'),item('Earnings setup',30,62,'reports in 3 wks','beat/raise likely','possible positive surprise','calendar'),item('Sector tailwind',30,55,'AI capex cycle','a clear tailwind','broad demand backdrop','sector')]),
-     cat('risk',[item('Accounting flags',30,90,'clean','no forensic flags','clean earnings quality → full','red_flags'),item('Insider selling',25,84,'none','no selling','no distribution','Form 4'),item('Litigation',20,80,'none material','none material','clear','filings'),item('Short interest',25,66,'7% of float','< 10% = low','modest short interest','flow')])
+     cat('risk',[item('Accounting flags',30,90,'clean','no forensic flags','clean earnings quality â†’ full','red_flags'),item('Insider selling',25,84,'none','no selling','no distribution','Form 4'),item('Litigation',20,80,'none material','none material','clear','filings'),item('Short interest',25,66,'7% of float','< 10% = low','modest short interest','flow')])
    ],
    thesis:{ type:'recovery', score:78, label:'Temporary & improving',
      summary:'Down on a cyclical margin dip that is already resolving; balance sheet safe, insiders buying, and it sits on its 200-week support.',
      situation:[
-       ['Revenue dipped two quarters on a cyclical demand air-pocket','active','high','temporary','~1–2 quarters','10-Q, mgmt call'],
+       ['Revenue dipped two quarters on a cyclical demand air-pocket','active','high','temporary','~1â€“2 quarters','10-Q, mgmt call'],
        ['Gross margin compressed on input costs','improving','medium','temporary','next print','commodity trend, call'],
        ['Sector-wide de-rating (not company-specific)','active','medium','cyclical','macro-led','peer prices'] ],
      kill:'A third straight revenue decline with no margin recovery breaks the "temporary" thesis.' },
    valuation:{ low:34, base:42.5, high:52, upside:45, label:'cheap' },
    vetoes:[], soft:[], riskPenalty:0,
    labels:[['Recovery: temporary','good'],['Insider cluster buy','good'],['At 200-week MA','info'],['Margin dip resolving','good']],
-   action:{ action:'Buy Now', size:'3% (starter → full on confirm)', entry:'Cheap, safe, insiders buying, at support — reward outweighs the cyclical risk.', add:'A sequential revenue re-acceleration lets you add.', stop:'Third revenue decline or a margin miss.', review:'Next earnings (~3 wks)' } },
+   action:{ action:'Buy Now', size:'3% (starter â†’ full on confirm)', entry:'Cheap, safe, insiders buying, at support â€” reward outweighs the cyclical risk.', add:'A sequential revenue re-acceleration lets you add.', stop:'Third revenue decline or a margin miss.', review:'Next earnings (~3 wks)' } },
 
  { ticker:'LUMA', company:'Lumina Cloud', sector:'Technology', strategy:['growth'], price:214.0,
    cats:[
-     cat('quality',[item('Gross margin vs sector',30,92,'79%','≥ sector (62%)','best-in-class SaaS margins','fundamentals'),item('ROIC vs sector',35,80,'22%','≥ sector (15%)','excellent capital returns','fundamentals'),item('Customer concentration',35,84,'top customer 4%','< 15% = diversified','highly diversified base','10-K')]),
-     cat('survival',[item('Altman-Z',30,88,'6.4','> 2.6 = safe','fortress balance sheet','risk_model'),item('Interest coverage',25,95,'net cash','positive net cash','no debt to service','fundamentals'),item('FCF margin',25,86,'+27%','> 0 and stable','strong free cash flow','fundamentals'),item('Dilution trend',20,58,'+2.4% shares (SBC)','≤ 2% ideal','stock-comp dilution a touch high','XBRL')]),
-     cat('growth',[item('Revenue growth vs sector',30,90,'+31% YoY','≥ sector (14%)','well above sector','fundamentals'),item('Sequential trend',30,78,'q/q +7%','> 0','re-accelerating','fundamentals'),item('Analyst revisions',40,82,'up-revisions','net up','estimates rising','analyst_revisions')]),
-     cat('valuation',[item('Intrinsic-value gap',40,34,'12% ABOVE fair','≥ 12% below = margin of safety','priced ahead of conservative fair value','intrinsic_overlay'),item('FCF yield',30,40,'2.1%','> 6% = cheap','rich on cash flow','fundamentals'),item('Peer-relative',30,52,'in line with peers','≤ quality-matched peers','fairly valued vs peers, not cheap','peers')]),
-     cat('confirmation',[item('Trend (50 > 200 DMA)',30,88,'strong uptrend','50 > 200','firmly trending','flow'),item('Relative strength',35,84,'top decile','> market','clear market leader','flow'),item('Institutional ownership change (demo)',35,80,'net +2.1%','> 0','illustrative value only — rebuild board.json for live Finviz data','demo placeholder')]),
+     cat('quality',[item('Gross margin vs sector',30,92,'79%','â‰¥ sector (62%)','best-in-class SaaS margins','fundamentals'),item('ROIC vs sector',35,80,'22%','â‰¥ sector (15%)','excellent capital returns','fundamentals'),item('Customer concentration',35,84,'top customer 4%','< 15% = diversified','highly diversified base','10-K')]),
+     cat('survival',[item('Altman-Z',30,88,'6.4','> 2.6 = safe','fortress balance sheet','risk_model'),item('Interest coverage',25,95,'net cash','positive net cash','no debt to service','fundamentals'),item('FCF margin',25,86,'+27%','> 0 and stable','strong free cash flow','fundamentals'),item('Dilution trend',20,58,'+2.4% shares (SBC)','â‰¤ 2% ideal','stock-comp dilution a touch high','XBRL')]),
+     cat('growth',[item('Revenue growth vs sector',30,90,'+31% YoY','â‰¥ sector (14%)','well above sector','fundamentals'),item('Sequential trend',30,78,'q/q +7%','> 0','re-accelerating','fundamentals'),item('Analyst revisions',40,82,'up-revisions','net up','estimates rising','analyst_revisions')]),
+     cat('valuation',[item('Intrinsic-value gap',40,34,'12% ABOVE fair','â‰¥ 12% below = margin of safety','priced ahead of conservative fair value','intrinsic_overlay'),item('FCF yield',30,40,'2.1%','> 6% = cheap','rich on cash flow','fundamentals'),item('Peer-relative',30,52,'in line with peers','â‰¤ quality-matched peers','fairly valued vs peers, not cheap','peers')]),
+     cat('confirmation',[item('Trend (50 > 200 DMA)',30,88,'strong uptrend','50 > 200','firmly trending','flow'),item('Relative strength',35,84,'top decile','> market','clear market leader','flow'),item('Institutional ownership change (demo)',35,80,'net +2.1%','> 0','illustrative value only â€” rebuild board.json for live Finviz data','demo placeholder')]),
      cat('catalysts',[item('News sentiment (LLM)',40,78,'positive','positive stance','new product well received','news_judge'),item('Product / expansion',30,82,'new adjacent market','expansion evidence','entering an adjacent segment','calls'),item('Sector tailwind',30,80,'AI adoption','a clear tailwind','secular demand','sector')]),
      cat('risk',[item('Accounting flags',30,88,'clean','no forensic flags','clean','red_flags'),item('Insider selling',25,60,'routine 10b5-1','no discretionary selling','scheduled selling only','Form 4'),item('Litigation',20,84,'none','none material','clear','filings'),item('Valuation fragility',25,50,'high multiple','moderate','de-rate risk if growth slips','flow')])
    ],
    thesis:{ type:'growth', score:74, label:'Great business, stretched entry',
-     summary:'Excellent compounder growing 31% with rising estimates — but today\'s price already bakes in the base case. Upside from here is thin until a pullback.',
+     summary:'Excellent compounder growing 31% with rising estimates â€” but today\'s price already bakes in the base case. Upside from here is thin until a pullback.',
      situation:[], kill:'Two quarters of decelerating growth would break the premium.' },
-   valuation:{ low:170, base:191, high:225, upside:12, label:'fair→expensive' },
+   valuation:{ low:170, base:191, high:225, upside:12, label:'fairâ†’expensive' },
    vetoes:[], soft:['upsideBelowTarget'], riskPenalty:0,
    labels:[['Quality: excellent','good'],['Growth +31%','good'],['Entry: stretched','warn'],['Wait for pullback','warn']],
-   action:{ action:'Wait For Pullback', size:'starter only (1%)', entry:'Business is a Buy; the price is not. Upside is ~12%, below your 30% target.', add:'Pullback into the $170–185 entry zone.', stop:'Growth decelerates two straight quarters.', review:'Next earnings' } },
+   action:{ action:'Wait For Pullback', size:'starter only (1%)', entry:'Business is a Buy; the price is not. Upside is ~12%, below your 30% target.', add:'Pullback into the $170â€“185 entry zone.', stop:'Growth decelerates two straight quarters.', review:'Next earnings' } },
 
  { ticker:'DRFT', company:'Driftwood Retail', sector:'Consumer Cyclical', strategy:['deepvalue'], price:8.1,
    cats:[
-     cat('quality',[item('Gross margin vs sector',30,34,'22% & falling','≥ sector (30%)','below sector and eroding','fundamentals'),item('ROIC vs sector',35,28,'4%','≥ sector (11%)','weak, declining returns','fundamentals'),item('Customer concentration',35,40,'2 chains = 38%','< 15% = diversified','dangerously concentrated','10-K')]),
-     cat('survival',[item('Altman-Z',30,22,'1.4','> 2.6 safe · < 1.8 = distress','in the distress zone','risk_model'),item('Interest coverage',25,26,'1.3x','> 6x','barely covers interest','fundamentals'),item('FCF margin',25,30,'−3%','> 0','burning cash','fundamentals'),item('Dilution trend',20,24,'+9% shares YoY','≤ 0','heavy dilution','XBRL')]),
-     cat('growth',[item('Revenue growth vs sector',30,20,'−17% YoY','≥ sector','multi-year secular decline','fundamentals'),item('Sequential trend',30,25,'still falling','> 0','no bottom in sight','fundamentals'),item('Analyst revisions',40,22,'down-revisions','net up','estimates cut again','analyst_revisions')]),
-     cat('valuation',[item('Intrinsic-value gap',40,60,'"cheap" on P/B','≥ 12% below fair','optically cheap — but on a shrinking base','intrinsic_overlay'),item('FCF yield',30,20,'negative','> 6%','no free cash flow to yield','fundamentals'),item('Peer-relative',30,55,'−40% vs peers','≤ peers','cheap for a reason','peers')]),
-     cat('confirmation',[item('200-week MA proximity',30,18,'−58% (broken)','within ±15%','far below — no support','yfinance'),item('Insider buying',40,30,'none','a fresh cluster','no insiders stepping in','Form 4'),item('Institutional ownership change (demo)',30,28,'net −3.1%','> 0','illustrative value only — rebuild board.json for live Finviz data','demo placeholder')]),
+     cat('quality',[item('Gross margin vs sector',30,34,'22% & falling','â‰¥ sector (30%)','below sector and eroding','fundamentals'),item('ROIC vs sector',35,28,'4%','â‰¥ sector (11%)','weak, declining returns','fundamentals'),item('Customer concentration',35,40,'2 chains = 38%','< 15% = diversified','dangerously concentrated','10-K')]),
+     cat('survival',[item('Altman-Z',30,22,'1.4','> 2.6 safe Â· < 1.8 = distress','in the distress zone','risk_model'),item('Interest coverage',25,26,'1.3x','> 6x','barely covers interest','fundamentals'),item('FCF margin',25,30,'âˆ’3%','> 0','burning cash','fundamentals'),item('Dilution trend',20,24,'+9% shares YoY','â‰¤ 0','heavy dilution','XBRL')]),
+     cat('growth',[item('Revenue growth vs sector',30,20,'âˆ’17% YoY','â‰¥ sector','multi-year secular decline','fundamentals'),item('Sequential trend',30,25,'still falling','> 0','no bottom in sight','fundamentals'),item('Analyst revisions',40,22,'down-revisions','net up','estimates cut again','analyst_revisions')]),
+     cat('valuation',[item('Intrinsic-value gap',40,60,'"cheap" on P/B','â‰¥ 12% below fair','optically cheap â€” but on a shrinking base','intrinsic_overlay'),item('FCF yield',30,20,'negative','> 6%','no free cash flow to yield','fundamentals'),item('Peer-relative',30,55,'âˆ’40% vs peers','â‰¤ peers','cheap for a reason','peers')]),
+     cat('confirmation',[item('200-week MA proximity',30,18,'âˆ’58% (broken)','within Â±15%','far below â€” no support','yfinance'),item('Insider buying',40,30,'none','a fresh cluster','no insiders stepping in','Form 4'),item('Institutional ownership change (demo)',30,28,'net âˆ’3.1%','> 0','illustrative value only â€” rebuild board.json for live Finviz data','demo placeholder')]),
      cat('catalysts',[item('News sentiment (LLM)',40,25,'negative','positive stance','"reasons to sell" coverage','news_judge'),item('Earnings setup',30,30,'guidance just cut','beat/raise','negative setup','calendar'),item('Sector tailwind',30,35,'none','a tailwind','no tailwind','sector')]),
-     cat('risk',[item('Going concern',35,20,'auditor flagged','none','going-concern language added → veto','red_flags'),item('Customer loss',35,20,'lost anchor client','none','structural blow to the model → veto','8-K'),item('Short interest',30,40,'28% of float','< 10%','heavily shorted','flow')])
+     cat('risk',[item('Going concern',35,20,'auditor flagged','none','going-concern language added â†’ veto','red_flags'),item('Customer loss',35,20,'lost anchor client','none','structural blow to the model â†’ veto','8-K'),item('Short interest',30,40,'28% of float','< 10%','heavily shorted','flow')])
    ],
    thesis:{ type:'recovery', score:24, label:'Structural decline',
      summary:'Cheap on the screen, but the cheapness reflects a shrinking, cash-burning business that just lost an anchor customer and drew going-concern language. This is a falling knife.',
      situation:[
-       ['Lost anchor customer (≈18% of revenue)','structural','critical','structural','permanent','8-K'],
+       ['Lost anchor customer (â‰ˆ18% of revenue)','structural','critical','structural','permanent','8-K'],
        ['Revenue in multi-year secular decline','worsening','high','structural','ongoing','10-K trend'],
        ['Going-concern language added by auditor','active','critical','structural','unresolved','10-K'] ],
-     kill:'This one is already invalidated — the recovery chain breaks at "why should fundamentals recover?"' },
+     kill:'This one is already invalidated â€” the recovery chain breaks at "why should fundamentals recover?"' },
    valuation:{ low:5, base:7, high:9, upside:-13, label:'value trap' },
    vetoes:['Going-concern language confirmed','Major customer loss breaks the model'], soft:[], riskPenalty:0,
    labels:[['Value trap','bad'],['Going-concern veto','bad'],['Lost anchor customer','bad'],['Institutions exiting','bad']],
-   action:{ action:'Avoid', size:'—', entry:'Two hard vetoes fire. No score can rescue a going-concern + broken model.', add:'—', stop:'—', review:'—' } },
+   action:{ action:'Avoid', size:'â€”', entry:'Two hard vetoes fire. No score can rescue a going-concern + broken model.', add:'â€”', stop:'â€”', review:'â€”' } },
 
  { ticker:'NEXG', company:'NexGen Health', sector:'Communication Services', strategy:['growth'], price:61.5,
    cats:[
-     cat('quality',[item('Gross margin vs sector',30,74,'61%','≥ sector (50%)','healthy margins','fundamentals'),item('ROIC vs sector',35,70,'17%','≥ sector (12%)','good returns','fundamentals'),item('Customer concentration',35,72,'top customer 11%','< 15% = diversified','reasonably diversified','10-K')]),
-     cat('survival',[item('Altman-Z',30,72,'3.4','> 2.6 = safe','safe','risk_model'),item('Interest coverage',25,74,'8x','> 6x','strong coverage','fundamentals'),item('FCF margin',25,70,'+14%','> 0 and stable','cash-generative','fundamentals'),item('Dilution trend',20,66,'flat','≤ 0','no dilution','XBRL')]),
-     cat('growth',[item('Revenue growth vs sector',30,76,'+24% YoY','≥ sector (12%)','above sector','fundamentals'),item('Sequential trend',30,66,'steady','> 0','consistent','fundamentals'),item('Analyst revisions',40,72,'edging up','net up','estimates rising slightly','analyst_revisions')]),
-     cat('valuation',[item('Intrinsic-value gap',40,70,'18% below fair','≥ 12% below = margin of safety','below conservative fair value','intrinsic_overlay'),item('FCF yield',30,64,'4.6%','> 6% = cheap','reasonable','fundamentals'),item('Peer-relative',30,72,'−15% vs peers','≤ peers','cheaper than peers','peers')]),
-     cat('confirmation',[item('Trend (50 > 200 DMA)',30,68,'uptrend','50 > 200','trending up','flow'),item('Relative strength',35,64,'above average','> market','outperforming','flow'),item('Institutional ownership change (demo)',35,66,'net +1.1%','> 0','illustrative value only — rebuild board.json for live Finviz data','demo placeholder')]),
+     cat('quality',[item('Gross margin vs sector',30,74,'61%','â‰¥ sector (50%)','healthy margins','fundamentals'),item('ROIC vs sector',35,70,'17%','â‰¥ sector (12%)','good returns','fundamentals'),item('Customer concentration',35,72,'top customer 11%','< 15% = diversified','reasonably diversified','10-K')]),
+     cat('survival',[item('Altman-Z',30,72,'3.4','> 2.6 = safe','safe','risk_model'),item('Interest coverage',25,74,'8x','> 6x','strong coverage','fundamentals'),item('FCF margin',25,70,'+14%','> 0 and stable','cash-generative','fundamentals'),item('Dilution trend',20,66,'flat','â‰¤ 0','no dilution','XBRL')]),
+     cat('growth',[item('Revenue growth vs sector',30,76,'+24% YoY','â‰¥ sector (12%)','above sector','fundamentals'),item('Sequential trend',30,66,'steady','> 0','consistent','fundamentals'),item('Analyst revisions',40,72,'edging up','net up','estimates rising slightly','analyst_revisions')]),
+     cat('valuation',[item('Intrinsic-value gap',40,70,'18% below fair','â‰¥ 12% below = margin of safety','below conservative fair value','intrinsic_overlay'),item('FCF yield',30,64,'4.6%','> 6% = cheap','reasonable','fundamentals'),item('Peer-relative',30,72,'âˆ’15% vs peers','â‰¤ peers','cheaper than peers','peers')]),
+     cat('confirmation',[item('Trend (50 > 200 DMA)',30,68,'uptrend','50 > 200','trending up','flow'),item('Relative strength',35,64,'above average','> market','outperforming','flow'),item('Institutional ownership change (demo)',35,66,'net +1.1%','> 0','illustrative value only â€” rebuild board.json for live Finviz data','demo placeholder')]),
      cat('catalysts',[item('News sentiment (LLM)',40,66,'positive','positive stance','constructive','news_judge'),item('Product / expansion',30,70,'EU launch','expansion evidence','expanding into Europe','calls'),item('Earnings setup',30,60,'reports in 5 wks','beat/raise','solid setup','calendar')]),
      cat('risk',[item('Accounting flags',30,84,'clean','no forensic flags','clean','red_flags'),item('Insider selling',25,72,'minimal','none','little selling','Form 4'),item('Litigation',20,78,'none material','none material','clear','filings'),item('Valuation fragility',25,66,'moderate','low','not stretched','flow')])
    ],
    thesis:{ type:'growth', score:71, label:'Quality growth at a fair entry',
-     summary:'Growing 24% with clean books and an 18% discount to fair value — expected upside clears your 30% target and it\'s trending up. A genuine buyable growth entry.',
+     summary:'Growing 24% with clean books and an 18% discount to fair value â€” expected upside clears your 30% target and it\'s trending up. A genuine buyable growth entry.',
      situation:[], kill:'Growth slips below ~15% or the EU expansion stalls.' },
-   valuation:{ low:56, base:72, high:88, upside:33, label:'fair→cheap' },
+   valuation:{ low:56, base:72, high:88, upside:33, label:'fairâ†’cheap' },
    vetoes:[], soft:[], riskPenalty:0,
    labels:[['Growth +24%','good'],['18% below fair value','good'],['Upside 33%','good'],['Entry: acceptable','info']],
-   action:{ action:'Buy Now', size:'3%', entry:'Quality high, ~33% upside above your 30% target, trending up — enter now.', add:'Add on the next earnings confirmation.', stop:'Growth < 15% or EU expansion stalls.', review:'Next earnings (~5 wks)' } }
+   action:{ action:'Buy Now', size:'3%', entry:'Quality high, ~33% upside above your 30% target, trending up â€” enter now.', add:'Add on the next earnings confirmation.', stop:'Growth < 15% or EU expansion stalls.', review:'Next earnings (~5 wks)' } }
 ];
 
 /* ---------- verdict engine (mirrors the scoring-model formula) ---------- */
@@ -539,7 +545,7 @@ function thesisMod(s){ var t=s.thesis.score, b=META.thesis_modifier;
     if(t>=band.min){ mod=band.mod; return true; } return false; }); return mod; }
   return t>=80?6:t>=65?3:t>=50?0:t>=35?-5:-10; }
 // Mirror the backend soft-gates (engine.score_ticker): expensive, survival<30,
-// no-confirmation<35, upside<target — INCLUDING the backend's "missing data"
+// no-confirmation<35, upside<target â€” INCLUDING the backend's "missing data"
 // behaviour, where a category with no scored items (absent from s.cats because
 // the exporter drops null-score categories) caps a Buy just like a low score.
 function softGates(s){ var g=[];
@@ -553,7 +559,7 @@ function softGates(s){ var g=[];
   if(s.valuation.upside < S.target) g.push('Upside '+s.valuation.upside+'% < target '+S.target+'%');
   return g; }
 // Has the USER moved the model off its recommended baseline? Compare against the
-// mode's preset (via the userTuned/userBands flags), NOT DEFAULTS — because
+// mode's preset (via the userTuned/userBands flags), NOT DEFAULTS â€” because
 // syncModelToMode() loads the mode's preset weights, which legitimately differ
 // from DEFAULTS. Comparing to DEFAULTS made this always-true, which disabled the
 // backend fast-path below and let the client's recompute diverge from the stored
@@ -586,22 +592,22 @@ function compute(s){
 // ONLY when it adds meaning beyond the verdict word, so a clean Buy isn't
 // labelled "Buy" twice.
 function verdictAction(c){
-  if(c.displayVerdict==='Quant Buy') return 'Quant Buy — qualitative review pending';
-  if(c.verdict==='Avoid') return c.vetoed?'Avoid — vetoed':'Avoid';
+  if(c.displayVerdict==='Quant Buy') return 'Quant Buy â€” qualitative review pending';
+  if(c.verdict==='Avoid') return c.vetoed?'Avoid â€” vetoed':'Avoid';
   if(c.verdict==='Buy') return 'Buy Now';
-  return c.capped?'Would-be Buy — gated':'Watch'; }
+  return c.capped?'Would-be Buy â€” gated':'Watch'; }
 function actionNuance(c){
   if(c.vetoed) return 'vetoed';
-  if(c.capped) return 'would-be Buy — gated';
+  if(c.capped) return 'would-be Buy â€” gated';
   return ''; }
 // Plain-English version of the AI's situation read (thesis.label).
 function thesisPlain(s){
   var l=(s.thesis.label||'').toLowerCase();
   if(l==='ai review pending') return 'not reviewed yet';
-  var map={temporary:'temporary — business intact', cyclical:'cyclical — recovers with cycle',
-           structural:'structural — may not recover', durable:'durable growth',
-           moderate:'moderate durability', fragile:'fragile — growth at risk'};
-  return map[l] || (l && l!=='—' && l!=='unknown' ? l : 'AI read n/a'); }
+  var map={temporary:'temporary â€” business intact', cyclical:'cyclical â€” recovers with cycle',
+           structural:'structural â€” may not recover', durable:'durable growth',
+           moderate:'moderate durability', fragile:'fragile â€” growth at risk'};
+  return map[l] || (l && l!=='â€”' && l!=='unknown' ? l : 'AI read n/a'); }
 function bar(sc){ return '<div class="track"><i style="width:'+sc+'%;background:'+HUE(sc)+'"></i></div>'; }
 function scoreClass(sc){ return sc>=67?'good':sc>=45?'warn':'bad'; }
 function aspectStrip(s){
@@ -626,15 +632,42 @@ var BREAKOUT_HELP={
   failed:'Price support or the supporting business evidence has failed. Drill down to see the contradicting factors.',
   unknown:'Breakout setup unknown = not enough clean data yet to read the leading indicators.'
 };
+function setupDecisionReason(b){
+  if(!b) return 'Not enough breakout data is available yet.';
+  var o=String(b.overall||'unknown').toLowerCase(), f=(b.fundamental_stabilization||{}).label||'unknown',
+    sr=(b.support_resistance||{}).label||'unknown', sp=(b.short_pressure||{}).label||'unknown',
+    sec=(b.sector_trend||{}).label||'unknown';
+  if(o==='confirmed') return 'FairEntry calls this confirmed because price has broken out and fundamentals are not worsening.';
+  if(o==='building') return 'FairEntry calls this building because at least some leading signs are lining up before a full breakout.';
+  if(o==='failed') return 'FairEntry calls this failed because support or fundamentals are breaking down, especially if the sector is hostile.';
+  if(o==='early') return 'FairEntry calls this early because the value may be there, but confirmation is incomplete: fundamentals '+f+', price setup '+sr+', short pressure '+sp+', sector '+sec+'.';
+  return 'FairEntry calls this unknown because the available data is not precise enough for a reliable breakout read.';
+}
+function setupEvidenceRows(b){
+  if(!b) return '';
+  var f=b.fundamental_stabilization||{}, sr=b.support_resistance||{}, sp=b.short_pressure||{}, sec=b.sector_trend||{};
+  function val(x,suffix){ return x==null?'n/a':Number(x).toFixed(1)+(suffix||''); }
+  function row(k,v){ return '<div class="bh-row"><div class="bh-k">'+esc(k)+'</div><div class="bh-v">'+v+'</div></div>'; }
+  return '<div class="bh-breakdown">'+
+    row('Fundamentals','<b>'+esc(f.label||'unknown')+'</b> - revenue '+esc(f.revenue_trend||'unknown')+', gross margin '+esc(f.gross_margin_trend||'unknown')+', operating margin '+esc(f.operating_margin_trend||'unknown')+', P/FCF proxy '+esc(f.fcf_proxy_trend||'unknown')+'.')+
+    row('Price setup','<b>'+esc(sr.label||'unknown')+'</b> - '+val(sr.distance_to_52w_low_pct,'%')+' from 52w low, '+val(sr.distance_to_resistance_pct,'%')+' below/above resistance read, '+esc(sr.support_touches||0)+' support hold(s), breakout '+fmtBool(sr.breakout)+'.')+
+    row('Short pressure','<b>'+esc(sp.label||'unknown')+'</b> - short float '+val(sp.short_float,'%')+', trend '+esc(sp.short_float_trend||'unknown')+', days-to-cover '+esc(sp.days_to_cover==null?'n/a':sp.days_to_cover)+'.')+
+    row('Sector trend','<b>'+esc(sec.label||'unknown')+'</b> - '+esc(sec.sector_etf||'sector ETF')+' above 50d '+fmtBool(sec.above_50d)+', above 200d '+fmtBool(sec.above_200d)+', 3m vs SPY '+val(sec.sector_vs_spy_3m_pct,'%')+'.')+
+    row('Decision logic','<b>Result:</b> '+esc(setupDecisionReason(b)))+
+  '</div>';
+}
 function showBreakoutHelp(label, anchor){
   var old=document.querySelector('.breakout-pop'); if(old) old.remove();
   label=String(label||'unknown').toLowerCase();
+  var stock=STOCKS.find(function(x){return x.ticker===anchor.dataset.ticker;});
+  var setup=stock&&stock.breakout_setup;
   var box=document.createElement('div'), r=anchor.getBoundingClientRect();
   box.className='breakout-pop';
   box.innerHTML='<div class="bh-top"><span class="lab '+setupToneClass(label)+'">Breakout '+esc(label)+'</span>'+
-    '<div class="bh-title">What this means</div><button class="bh-x" type="button" aria-label="Close">×</button></div>'+
+    '<div class="bh-title">What this means</div><button class="bh-x" type="button" aria-label="Close">Ã—</button></div>'+
     '<div class="bh-text">'+esc(BREAKOUT_HELP[label]||BREAKOUT_HELP.unknown)+'</div>'+
-    '<div class="bh-note">This is the existing breakout label, not another score. Its quantitative factors feed the existing Growth and Market Confirmation categories.</div>';
+    setupEvidenceRows(setup)+
+    '<div class="bh-note">Reliability and precision rule: show the evidence, mark weak/missing data clearly, and avoid hiding assumptions. This is the existing breakout label, not a separate score; its quantitative factors feed the existing Growth and Market Confirmation categories.</div>';
   document.body.appendChild(box);
   var left=Math.min(window.innerWidth-box.offsetWidth-14, Math.max(14, r.left));
   var top=Math.min(window.innerHeight-box.offsetHeight-14, r.bottom+8);
@@ -652,13 +685,13 @@ function contextChips(s){ var c=s.context||{};
   var parts=[];
   function chip(name, d){ if(!d||d.label==='n/a') return;
     var cls=(d.label==='strong'||d.label==='rotating in')?'good':(d.label==='soft'||d.label==='out of favor')?'bad':'info';
-    parts.push('<span class="ctag '+cls+'">Read · '+esc(name)+' '+esc(d.label)+'</span>'); }
+    parts.push('<span class="ctag '+cls+'">Read Â· '+esc(name)+' '+esc(d.label)+'</span>'); }
   chip('Biz demand', c.demand); chip('Expectations', c.momentum);
   if(s.demand_momentum&&s.demand_momentum.tone){
-    parts.push('<span class="ctag '+dmToneClass(s.demand_momentum.tone)+'">Read · Price demand '+esc(s.demand_momentum.tone)+esc(dmShort(s.demand_momentum))+'</span>');
+    parts.push('<span class="ctag '+dmToneClass(s.demand_momentum.tone)+'">Read Â· Price demand '+esc(s.demand_momentum.tone)+esc(dmShort(s.demand_momentum))+'</span>');
   }
   if(s.breakout_setup&&s.breakout_setup.overall){
-    parts.push('<span class="ctag breakout-scored clickable '+setupToneClass(s.breakout_setup.overall)+'" role="button" tabindex="0" data-breakout="'+esc(s.breakout_setup.overall)+'">Score evidence · Breakout '+esc(s.breakout_setup.overall)+'</span>');
+    parts.push('<span class="ctag breakout-scored clickable '+setupToneClass(s.breakout_setup.overall)+'" role="button" tabindex="0" data-breakout="'+esc(s.breakout_setup.overall)+'" data-ticker="'+esc(s.ticker)+'">Score evidence Â· Breakout '+esc(s.breakout_setup.overall)+'</span>');
   }
   if(!parts.length) return '';
   return '<div class="ctx-row" title="Demand chips are context-only. Breakout factors are traceable inputs to the existing score.">'+parts.join('')+'</div>';
@@ -671,8 +704,8 @@ function tileHTML(s){ var c=compute(s), shown=c.displayVerdict||c.verdict, vk=c.
     '<span>AI read <b>'+esc(thesisPlain(s))+'</b></span></div>';
   var labs=s.labels.slice(0,4).map(function(l){return '<span class="lab '+l[1]+'">'+esc(l[0])+'</span>';}).join('');
   var nuance=actionNuance(c);
-  return '<div class="tile" data-t="'+esc(s.ticker)+'" role="button" tabindex="0" aria-label="'+esc(s.ticker+' '+s.company+' — '+shown+', score '+Math.round(c.prelim))+'"><div class="vstripe st-'+vk+'"></div><div class="tile-in">'+
-    '<div class="tile-top"><div class="tile-main"><div class="tick">'+esc(s.ticker)+'</div><div class="co">'+esc(s.company)+' · '+esc(s.sector)+'</div></div>'+
+  return '<div class="tile" data-t="'+esc(s.ticker)+'" role="button" tabindex="0" aria-label="'+esc(s.ticker+' '+s.company+' â€” '+shown+', score '+Math.round(c.prelim))+'"><div class="vstripe st-'+vk+'"></div><div class="tile-in">'+
+    '<div class="tile-top"><div class="tile-main"><div class="tick">'+esc(s.ticker)+'</div><div class="co">'+esc(s.company)+' Â· '+esc(s.sector)+'</div></div>'+
     '<div class="verdict"><span class="vpill bg-'+vk+' v-'+vk+'">'+shown+'</span>'+(nuance?'<div class="action-lbl">'+esc(nuance)+'</div>':'')+'</div></div>'+
     '<div class="scorebar-wrap"><span class="scoreval tnum" style="color:'+HUET(c.prelim)+'">'+Math.round(c.prelim)+'<span>/100</span></span>'+bar(Math.round(c.prelim))+'</div>'+
     kv+aspectStrip(s)+'<div class="labels">'+labs+'</div>'+contextChips(s)+'<div class="tile-actions"><button class="addbtn" data-add="'+esc(s.ticker)+'" type="button">Add 100</button></div></div></div>'; }
@@ -691,7 +724,7 @@ function currentList(){
 function renderBoard(){ var list=currentList();
   $('#board').innerHTML=list.map(function(o){return tileHTML(o.s);}).join('')||'<div style="color:var(--ink-faint);padding:30px">No stocks match.</div>';
   var byv={Buy:0,Watch:0,Avoid:0}; list.forEach(function(o){byv[o.c.verdict]++;});
-  $('#count').textContent=list.length+' shown · '+byv.Buy+' Buy · '+byv.Watch+' Watch · '+byv.Avoid+' Avoid';
+  $('#count').textContent=list.length+' shown Â· '+byv.Buy+' Buy Â· '+byv.Watch+' Watch Â· '+byv.Avoid+' Avoid';
 }
 function today(){ return new Date().toISOString().slice(0,10); }
 function portfolioLoad(){ try{return JSON.parse(localStorage.getItem(PORTKEY)||'[]');}catch(e){return [];} }
@@ -728,20 +761,20 @@ function metricHTML(it){ var missing=it.score==null, shown=missing?'n/a':it.scor
   '<span class="k">Scoring rule</span><span class="v">'+esc(it.rule)+'</span>'+
   (it.evidence?'<span class="k">Evidence</span><span class="v">'+esc(it.evidence)+'</span>':'')+'</div>'+
   '<div class="scoreline"><span class="big" style="color:'+(missing?'var(--ink-faint)':HUET(it.score))+'">'+shown+(missing?'':'<span style="font-size:11px;color:var(--ink-faint);font-weight:600">/100</span>')+'</span>'+
-  pctbar(it.score)+'<span class="why">weight '+it.weight+(it.contribution==null?'':' · contribution '+it.contribution.toFixed(2))+' · source '+esc(it.source)+(it.observed_at?' · observed '+esc(it.observed_at):'')+' · fetched '+esc(it.fetched_at||'unknown')+(it.calculation_version?' · '+esc(it.calculation_version):'')+'</span></div>'+
+  pctbar(it.score)+'<span class="why">weight '+it.weight+(it.contribution==null?'':' Â· contribution '+it.contribution.toFixed(2))+' Â· source '+esc(it.source)+(it.observed_at?' Â· observed '+esc(it.observed_at):'')+' Â· fetched '+esc(it.fetched_at||'unknown')+(it.calculation_version?' Â· '+esc(it.calculation_version):'')+'</span></div>'+
   (missing?'<div class="why" style="margin-top:8px">Missing data is excluded; available item weights are normalized. The stock is not assigned an invented neutral value.</div>':'')+'</div>'; }
-function itemHTML(it){ return '<div class="item" data-exp><button class="row"><span class="chev">›</span><span class="rname">'+esc(it.label)+
+function itemHTML(it){ return '<div class="item" data-exp><button class="row"><span class="chev">â€º</span><span class="rname">'+esc(it.label)+
   '</span><span class="rmeta"><span class="wchip tnum">w '+it.weight+'</span>'+pctbar(it.score)+'<span class="rscore tnum" style="color:'+(it.score==null?'var(--ink-faint)':HUET(it.score))+'">'+(it.score==null?'n/a':it.score)+'</span></span></button>'+
   '<div class="detail"><div class="detail-in">'+metricHTML(it)+'</div></div></div>'; }
 // category: shows the weighted-average arithmetic, then each item
 function catHTML(c){
   var scored=c.items.filter(function(i){return i.score!=null;});
-  var terms=scored.map(function(i){return i.weight+'×'+i.score;}).join(' + ')||'no available items';
+  var terms=scored.map(function(i){return i.weight+'Ã—'+i.score;}).join(' + ')||'no available items';
   var wsum=scored.reduce(function(a,i){return a+i.weight;},0);
   var num=scored.reduce(function(a,i){return a+i.weight*i.score;},0);
-  var math='<div class="mathbox" style="margin:12px 14px"><div class="mformula"><b>'+(c.score==null?'n/a':c.score)+'</b> = ('+terms+') ÷ '+wsum+
-    (wsum?' = '+(num/wsum).toFixed(1):'')+'  <span style="color:var(--ink-faint)">— '+scored.length+' scored, '+(c.items.length-scored.length)+' missing · available weights normalized · click each for raw evidence</span></div></div>';
-  return '<div class="cat" data-exp><button class="row"><span class="chev">›</span><span class="rname">'+esc(c.label)+
+  var math='<div class="mathbox" style="margin:12px 14px"><div class="mformula"><b>'+(c.score==null?'n/a':c.score)+'</b> = ('+terms+') Ã· '+wsum+
+    (wsum?' = '+(num/wsum).toFixed(1):'')+'  <span style="color:var(--ink-faint)">â€” '+scored.length+' scored, '+(c.items.length-scored.length)+' missing Â· available weights normalized Â· click each for raw evidence</span></div></div>';
+  return '<div class="cat" data-exp><button class="row"><span class="chev">â€º</span><span class="rname">'+esc(c.label)+
     '</span><span class="rmeta"><span class="wchip tnum">weight '+S.weights[c.id]+'</span>'+pctbar(c.score)+'<span class="rscore tnum" style="color:'+(c.score==null?'var(--ink-faint)':HUET(c.score))+'">'+(c.score==null?'n/a':c.score)+'</span></span></button>'+
     '<div class="detail"><div class="detail-in">'+math+c.items.map(itemHTML).join('')+'</div></div></div>'; }
 // overall: the category-contribution table that produces the base score
@@ -750,14 +783,14 @@ function scoreMathHTML(s,c){
     var brows=cats.filter(function(x){return x.score!=null;}).map(function(cat){return '<tr><td>'+esc(cat.label)+'</td><td class="n">'+cat.weight+'</td><td class="n">'+cat.score+'</td><td class="n contrib">'+Number(cat.contribution||0).toFixed(2)+'</td></tr>';}).join('');
     var effects=(d.vetoes||[]).concat(d.soft_gates||[]).map(function(x){return '<div style="margin-top:6px"><b>'+esc(x.effect)+':</b> '+esc(x.reason)+' <span style="color:var(--ink-faint)">('+esc(x.condition)+')</span></div>';}).join('');
     return '<div class="mathbox"><table class="mtable"><thead><tr><th>Category</th><th class="n">Weight</th><th class="n">Score</th><th class="n">Score contribution</th></tr></thead><tbody>'+brows+'</tbody></table>'+
-      '<div class="mformula">Base = '+d.base_numerator+' ÷ '+d.available_category_weight+' = <b>'+Number(d.base_score).toFixed(1)+'</b> &nbsp;·&nbsp; existing thesis modifier <b>'+(d.thesis_modifier>=0?'+':'')+d.thesis_modifier+'</b> &nbsp;→&nbsp; final score <b>'+d.final_score+'</b> &nbsp;→&nbsp; score band <b>'+esc(d.score_band_verdict)+'</b> &nbsp;→&nbsp; final verdict <b>'+esc(d.final_verdict)+'</b>'+effects+'</div></div>'; }
+      '<div class="mformula">Base = '+d.base_numerator+' Ã· '+d.available_category_weight+' = <b>'+Number(d.base_score).toFixed(1)+'</b> &nbsp;Â·&nbsp; existing thesis modifier <b>'+(d.thesis_modifier>=0?'+':'')+d.thesis_modifier+'</b> &nbsp;â†’&nbsp; final score <b>'+d.final_score+'</b> &nbsp;â†’&nbsp; score band <b>'+esc(d.score_band_verdict)+'</b> &nbsp;â†’&nbsp; final verdict <b>'+esc(d.final_verdict)+'</b>'+effects+'</div></div>'; }
   var rows=s.cats.map(function(cat){ var w=S.weights[cat.id]; return '<tr><td>'+esc(cat.label)+'</td><td class="n">'+w+'</td><td class="n">'+cat.score+'</td><td class="n contrib">'+(w*cat.score)+'</td></tr>'; }).join('');
   var wsum=CATS.reduce(function(a,k){return a+S.weights[k[0]];},0);
   var num=s.cats.reduce(function(a,cat){return a+S.weights[cat.id]*cat.score;},0);
-  var band=c.prelim>=S.buyBand?'Buy (≥'+S.buyBand+')':c.prelim>=S.watchBand?'Watch (≥'+S.watchBand+')':'Avoid (<'+S.watchBand+')';
-  return '<div class="mathbox"><table class="mtable"><thead><tr><th>Category</th><th class="n">Weight</th><th class="n">Score</th><th class="n">Weight×Score</th></tr></thead>'+
+  var band=c.prelim>=S.buyBand?'Buy (â‰¥'+S.buyBand+')':c.prelim>=S.watchBand?'Watch (â‰¥'+S.watchBand+')':'Avoid (<'+S.watchBand+')';
+  return '<div class="mathbox"><table class="mtable"><thead><tr><th>Category</th><th class="n">Weight</th><th class="n">Score</th><th class="n">WeightÃ—Score</th></tr></thead>'+
     '<tbody>'+rows+'</tbody><tfoot><tr><td>Totals</td><td class="n">'+wsum+'</td><td></td><td class="n">'+num+'</td></tr></tfoot></table>'+
-    '<div class="mformula">Base = '+num+' ÷ '+wsum+' = <b>'+c.base.toFixed(1)+'</b> &nbsp;·&nbsp; thesis modifier <b>'+(c.mod>=0?'+':'')+c.mod+'</b> (recovery/growth '+s.thesis.score+'/100) &nbsp;·&nbsp; = preliminary <b>'+c.prelim.toFixed(1)+'</b> &nbsp;→&nbsp; <b>'+band+'</b></div></div>'; }
+    '<div class="mformula">Base = '+num+' Ã· '+wsum+' = <b>'+c.base.toFixed(1)+'</b> &nbsp;Â·&nbsp; thesis modifier <b>'+(c.mod>=0?'+':'')+c.mod+'</b> (recovery/growth '+s.thesis.score+'/100) &nbsp;Â·&nbsp; = preliminary <b>'+c.prelim.toFixed(1)+'</b> &nbsp;â†’&nbsp; <b>'+band+'</b></div></div>'; }
 
 function businessModel(s){
   var name=(s.company||s.ticker||'This company'), txt=(s.ticker+' '+name+' '+(s.sector||'')).toLowerCase();
@@ -825,36 +858,36 @@ function situationHTML(s){ if(!s.thesis.situation||!s.thesis.situation.length) r
   var rows=s.thesis.situation.map(function(r){ return '<div class="sit-row"><div class="sit-q">'+esc(r[0])+'</div>'+
     '<div class="sit-tags"><span class="stg '+esc(r[1])+'">status: '+esc(r[1])+'</span><span class="stg">severity: '+esc(r[2])+'</span>'+
     '<span class="stg '+(r[3]==='structural'?'structural':'')+'">'+esc(r[3])+'</span><span class="stg">~'+esc(r[4])+'</span><span class="stg">evidence: '+esc(r[5])+'</span></div></div>'; }).join('');
-  return '<div class="sub-h">Why is it down? — situation checklist</div><div class="sit">'+rows+'</div>'+
+  return '<div class="sub-h">Why is it down? â€” situation checklist</div><div class="sit">'+rows+'</div>'+
     '<div style="font-size:12.5px;color:var(--ink-soft);margin-top:10px;line-height:1.5"><b>Kill-switch:</b> '+esc(s.thesis.kill)+'</div>'; }
 
 // Recent news the reasoning layer actually read (Finnhub). Evidence, not scoring
-// — the LLM decides bullish/bearish from these headlines; we don't keyword-guess.
+// â€” the LLM decides bullish/bearish from these headlines; we don't keyword-guess.
 function newsHTML(s){ var nx=s.thesis.news; if(!nx||!nx.length) return '';
   var rows=nx.slice(0,8).map(function(n){
     var tags=(n.categories||[]).map(function(c){return '<span class="ntag">'+esc(c)+'</span>';}).join('');
     var u=safeUrl(n.url);
     var head=u?('<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(n.headline)+'</a>'):esc(n.headline);
-    return '<div class="news-row"><div class="news-meta">'+esc(n.date)+(n.source?' · '+esc(n.source):'')+'</div>'+
+    return '<div class="news-row"><div class="news-meta">'+esc(n.date)+(n.source?' Â· '+esc(n.source):'')+'</div>'+
       '<div class="news-head">'+head+' '+tags+'</div></div>'; }).join('');
-  return '<div class="sub-h">Recent news the analysis read <span style="font-weight:400;color:var(--ink-faint);font-size:12px">(Finnhub · last 60 days · stance judged by the reasoning layer)</span></div>'+
+  return '<div class="sub-h">Recent news the analysis read <span style="font-weight:400;color:var(--ink-faint);font-size:12px">(Finnhub Â· last 60 days Â· stance judged by the reasoning layer)</span></div>'+
     '<div class="news-list">'+rows+'</div>'; }
 
-// Watchlist intelligence (§7B) — real sources to follow to track THIS name's
+// Watchlist intelligence (Â§7B) â€” real sources to follow to track THIS name's
 // thesis, discovered by the reasoning layer (anti-hallucination: describes source
 // types, not fabricated handles/URLs).
-var WL_ICON={analyst:'📈',investor:'💼',publication:'📰',filing:'📄',data_source:'📊',community:'💬'};
+var WL_ICON={analyst:'ðŸ“ˆ',investor:'ðŸ’¼',publication:'ðŸ“°',filing:'ðŸ“„',data_source:'ðŸ“Š',community:'ðŸ’¬'};
 function watchHTML(s){ var w=s.thesis.watchlist; if(!w||!w.length) return '';
   var rows=w.map(function(x){
-    return '<div class="wl-row"><div class="wl-ic">'+(WL_ICON[x.type]||'🔎')+'</div>'+
+    return '<div class="wl-row"><div class="wl-ic">'+(WL_ICON[x.type]||'ðŸ”Ž')+'</div>'+
       '<div class="wl-body"><div class="wl-name">'+esc(x.name)+
         (x.type?' <span class="wl-type">'+esc(x.type.replace(/_/g,' '))+'</span>':'')+'</div>'+
       (x.why?'<div class="wl-why">'+esc(x.why)+'</div>':'')+
       (x.where?'<div class="wl-where">Where: '+esc(x.where)+'</div>':'')+'</div></div>'; }).join('');
-  return '<div class="sub-h">Who &amp; what to follow <span style="font-weight:400;color:var(--ink-faint);font-size:12px">(sources to track this thesis — reasoning layer)</span></div>'+
+  return '<div class="sub-h">Who &amp; what to follow <span style="font-weight:400;color:var(--ink-faint);font-size:12px">(sources to track this thesis â€” reasoning layer)</span></div>'+
     '<div class="wl-list">'+rows+'</div>'; }
 
-// Demand & Momentum — CONTEXT ONLY. Explicitly NOT part of the score and does
+// Demand & Momentum â€” CONTEXT ONLY. Explicitly NOT part of the score and does
 // not affect the Buy / Watch / Avoid verdict (that comes only from the scored,
 // backtest-verified model). Purely a human read with its supporting evidence.
 function contextHTML(s){ var c=s.context; if(!c) return '';
@@ -867,11 +900,11 @@ function contextHTML(s){ var c=s.context; if(!c) return '';
       '<span style="color:var(--ink-soft);font-size:12.5px">'+esc(d.read)+'</span>'+
       (ev?'<div style="margin-top:6px">'+ev+'</div>':'')+'</div>'; }
   return '<div class="sub-h">Demand &amp; Momentum '+
-      '<span style="font-weight:400;color:var(--ink-faint);font-size:12px">(context only — NOT scored; does not affect Buy / Watch / Avoid)</span></div>'+
+      '<span style="font-weight:400;color:var(--ink-faint);font-size:12px">(context only â€” NOT scored; does not affect Buy / Watch / Avoid)</span></div>'+
     block('Demand', c.demand)+block('Momentum', c.momentum)+
     '<div style="font-size:11.5px;color:var(--ink-faint);margin-top:4px">'+esc(c.disclaimer||'')+'</div>'; }
 
-// Growth entry plan — for Quality Growth names: fair-price cases, entry zone,
+// Growth entry plan â€” for Quality Growth names: fair-price cases, entry zone,
 // upside now vs at entry, and the buy-now/wait decision.
 var EV_LABEL={buy_now:['Buy Now','good'],starter:['Starter','info'],wait_for_pullback:['Wait for Pullback','warn'],
   wait_for_confirmation:['Wait for Confirmation','warn'],watch:['Watch','warn'],avoid:['Avoid','bad']};
@@ -906,16 +939,16 @@ function setupHTML(s){
   var groups={market_confirmation:'Market confirmation',business_support:'Strategy-specific business support',human_and_flow:'Human / flow evidence',human_and_catalyst:'Qualitative, management & catalysts'};
   var by={}; (b.factors||[]).forEach(function(f){(by[f.group]||(by[f.group]=[])).push(f);});
   var sections=Object.keys(groups).map(function(g){ if(!by[g]||!by[g].length)return '';
-    return '<div class="cat" data-exp><button class="row"><span class="chev">›</span><span class="rname">'+esc(groups[g])+'</span><span class="rmeta">'+by[g].filter(function(f){return f.status==='satisfied';}).length+' / '+by[g].length+' supportive</span></button><div class="detail"><div class="detail-in">'+
-      by[g].map(function(f){return '<div class="item" data-exp><button class="row"><span class="chev">›</span><span class="rname">'+esc(f.label)+'</span><span class="rmeta"><span class="lab '+setupToneClass(f.status==='satisfied'?'improving':f.status==='contradicted'?'failed':f.status)+'">'+esc(statusLabel[f.status]||f.status)+'</span></span></button>'+
-        '<div class="detail"><div class="detail-in"><div class="metricbox"><div class="ea"><span class="k">Expected</span><span class="v exp">'+esc(f.expected||'—')+'</span><span class="k">Actual</span><span class="v act">'+esc(f.actual==null?'n/a':f.actual)+'</span><span class="k">Formula / decision rule</span><span class="v">'+esc(f.formula||'qualitative evidence review')+'</span><span class="k">Evidence</span><span class="v">'+esc(f.evidence||'—')+'</span></div><div class="scoreline"><span class="why">source '+esc(f.source||'—')+(f.observed_at?' · observed '+esc(f.observed_at):'')+(f.calculation_version?' · '+esc(f.calculation_version):'')+(f.modifier_effect?' · '+esc(f.modifier_effect):'')+'</span></div></div></div></div></div>';}).join('')+
+    return '<div class="cat" data-exp><button class="row"><span class="chev">â€º</span><span class="rname">'+esc(groups[g])+'</span><span class="rmeta">'+by[g].filter(function(f){return f.status==='satisfied';}).length+' / '+by[g].length+' supportive</span></button><div class="detail"><div class="detail-in">'+
+      by[g].map(function(f){return '<div class="item" data-exp><button class="row"><span class="chev">â€º</span><span class="rname">'+esc(f.label)+'</span><span class="rmeta"><span class="lab '+setupToneClass(f.status==='satisfied'?'improving':f.status==='contradicted'?'failed':f.status)+'">'+esc(statusLabel[f.status]||f.status)+'</span></span></button>'+
+        '<div class="detail"><div class="detail-in"><div class="metricbox"><div class="ea"><span class="k">Expected</span><span class="v exp">'+esc(f.expected||'â€”')+'</span><span class="k">Actual</span><span class="v act">'+esc(f.actual==null?'n/a':f.actual)+'</span><span class="k">Formula / decision rule</span><span class="v">'+esc(f.formula||'qualitative evidence review')+'</span><span class="k">Evidence</span><span class="v">'+esc(f.evidence||'â€”')+'</span></div><div class="scoreline"><span class="why">source '+esc(f.source||'â€”')+(f.observed_at?' Â· observed '+esc(f.observed_at):'')+(f.calculation_version?' Â· '+esc(f.calculation_version):'')+(f.modifier_effect?' Â· '+esc(f.modifier_effect):'')+'</span></div></div></div></div></div>';}).join('')+
       '</div></div></div>';}).join('');
-  var countLine=(counts.satisfied||0)+' satisfied · '+(counts.partial||0)+' partial · '+(counts.failed||0)+' failed · '+(counts.contradicted||0)+' opposing · '+(counts.unknown||0)+' unknown';
-  return '<div class="sub-h">Breakout confirmation <span style="font-weight:400;color:var(--ink-faint);font-size:12px">(existing label · '+esc(strategy)+' rules · no additional score)</span></div>'+
+  var countLine=(counts.satisfied||0)+' satisfied Â· '+(counts.partial||0)+' partial Â· '+(counts.failed||0)+' failed Â· '+(counts.contradicted||0)+' opposing Â· '+(counts.unknown||0)+' unknown';
+  return '<div class="sub-h">Breakout confirmation <span style="font-weight:400;color:var(--ink-faint);font-size:12px">(existing label Â· '+esc(strategy)+' rules Â· no additional score)</span></div>'+
     '<div class="dm-box"><div class="dm-head"><span class="lab '+setupToneClass(b.overall)+'">Breakout '+esc(b.overall||'unknown')+'</span><div class="dm-summary">'+esc(b.summary||'Breakout setup unavailable.')+'<div style="margin-top:5px;font-size:12px;color:var(--ink-faint)">'+esc(countLine)+'</div></div></div>'+sections+
     '<div style="font-size:11.5px;color:var(--ink-faint);padding:10px 14px;border-top:1px solid var(--line-soft);line-height:1.45">'+esc(b.note||'')+' '+esc(b.qualitative_note||'')+'</div></div>';
 }
-function num$(x){ return (x==null)?'—':('$'+x); }
+function num$(x){ return (x==null)?'â€”':('$'+x); }
 function growthEntryHTML(s){ var g=s.growth_entry; if(!g) return '';
   var ev=EV_LABEL[g.entry_view]||['Watch','warn'];
   var uc=g.upside_at_current, hue=HUET(uc>=30?80:uc>=12?55:30);
@@ -943,21 +976,21 @@ function growthEntryHTML(s){ var g=s.growth_entry; if(!g) return '';
 var VAL_WHY={
   analyst:{what:'The average 12-month price target of the Wall-Street analysts covering the stock.',
     why:'It aggregates many professional models into one number, so it\'s a useful sanity anchor for the other methods.',
-    watch:'Analysts herd and skew optimistic, and targets lag reality — it\'s only one vote among the methods.'},
+    watch:'Analysts herd and skew optimistic, and targets lag reality â€” it\'s only one vote among the methods.'},
   lynch:{what:'Peter Lynch\'s rule of thumb: a fair P/E roughly equals the company\'s earnings growth rate (a PEG of about 1).',
-    why:'Over time a stock\'s price follows its earnings growth, so a company growing EPS ~20%/yr can reasonably support a ~20× P/E. We cap the fair multiple to 8–40× to avoid absurd values.',
+    why:'Over time a stock\'s price follows its earnings growth, so a company growing EPS ~20%/yr can reasonably support a ~20Ã— P/E. We cap the fair multiple to 8â€“40Ã— to avoid absurd values.',
     watch:'Relies on the forecast growth rate being real and durable; junk-in, junk-out if growth disappoints.'},
   peer_pe:{what:'Values the stock at the forward P/E its sector peers trade at, instead of its own depressed/inflated multiple.',
     why:'Similar businesses tend to converge to similar earnings multiples, so a healthy company trading well below its peer group is arguably cheap relative to comparable names.',
-    watch:'Assumes the peer group is fairly valued and the company deserves the peer multiple — a genuinely weaker business shouldn\'t.'},
+    watch:'Assumes the peer group is fairly valued and the company deserves the peer multiple â€” a genuinely weaker business shouldn\'t.'},
   peer_ps:{what:'The same peer-relative idea using price-to-sales instead of earnings.',
-    why:'Revenue is far more stable than earnings, so P/S is useful when profits are temporarily depressed or swinging — it re-rates the stock to the sector-median sales multiple.',
-    watch:'Ignores profitability entirely — cheap on sales can still be a bad business if margins are thin.'},
-  fcf:{what:'Values the business on the actual free cash flow it generates, at a fair price-to-FCF multiple (base ~18×, lifted for growth).',
+    why:'Revenue is far more stable than earnings, so P/S is useful when profits are temporarily depressed or swinging â€” it re-rates the stock to the sector-median sales multiple.',
+    watch:'Ignores profitability entirely â€” cheap on sales can still be a bad business if margins are thin.'},
+  fcf:{what:'Values the business on the actual free cash flow it generates, at a fair price-to-FCF multiple (base ~18Ã—, lifted for growth).',
     why:'Cash flow is much harder to manipulate than accounting earnings, so this is a robustness check on the earnings-based methods.',
     watch:'FCF can be lumpy (big capex years distort it); one year\'s figure may not represent normalized cash generation.'},
   book:{what:'A floor-style value based on net assets (book value) at a fair price-to-book multiple.',
-    why:'Answers "what are the assets worth?" rather than "what are the earnings worth?" — most useful for asset-heavy or badly beaten-down names where earnings power is uncertain.',
+    why:'Answers "what are the assets worth?" rather than "what are the earnings worth?" â€” most useful for asset-heavy or badly beaten-down names where earnings power is uncertain.',
     watch:'Book value is a poor guide for asset-light businesses (software, brands) where the real value isn\'t on the balance sheet.'}
 };
 function valHTML(s){ var v=s.valuation, price=s.price;
@@ -974,20 +1007,20 @@ function valHTML(s){ var v=s.valuation, price=s.price;
     '<div class="vg-num"><div class="l">Buy below ('+S.mos+'% MoS)</div><div class="v">$'+buyBelow+'</div></div></div>';
   var line='<div class="vg-line">'+
     '<div class="vg-zones"><i class="z-cheap" style="width:'+zCheap+'%"></i><i class="z-fair" style="width:'+(zFairEnd-zCheap)+'%"></i><i class="z-exp" style="width:'+(100-zFairEnd)+'%"></i></div>'+
-    '<div class="vg-mark price" style="left:'+pos(price)+'%"><span class="vg-cap" style="color:var(--ink)">▼ you pay $'+price+'</span></div>'+
+    '<div class="vg-mark price" style="left:'+pos(price)+'%"><span class="vg-cap" style="color:var(--ink)">â–¼ you pay $'+price+'</span></div>'+
     '<div class="vg-mark fair" style="left:'+pos(v.base)+'%"><span class="vg-cap" style="top:auto;bottom:-2px;color:var(--ink-soft)">fair $'+v.base+'</span></div></div>';
-  var legend='<div class="vg-legend"><span><span class="sw" style="background:var(--buy)"></span>Buy zone (≤ $'+buyBelow+')</span>'+
-    '<span><span class="sw" style="background:var(--watch)"></span>Fair ($'+buyBelow+'–$'+v.high+')</span>'+
+  var legend='<div class="vg-legend"><span><span class="sw" style="background:var(--buy)"></span>Buy zone (â‰¤ $'+buyBelow+')</span>'+
+    '<span><span class="sw" style="background:var(--watch)"></span>Fair ($'+buyBelow+'â€“$'+v.high+')</span>'+
     '<span><span class="sw" style="background:var(--avoid);opacity:.75"></span>Expensive (&gt; $'+v.high+')</span></div>';
-  var zoneWord = price<=buyBelow?'inside your buy zone':price<=v.high?'fairly valued — just above your buy zone':'expensive';
-  var explain='<div class="vg-explain">You pay <b>$'+price+'</b> for something worth about <b>$'+v.base+'</b> — '+
+  var zoneWord = price<=buyBelow?'inside your buy zone':price<=v.high?'fairly valued â€” just above your buy zone':'expensive';
+  var explain='<div class="vg-explain">You pay <b>$'+price+'</b> for something worth about <b>$'+v.base+'</b> â€” '+
     (upside>=0?'<b>'+upside+'% upside</b> to fair value':'<b>'+Math.abs(upside)+'% above</b> fair value')+
     '. At your '+S.mos+'% margin of safety you\'d buy below <b>$'+buyBelow+'</b>, so today it is <b>'+zoneWord+'</b>.</div>';
   var methods = (v.methods&&v.methods.length)?
-    '<div style="margin-top:18px"><div class="vmeth-head">Fair value — '+v.methods.length+' methods → median $'+v.base+
+    '<div style="margin-top:18px"><div class="vmeth-head">Fair value â€” '+v.methods.length+' methods â†’ median $'+v.base+
       ' <span class="hint">click a method for its formula &amp; why it works</span></div>'+
       v.methods.map(function(m){ var mh=HUET(m.upside>=30?80:m.upside>=12?55:30); var w=VAL_WHY[m.key]||{};
-        return '<div class="cat" data-exp><button class="row"><span class="chev">›</span>'+
+        return '<div class="cat" data-exp><button class="row"><span class="chev">â€º</span>'+
           '<span class="rname">'+esc(m.name)+'</span>'+
           '<span class="rmeta"><span class="rscore tnum" style="min-width:72px;text-align:right;color:var(--ink)">$'+m.fair+'</span>'+
             '<span class="tnum" style="min-width:64px;text-align:right;color:'+mh+';font-weight:700">'+(m.upside>=0?'+':'')+m.upside+'%</span></span></button>'+
@@ -999,14 +1032,14 @@ function valHTML(s){ var v=s.valuation, price=s.price;
           '</div></div></div></div>'; }).join('')+
       '<div class="vmeth-median"><b>Base fair value</b> = the <b>median</b> of these '+v.methods.length+' methods = <b>$'+v.base+'</b>. '+
         'The median (not the average) is used so one extreme estimate can\'t skew the number. The spread '+
-        '<b>$'+v.low+'–$'+v.high+'</b> shows how much the methods agree — a tight spread means higher confidence.</div>'+
+        '<b>$'+v.low+'â€“$'+v.high+'</b> shows how much the methods agree â€” a tight spread means higher confidence.</div>'+
     '</div>' : '';
   return '<div class="sub-h">Valuation &amp; entry</div><div class="vgauge">'+nums+line+legend+explain+methods+'</div>'; }
 
 function openDetail(tk){ var s=STOCKS.find(function(x){return x.ticker===tk;}); if(!s)return; var c=compute(s), vk=c.verdict.toLowerCase();
   $('#d-title').innerHTML=esc(s.ticker)+' <span style="font-size:13px;color:var(--ink-faint);font-weight:500">'+esc(s.company)+'</span>';
-  var vetoHTML=c.vetoed?'<div style="margin-top:10px"><span class="lab bad">VETO</span> '+s.vetoes.map(esc).join(' · ')+'</div>':'';
-  var gateHTML=(c.gates&&c.gates.length)?'<div style="margin-top:8px;font-size:12px;color:var(--watch)">Soft gate'+(c.capped?' (capped Buy→Watch)':'')+': '+c.gates.map(esc).join(' · ')+'</div>':'';
+  var vetoHTML=c.vetoed?'<div style="margin-top:10px"><span class="lab bad">VETO</span> '+s.vetoes.map(esc).join(' Â· ')+'</div>':'';
+  var gateHTML=(c.gates&&c.gates.length)?'<div style="margin-top:8px;font-size:12px;color:var(--watch)">Soft gate'+(c.capped?' (capped Buyâ†’Watch)':'')+': '+c.gates.map(esc).join(' Â· ')+'</div>':'';
   var hero='<div class="verdict-hero bg-'+vk+'" style="border-color:var(--'+vk+'-line)"><div class="vh-top">'+
     '<span class="vh-pill bg-'+vk+' v-'+vk+'">'+c.verdict+'</span>'+(actionNuance(c)?'<span class="lab '+(c.vetoed?'bad':'warn')+'">'+esc(actionNuance(c))+'</span>':'')+
     '<span class="vh-score tnum" style="color:var(--'+vk+'-text)">'+Math.round(c.prelim)+'<span>/100</span></span></div>'+
@@ -1016,7 +1049,7 @@ function openDetail(tk){ var s=STOCKS.find(function(x){return x.ticker===tk;}); 
     [['Action',verdictAction(c)],['Position size',s.action.size],['Add trigger',s.action.add],['Invalidation / stop',s.action.stop],['Entry logic',s.action.entry],['Review',s.action.review]]
     .map(function(a){return '<div class="acard"><div class="l">'+a[0]+'</div><div class="v">'+esc(a[1])+'</div></div>';}).join('')+'</div>';
   var mathSec='<div class="sub-h">How the '+Math.round(c.prelim)+' was computed</div>'+scoreMathHTML(s,c);
-  var scorecard='<div class="sub-h">Scorecard — click a category for its arithmetic, then any item for expected vs actual, formula, source and date</div>'+(s.categories||s.cats).map(catHTML).join('');
+  var scorecard='<div class="sub-h">Scorecard â€” click a category for its arithmetic, then any item for expected vs actual, formula, source and date</div>'+(s.categories||s.cats).map(catHTML).join('');
   $('#d-body').innerHTML=hero+businessHTML(s)+mathSec+scorecard+demandMomentumHTML(s)+setupHTML(s)+valHTML(s)+growthEntryHTML(s)+contextHTML(s)+situationHTML(s)+newsHTML(s)+watchHTML(s)+action;
   openDrawer('#detail');
 }
@@ -1029,17 +1062,17 @@ function renderSettings(){
   var body='<div class="changed" id="changed-note"></div>';
   body+='<div class="sub-h">Preset</div>';
   body+='<select id="preset-pick" style="width:100%;font-size:13px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:8px 11px;margin-bottom:14px">'+
-    '<option value="">— apply a preset —</option><option value="__default">Recommended defaults</option>'+
+    '<option value="">â€” apply a preset â€”</option><option value="__default">Recommended defaults</option>'+
     Object.keys(PRESETS).map(function(p){ return '<option value="'+p+'">'+p.replace(/_/g,' ')+'</option>'; }).join('')+'</select>';
   var bl=baseline();   // the mode's recommended model (backend preset + bands)
   body+='<div class="sub-h">Category weights</div>';
   CATS.forEach(function(c){ body+=slider('w.'+c[0], c[1], 0, 30, S.weights[c[0]], bl.weights[c[0]], 'How much '+c[1]+' moves the base score.'); });
   body+='<div class="sub-h">Verdict & entry</div>';
-  body+=slider('buyBand','Buy band (score ≥)',50,90,S.buyBand,bl.buyBand,'Preliminary score needed for Buy.');
-  body+=slider('watchBand','Watch band (score ≥)',30,70,S.watchBand,bl.watchBand,'Below this = Avoid.');
+  body+=slider('buyBand','Buy band (score â‰¥)',50,90,S.buyBand,bl.buyBand,'Preliminary score needed for Buy.');
+  body+=slider('watchBand','Watch band (score â‰¥)',30,70,S.watchBand,bl.watchBand,'Below this = Avoid.');
   body+=slider('mos','Margin of safety %',0,50,S.mos,DEFAULTS.mos,'Discount to fair value required for the buy zone.');
   body+=slider('target','Target upside %',10,60,S.target,DEFAULTS.target,'Below this, a Buy is soft-gated to Watch.');
-  body+='<button class="resetbtn" id="resetbtn">↺ Reset all to recommended defaults</button>';
+  body+='<button class="resetbtn" id="resetbtn">â†º Reset all to recommended defaults</button>';
   $('#s-body').innerHTML=body; updateChanged();
 }
 function updateChanged(){ var bl=baseline(), n=0;
@@ -1048,7 +1081,7 @@ function updateChanged(){ var bl=baseline(), n=0;
   ['mos','target'].forEach(function(k){ if(S[k]!==DEFAULTS[k])n++; });
   var note=$('#changed-note'); if(!note)return;
   if(n===0){ note.style.display='none'; } else { note.style.display='block';
-    note.innerHTML='<b>'+n+'</b> setting'+(n>1?'s':'')+' changed from the recommended model — the board reflects your model live.'; } }
+    note.innerHTML='<b>'+n+'</b> setting'+(n>1?'s':'')+' changed from the recommended model â€” the board reflects your model live.'; } }
 
 /* ---------- AI-review status (from meta.ai_review) ---------- */
 function agoText(days){
@@ -1064,18 +1097,18 @@ function renderAiStatus(ai){
   var n=ai.with_ai_read||0, stale=(ai.last_review_age_days!=null && ai.last_review_age_days>10);
   if(n>0){
     var when=agoText(ai.last_review_age_days);
-    el.textContent='🧠 AI review · '+n+' name'+(n===1?'':'s')+(when?' · '+when:'');
+    el.textContent='ðŸ§  AI review Â· '+n+' name'+(n===1?'':'s')+(when?' Â· '+when:'');
     el.className='ai-status'+(stale?' warn':' ok');
     el.title='The AI thesis (news, recovery/growth read, sources to follow) ran on the top '
       +n+' candidate'+(n===1?'':'s')+'. Refreshes weekly (Mon). '
-      +(stale?'This review is getting old — the weekly run may not have succeeded.':'');
+      +(stale?'This review is getting old â€” the weekly run may not have succeeded.':'');
   } else if(ai.provider_down || (ai.ran_llm && !ai.reasoned_now)){
-    el.textContent='🧠 AI review unavailable';
+    el.textContent='ðŸ§  AI review unavailable';
     el.className='ai-status warn';
     el.title='The reasoning provider was unavailable (missing or exhausted DEEPSEEK_API_KEY). '
       +'Names are scored on the numbers only.';
   } else {
-    el.textContent='🧠 AI review · runs weekly';
+    el.textContent='ðŸ§  AI review Â· runs weekly';
     el.className='ai-status';
     el.title='The AI thesis runs on the weekly (Mon) build. Names show "not reviewed yet" until then.';
   }
@@ -1144,11 +1177,12 @@ fetch('data/board.json', {cache:'no-store'}).then(function(r){ return r.json(); 
   var secs=Array.from(new Set(STOCKS.map(function(s){return s.sector;}))).sort();
   $('#sector').innerHTML='<option value="all">All sectors</option>'+secs.map(function(x){return '<option>'+esc(x)+'</option>';}).join('');
   var tag=document.querySelector('.brand .tag');
-  if(tag) tag.textContent='working name · '+(m.count||STOCKS.length)+' stocks · '+((m.generated_at||'').slice(0,10));
+  if(tag) tag.textContent='working name Â· '+(m.count||STOCKS.length)+' stocks Â· '+((m.generated_at||'').slice(0,10));
   renderAiStatus(m.ai_review);
   renderBoard();
-}).catch(function(e){ $('#board').innerHTML='<div style="padding:30px;color:var(--ink-faint)">Could not load <code>data/board.json</code> — run <code>python scripts/build_all.py</code> first.</div>'; });
+}).catch(function(e){ $('#board').innerHTML='<div style="padding:30px;color:var(--ink-faint)">Could not load <code>data/board.json</code> â€” run <code>python scripts/build_all.py</code> first.</div>'; });
 })();
 </script>
 </body>
 </html>
+
