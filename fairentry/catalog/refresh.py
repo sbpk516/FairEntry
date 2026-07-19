@@ -60,7 +60,7 @@ def refresh(cfg, store, run_id=None, wma_tickers=None, sec_tickers=None, verbose
 
     universe = [s["ticker"] for s in securities]
 
-    # --- yfinance: 200-week MA on requested tickers --------------------------
+    # --- yfinance: completed-week 50WMA/200WMA on requested tickers ----------
     if wma_tickers:
         targets = [t for t in wma_tickers if t in set(universe)]
         t0 = time.time()

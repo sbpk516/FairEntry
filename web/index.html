@@ -1097,9 +1097,25 @@ function openDetail(tk){ var s=STOCKS.find(function(x){return x.ticker===tk;}); 
 /* ---------- FairEntry native chart ---------- */
 var CHART={ticker:null, stock:null, data:null, mode:'daily'};
 function fmtLevel(x){ return x==null||!isFinite(Number(x))?'n/a':'$'+Number(x).toFixed(2); }
+function signalTone(status){ return status==='satisfied'?'good':status==='failed'?'bad':'warn'; }
+function positionText(position, averageLabel){
+  position=position||{};
+  var distance=position.distance_pct;
+  return '<span class="lab '+signalTone(position.status)+'">'+esc(position.label||'Unknown')+' '+esc(averageLabel)+'</span>'+
+    (distance==null?'':' <span style="font-size:11px;color:var(--ink-faint)">'+(Number(distance)>=0?'+':'')+Number(distance).toFixed(1)+'%</span>');
+}
+function crossoverText(signal, name){
+  signal=signal||{};
+  var values=(signal.fast==null||signal.slow==null)?'':' - $'+Number(signal.fast).toFixed(2)+' vs $'+Number(signal.slow).toFixed(2);
+  var elapsed=signal.crossed_within_periods, unit=signal.period_name||'week';
+  var recent=elapsed==null?'':' ('+(elapsed===0?'this completed '+unit:elapsed+' completed '+unit+'(s) ago')+')';
+  return '<li><span class="lab '+signalTone(signal.status)+'">'+esc(signal.label||'Unknown')+'</span> <b>'+esc(name)+'</b>'+esc(values+recent)+'. '+esc(signal.note||'')+'</li>';
+}
 function chartPath(s){ return s.chart_path || ('data/charts/'+encodeURIComponent(String(s.ticker).toUpperCase())+'.json'); }
 function chartReasonHTML(s){
   var b=(s.breakout_setup||{}), sr=(b.support_resistance||{}), levels=((CHART.data||{}).levels||{});
+  var weekly=((CHART.data||{}).weekly_signals||{});
+  var daily=((CHART.data||{}).daily_signals||{});
   var factors=(b.factors||[]).filter(function(f){ return ['price_breakout','breakout_volume','relative_strength','trend_regime','strategy_business_support'].indexOf(f.id)>=0; });
   var lines=factors.map(function(f){
     var status=f.status==='satisfied'?'good':(f.status==='failed'||f.status==='contradicted')?'bad':'warn';
@@ -1109,20 +1125,30 @@ function chartReasonHTML(s){
   return '<div class="chart-reason"><h3>Breakout decision</h3>'+
     '<div><b>'+esc(s.ticker)+' is marked Breakout '+esc(b.overall||'unknown')+'.</b> '+esc(b.summary||'FairEntry has not generated a breakout summary yet.')+'</div>'+
     '<ul>'+lines+'</ul>'+
+    '<div style="margin-top:10px"><b>Moving-average evidence</b></div><ul>'+
+      crossoverText(daily.golden_cross,'50DMA / 200DMA golden cross')+
+      crossoverText(weekly.intermediate_cross,'10WMA / 40WMA trend cross')+
+      crossoverText(weekly.long_term_reclaim,'10WMA / 200WMA long-term reclaim')+
+      crossoverText(weekly.secular_alignment,'50WMA / 200WMA secular alignment')+
+    '</ul><div style="font-size:12px;color:var(--ink-faint)">A crossover supports the existing Trend Regime evidence. It does not independently create a Breakout Confirmed decision; price resistance, volume, relative strength, and business support must still align.</div>'+
     '<div style="margin-top:9px;color:var(--ink-faint);font-size:12px">Plain read: support '+fmtLevel(sr.support)+', resistance '+fmtLevel(sr.resistance)+', latest price '+fmtLevel(levels.price)+'. A stronger setup needs price clearing resistance, volume participation, positive relative strength, and a business trend that is not deteriorating.</div>'+
     '</div>';
 }
 function chartLevelsHTML(data){
-  var l=(data||{}).levels||{};
+  var l=(data||{}).levels||{}, method=(data||{}).moving_average_methodology||{};
   return '<div class="chart-levels"><h3>Chart levels</h3><dl>'+
     '<dt>Current price</dt><dd>'+fmtLevel(l.price)+'</dd>'+
     '<dt>Support</dt><dd>'+fmtLevel(l.support)+'</dd>'+
     '<dt>Resistance</dt><dd>'+fmtLevel(l.resistance)+'</dd>'+
     '<dt>50 day average</dt><dd>'+fmtLevel(l.sma50)+'</dd>'+
     '<dt>200 day average</dt><dd>'+fmtLevel(l.sma200)+'</dd>'+
+    '<dt>50 week average</dt><dd>'+fmtLevel(l.sma50week)+' '+positionText(l.sma50week_position,'50WMA')+'</dd>'+
+    '<dt>200 week average</dt><dd>'+fmtLevel(l.sma200week)+' '+positionText(l.sma200week_position,'200WMA')+'</dd>'+
     '<dt>Fair value</dt><dd>'+fmtLevel(l.fair_value)+'</dd>'+
     '<dt>Buy below</dt><dd>'+fmtLevel(l.buy_below)+'</dd>'+
-    '</dl><div style="margin-top:10px;color:var(--ink-faint);font-size:12px">'+esc((data&&data.source)||'Adjusted daily OHLCV')+'</div></div>';
+    '</dl><div style="margin-top:10px;color:var(--ink-faint);font-size:12px">'+esc((data&&data.source)||'Adjusted daily OHLCV')+
+    (method.weekly_as_of?' - completed weeks through '+esc(method.weekly_as_of):'')+
+    '. 50WMA is the mean of 50 completed weekly closes; 200WMA uses 200. The current incomplete week is excluded.</div></div>';
 }
 function sma(points, days){
   var out=[], sum=0;
@@ -1158,7 +1184,8 @@ function drawH(ctx, y, x1, x2, color, label){
 }
 function drawChart(){
   var canvas=$('#chart-canvas'); if(!canvas||!CHART.data)return;
-  var points=(CHART.data[CHART.mode]||[]).slice(-140);
+  var allPoints=(CHART.data[CHART.mode]||[]), visible=CHART.mode==='weekly'?260:140;
+  var start=Math.max(0,allPoints.length-visible), points=allPoints.slice(start);
   if(!points.length)return;
   var wrap=canvas.parentElement, w=Math.max(320,wrap.clientWidth), h=Math.max(300,wrap.clientHeight), dpr=window.devicePixelRatio||1;
   canvas.width=Math.round(w*dpr); canvas.height=Math.round(h*dpr); canvas.style.width=w+'px'; canvas.style.height=h+'px';
@@ -1183,14 +1210,16 @@ function drawChart(){
     var y1=mapY(Math.max(p.o,p.c)), y2=mapY(Math.min(p.o,p.c)); ctx.fillRect(x-bw/2,y1,bw,Math.max(1,y2-y1));
     var vh=(p.v||0)/maxV*volH; ctx.globalAlpha=.45; ctx.fillRect(x-bw/2,volTop+volH-vh,bw,vh); ctx.globalAlpha=1;
   });
-  drawLine(ctx,sma(points,CHART.mode==='weekly'?10:50),mapX,mapY,'#4a5ee0',CHART.mode==='weekly'?'10W SMA':'50D SMA');
-  drawLine(ctx,sma(points,CHART.mode==='weekly'?40:200),mapX,mapY,'#b07d13',CHART.mode==='weekly'?'40W SMA':'200D SMA');
+  var fastPeriod=50, slowPeriod=200;
+  var fastLabel=CHART.mode==='weekly'?'50W SMA':'50D SMA', slowLabel=CHART.mode==='weekly'?'200W SMA':'200D SMA';
+  drawLine(ctx,sma(allPoints,fastPeriod).slice(start),mapX,mapY,'#4a5ee0',fastLabel);
+  drawLine(ctx,sma(allPoints,slowPeriod).slice(start),mapX,mapY,'#b07d13',slowLabel);
   if(levels.support!=null) drawH(ctx,mapY(Number(levels.support)),padL,w-padR,'#1f9d55','support '+fmtLevel(levels.support));
   if(levels.resistance!=null) drawH(ctx,mapY(Number(levels.resistance)),padL,w-padR,'#cf3a54','resistance '+fmtLevel(levels.resistance));
   if(levels.fair_value!=null) drawH(ctx,mapY(Number(levels.fair_value)),padL,w-padR,'#4a5ee0','fair '+fmtLevel(levels.fair_value));
   ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--ink-faint')||'#666';
-  ctx.fillText(CHART.mode==='weekly'?'10W SMA':'50D SMA', padL, h-8);
-  ctx.fillStyle='#b07d13'; ctx.fillText(CHART.mode==='weekly'?'40W SMA':'200D SMA', padL+90, h-8);
+  ctx.fillText(fastLabel, padL, h-8);
+  ctx.fillStyle='#b07d13'; ctx.fillText(slowLabel, padL+90, h-8);
 }
 function renderChartLoaded(){
   var s=CHART.stock, data=CHART.data;
@@ -1346,4 +1375,3 @@ fetch('data/board.json', {cache:'no-store'}).then(function(r){ return r.json(); 
 </script>
 </body>
 </html>
-

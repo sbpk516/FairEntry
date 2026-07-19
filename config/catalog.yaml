@@ -48,8 +48,10 @@ fields:
   - {id: industry,         entity: company,  source: Finviz, adapter: finviz, cadence: weekly,      unit: text,  raw_path: Industry,        freshness_limit_h: 720, required_for: [screen, peers], cost_tier: cheap}
 
   # ---- derived / slow (own transforms) --------------------------------------
-  - {id: sma_200week,      entity: security, source: yfinance, adapter: yfinance, cadence: weekly,  unit: usd,   transform: sma_200week,    freshness_limit_h: 200, required_for: [market_confirmation], cost_tier: medium}
-  - {id: dist_200wma_pct,  entity: security, source: yfinance, adapter: yfinance, cadence: weekly,  unit: pct,   transform: dist_from_200wma, freshness_limit_h: 200, required_for: [market_confirmation], cost_tier: medium}
+  - {id: sma_50week,       entity: security, source: yfinance, adapter: yfinance, cadence: weekly,  unit: usd,   transform: mean_last_50_completed_weekly_closes, freshness_limit_h: 200, required_for: [market_confirmation], cost_tier: medium}
+  - {id: dist_50wma_pct,   entity: security, source: yfinance, adapter: yfinance, cadence: weekly,  unit: pct,   transform: distance_from_50wma, freshness_limit_h: 200, required_for: [market_confirmation], cost_tier: medium}
+  - {id: sma_200week,      entity: security, source: yfinance, adapter: yfinance, cadence: weekly,  unit: usd,   transform: mean_last_200_completed_weekly_closes, freshness_limit_h: 200, required_for: [market_confirmation], cost_tier: medium}
+  - {id: dist_200wma_pct,  entity: security, source: yfinance, adapter: yfinance, cadence: weekly,  unit: pct,   transform: distance_from_200wma, freshness_limit_h: 200, required_for: [market_confirmation], cost_tier: medium}
 
   # ---- SEC / forensic (filing-based) ----------------------------------------
   - {id: altman_z,         entity: company,  source: "SEC EDGAR", adapter: sec_edgar, cadence: filing_based, unit: ratio, transform: altman_z, freshness_limit_h: 720, required_for: [survival, vetoes], cost_tier: expensive}
