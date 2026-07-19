@@ -12,7 +12,7 @@ from pathlib import Path
 
 from ..adapters.cache_lite import cache_get, cache_put
 
-_CACHE_NS = "chart_history_v1"
+_CACHE_NS = "chart_history_v2"
 _TTL_DAYS = 1
 
 
@@ -44,7 +44,7 @@ def _download_history(tickers: list[str]):
 
         return yf.download(
             tickers=tickers,
-            period="2y",
+            period="5y",
             interval="1d",
             auto_adjust=True,
             progress=False,
@@ -55,7 +55,7 @@ def _download_history(tickers: list[str]):
         return None
 
 
-def _daily_bars(frame, ticker: str, limit: int = 420) -> list[dict]:
+def _daily_bars(frame, ticker: str, limit: int = 1300) -> list[dict]:
     if frame is None:
         return []
     cols = {name: _column(frame, ticker, name) for name in ("Open", "High", "Low", "Close", "Volume")}
@@ -86,7 +86,7 @@ def _daily_bars(frame, ticker: str, limit: int = 420) -> list[dict]:
     return bars
 
 
-def weekly_bars(daily: list[dict], limit: int = 104) -> list[dict]:
+def weekly_bars(daily: list[dict], limit: int = 260) -> list[dict]:
     weeks: list[dict] = []
     current = None
     current_key = None
