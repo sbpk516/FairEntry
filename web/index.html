@@ -399,7 +399,23 @@
 (function(){
 "use strict";
 var $=function(s,r){return (r||document).querySelector(s);};
-var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
+function cleanText(s){
+  return String(s==null?'':s)
+    .replace(/\u00c2\u00b7|\u00b7/g,' - ')
+    .replace(/\u00e2\u20ac\u201d|\u00e2\u20ac\u201c|\u2014|\u2013/g,' - ')
+    .replace(/\u00e2\u2020\u2019|\u2192/g,'->')
+    .replace(/\u00c3\u2014|\u00d7/g,'x')
+    .replace(/\u00c3\u00b7|\u00f7/g,'/')
+    .replace(/\u00e2\u2030\u00a5|\u2265/g,'>=')
+    .replace(/\u00e2\u2030\u00a4|\u2264/g,'<=')
+    .replace(/\u00e2\u2030\u02c6|\u2248/g,'approx ')
+    .replace(/\u00e2\u20ac\u00ba|\u203a/g,'>')
+    .replace(/\u00e2\u20ac\u00a6|\u2026/g,'...')
+    .replace(/\u00e2\u02c6\u2019|\u2212/g,'-')
+    .replace(/\u00e2\u2013\u00bc|\u25bc|\u00f0\u0178\u00a7\u00a0|\ud83e\udde0|\u00f0\u0178\u201c\u02c6|\ud83d\udcc8|\u00f0\u0178\u2019\u00bc|\ud83d\udcbc|\u00f0\u0178\u201c\u00b0|\ud83d\udcf0|\u00f0\u0178\u201c\u201e|\ud83d\udcc4|\u00f0\u0178\u201c\u0160|\ud83d\udcca|\u00f0\u0178\u2019\u00ac|\ud83d\udcac|\u00f0\u0178\u201d\u017d|\ud83d\udd0e/g,'')
+    .replace(/\s+-\s+/g,' - ');
+}
+var esc=function(s){return cleanText(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
 // URLs come from external news (Finnhub); only allow http(s) so a `javascript:`
 // / `data:` scheme can never become a clickable script link.
 var safeUrl=function(u){ u=String(u==null?'':u).trim(); return /^https?:\/\//i.test(u)?u:''; };
