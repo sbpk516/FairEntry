@@ -27,6 +27,8 @@ COMPUTED_METRICS = {
     "intrinsic_gap_pct", "news_sentiment_score", "red_flags_score",
     "red_flags_critical", "upside_pct", "valuation_label", "sector_median",
     "estimate_revision_score",   # derived from analyst-target history (build_board)
+    "breakout_price_score", "breakout_volume_score", "relative_strength_score",
+    "trend_regime_score", "margin_trend_score",  # breakout_v2 trace metrics
 }
 
 VALID_CADENCES = {"twice_daily", "daily", "weekly", "filing_based", "event_based"}

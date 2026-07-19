@@ -121,12 +121,13 @@
   .aspect.bad{ border-left-color:var(--avoid); background:var(--avoid-bg); }
   .aspect.bad .av{ color:var(--avoid-text); }
   @media (max-width:520px){ .aspects{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
-  /* context-only chips (demand/momentum) — dashed + "read" prefix marks them as NOT scored */
+  /* compact signal chips; each chip says whether it is context or score evidence */
   .ctx-row{ display:flex; flex-wrap:wrap; gap:5px; align-items:center; margin-top:7px; }
-  .ctx-row::before{ content:"read"; font-size:9px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint); font-weight:700; }
+  .ctx-row::before{ content:"signals"; font-size:9px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint); font-weight:700; }
   .ctag{ font-size:10.5px; padding:2px 7px; border-radius:999px; font-weight:600; border:1px dashed var(--line-soft); background:transparent; color:var(--ink-soft); }
   .ctag.clickable{ cursor:pointer; }
   .ctag.clickable:hover{ background:var(--panel-2); }
+  .ctag.breakout-scored{ border-style:solid; background:var(--panel-2); }
   .ctag.good{ color:var(--buy-text); border-color:var(--buy-text); }
   .ctag.bad{ color:var(--avoid-text); border-color:var(--avoid-text); }
   .ctag.info{ color:var(--ink-soft); border-color:var(--line-soft); }
@@ -456,7 +457,7 @@ var STOCKS=[
      cat('survival',[item('Altman-Z',30,78,'3.1','> 2.6 = safe zone','comfortably out of distress','risk_model'),item('Interest coverage',25,70,'6.2x','> 6x = comfortable','debt easily serviced','fundamentals'),item('FCF margin',25,66,'+11%','> 0 and stable','cash-generative through the dip','fundamentals'),item('Dilution trend',20,74,'−1.2% shares YoY','≤ 0 (no dilution)','slight buyback','XBRL')]),
      cat('growth',[item('Revenue growth vs sector',30,42,'−4% YoY','≥ sector (−3%)','slightly below sector, still declining','fundamentals'),item('Sequential trend',30,58,'q/q +2%','> 0 = bottoming','first sequential uptick after two down quarters','fundamentals'),item('Analyst revisions',40,55,'stabilizing','net up-revisions','down-revisions have stopped','analyst_revisions')]),
      cat('valuation',[item('Intrinsic-value gap',40,86,'31% below fair','≥ 12% below = margin of safety','deep discount to conservative fair value','intrinsic_overlay'),item('FCF yield',30,78,'8.4%','> 6% = cheap','cheap on cash flow','fundamentals'),item('Peer-relative',30,72,'−22% vs peers','≤ quality-matched peers','cheaper than comparable peers','peers')]),
-     cat('confirmation',[item('200-week MA proximity',30,70,'−6% from 200WMA','within ±15% = near','sitting on its 4-year support line','yfinance'),item('Insider cluster buy',40,88,'3 buys / 21 days','a fresh cluster','CFO + 2 directors buying → high-value signal','Form 4'),item('Institutional flow',30,60,'net +0.8%','> 0','mild accumulation','13F')]),
+     cat('confirmation',[item('200-week MA proximity',30,70,'−6% from 200WMA','within ±15% = near','sitting on its 4-year support line','yfinance'),item('Insider cluster buy',40,88,'3 buys / 21 days','a fresh cluster','CFO + 2 directors buying → high-value signal','Form 4'),item('Institutional ownership change (demo)',30,60,'net +0.8%','> 0','illustrative value only — rebuild board.json for live Finviz data','demo placeholder')]),
      cat('catalysts',[item('News sentiment (LLM)',40,68,'improving','positive stance','coverage turning constructive','news_judge'),item('Earnings setup',30,62,'reports in 3 wks','beat/raise likely','possible positive surprise','calendar'),item('Sector tailwind',30,55,'AI capex cycle','a clear tailwind','broad demand backdrop','sector')]),
      cat('risk',[item('Accounting flags',30,90,'clean','no forensic flags','clean earnings quality → full','red_flags'),item('Insider selling',25,84,'none','no selling','no distribution','Form 4'),item('Litigation',20,80,'none material','none material','clear','filings'),item('Short interest',25,66,'7% of float','< 10% = low','modest short interest','flow')])
    ],
@@ -478,7 +479,7 @@ var STOCKS=[
      cat('survival',[item('Altman-Z',30,88,'6.4','> 2.6 = safe','fortress balance sheet','risk_model'),item('Interest coverage',25,95,'net cash','positive net cash','no debt to service','fundamentals'),item('FCF margin',25,86,'+27%','> 0 and stable','strong free cash flow','fundamentals'),item('Dilution trend',20,58,'+2.4% shares (SBC)','≤ 2% ideal','stock-comp dilution a touch high','XBRL')]),
      cat('growth',[item('Revenue growth vs sector',30,90,'+31% YoY','≥ sector (14%)','well above sector','fundamentals'),item('Sequential trend',30,78,'q/q +7%','> 0','re-accelerating','fundamentals'),item('Analyst revisions',40,82,'up-revisions','net up','estimates rising','analyst_revisions')]),
      cat('valuation',[item('Intrinsic-value gap',40,34,'12% ABOVE fair','≥ 12% below = margin of safety','priced ahead of conservative fair value','intrinsic_overlay'),item('FCF yield',30,40,'2.1%','> 6% = cheap','rich on cash flow','fundamentals'),item('Peer-relative',30,52,'in line with peers','≤ quality-matched peers','fairly valued vs peers, not cheap','peers')]),
-     cat('confirmation',[item('Trend (50 > 200 DMA)',30,88,'strong uptrend','50 > 200','firmly trending','flow'),item('Relative strength',35,84,'top decile','> market','clear market leader','flow'),item('Institutional flow',35,80,'net +2.1%','> 0','institutions accumulating','13F')]),
+     cat('confirmation',[item('Trend (50 > 200 DMA)',30,88,'strong uptrend','50 > 200','firmly trending','flow'),item('Relative strength',35,84,'top decile','> market','clear market leader','flow'),item('Institutional ownership change (demo)',35,80,'net +2.1%','> 0','illustrative value only — rebuild board.json for live Finviz data','demo placeholder')]),
      cat('catalysts',[item('News sentiment (LLM)',40,78,'positive','positive stance','new product well received','news_judge'),item('Product / expansion',30,82,'new adjacent market','expansion evidence','entering an adjacent segment','calls'),item('Sector tailwind',30,80,'AI adoption','a clear tailwind','secular demand','sector')]),
      cat('risk',[item('Accounting flags',30,88,'clean','no forensic flags','clean','red_flags'),item('Insider selling',25,60,'routine 10b5-1','no discretionary selling','scheduled selling only','Form 4'),item('Litigation',20,84,'none','none material','clear','filings'),item('Valuation fragility',25,50,'high multiple','moderate','de-rate risk if growth slips','flow')])
    ],
@@ -496,7 +497,7 @@ var STOCKS=[
      cat('survival',[item('Altman-Z',30,22,'1.4','> 2.6 safe · < 1.8 = distress','in the distress zone','risk_model'),item('Interest coverage',25,26,'1.3x','> 6x','barely covers interest','fundamentals'),item('FCF margin',25,30,'−3%','> 0','burning cash','fundamentals'),item('Dilution trend',20,24,'+9% shares YoY','≤ 0','heavy dilution','XBRL')]),
      cat('growth',[item('Revenue growth vs sector',30,20,'−17% YoY','≥ sector','multi-year secular decline','fundamentals'),item('Sequential trend',30,25,'still falling','> 0','no bottom in sight','fundamentals'),item('Analyst revisions',40,22,'down-revisions','net up','estimates cut again','analyst_revisions')]),
      cat('valuation',[item('Intrinsic-value gap',40,60,'"cheap" on P/B','≥ 12% below fair','optically cheap — but on a shrinking base','intrinsic_overlay'),item('FCF yield',30,20,'negative','> 6%','no free cash flow to yield','fundamentals'),item('Peer-relative',30,55,'−40% vs peers','≤ peers','cheap for a reason','peers')]),
-     cat('confirmation',[item('200-week MA proximity',30,18,'−58% (broken)','within ±15%','far below — no support','yfinance'),item('Insider buying',40,30,'none','a fresh cluster','no insiders stepping in','Form 4'),item('Institutional flow',30,28,'net −3.1%','> 0','institutions exiting','13F')]),
+     cat('confirmation',[item('200-week MA proximity',30,18,'−58% (broken)','within ±15%','far below — no support','yfinance'),item('Insider buying',40,30,'none','a fresh cluster','no insiders stepping in','Form 4'),item('Institutional ownership change (demo)',30,28,'net −3.1%','> 0','illustrative value only — rebuild board.json for live Finviz data','demo placeholder')]),
      cat('catalysts',[item('News sentiment (LLM)',40,25,'negative','positive stance','"reasons to sell" coverage','news_judge'),item('Earnings setup',30,30,'guidance just cut','beat/raise','negative setup','calendar'),item('Sector tailwind',30,35,'none','a tailwind','no tailwind','sector')]),
      cat('risk',[item('Going concern',35,20,'auditor flagged','none','going-concern language added → veto','red_flags'),item('Customer loss',35,20,'lost anchor client','none','structural blow to the model → veto','8-K'),item('Short interest',30,40,'28% of float','< 10%','heavily shorted','flow')])
    ],
@@ -518,7 +519,7 @@ var STOCKS=[
      cat('survival',[item('Altman-Z',30,72,'3.4','> 2.6 = safe','safe','risk_model'),item('Interest coverage',25,74,'8x','> 6x','strong coverage','fundamentals'),item('FCF margin',25,70,'+14%','> 0 and stable','cash-generative','fundamentals'),item('Dilution trend',20,66,'flat','≤ 0','no dilution','XBRL')]),
      cat('growth',[item('Revenue growth vs sector',30,76,'+24% YoY','≥ sector (12%)','above sector','fundamentals'),item('Sequential trend',30,66,'steady','> 0','consistent','fundamentals'),item('Analyst revisions',40,72,'edging up','net up','estimates rising slightly','analyst_revisions')]),
      cat('valuation',[item('Intrinsic-value gap',40,70,'18% below fair','≥ 12% below = margin of safety','below conservative fair value','intrinsic_overlay'),item('FCF yield',30,64,'4.6%','> 6% = cheap','reasonable','fundamentals'),item('Peer-relative',30,72,'−15% vs peers','≤ peers','cheaper than peers','peers')]),
-     cat('confirmation',[item('Trend (50 > 200 DMA)',30,68,'uptrend','50 > 200','trending up','flow'),item('Relative strength',35,64,'above average','> market','outperforming','flow'),item('Institutional flow',35,66,'net +1.1%','> 0','light accumulation','13F')]),
+     cat('confirmation',[item('Trend (50 > 200 DMA)',30,68,'uptrend','50 > 200','trending up','flow'),item('Relative strength',35,64,'above average','> market','outperforming','flow'),item('Institutional ownership change (demo)',35,66,'net +1.1%','> 0','illustrative value only — rebuild board.json for live Finviz data','demo placeholder')]),
      cat('catalysts',[item('News sentiment (LLM)',40,66,'positive','positive stance','constructive','news_judge'),item('Product / expansion',30,70,'EU launch','expansion evidence','expanding into Europe','calls'),item('Earnings setup',30,60,'reports in 5 wks','beat/raise','solid setup','calendar')]),
      cat('risk',[item('Accounting flags',30,84,'clean','no forensic flags','clean','red_flags'),item('Insider selling',25,72,'minimal','none','little selling','Form 4'),item('Litigation',20,78,'none material','none material','clear','filings'),item('Valuation fragility',25,66,'moderate','low','not stretched','flow')])
    ],
@@ -619,10 +620,10 @@ function setupToneClass(tone){ return tone==='confirmed'||tone==='building'||ton
   tone==='failed'||tone==='worsening'||tone==='deteriorating'||tone==='hostile'||tone==='rising'||tone==='crowded'?'bad':
   tone==='unknown'?'warn':'info'; }
 var BREAKOUT_HELP={
-  early:'Buy + breakout early = cheap, but wait for proof or use smaller position.',
-  building:'Buy + breakout building = cheap and signs are starting to line up.',
-  confirmed:'Buy + breakout confirmed = cheap/value thesis plus market confirmation.',
-  failed:'Buy + breakout failed = be careful; value thesis may be turning into a value trap.',
+  early:'The existing breakout test is early; price, participation, and strategy-specific business evidence have not aligned yet.',
+  building:'Some price, participation, and business-support conditions are aligning, but the full confirmation rule has not passed.',
+  confirmed:'Price cleared resistance with volume, market support, and strategy-specific business evidence. Drill down to see every condition.',
+  failed:'Price support or the supporting business evidence has failed. Drill down to see the contradicting factors.',
   unknown:'Breakout setup unknown = not enough clean data yet to read the leading indicators.'
 };
 function showBreakoutHelp(label, anchor){
@@ -633,7 +634,7 @@ function showBreakoutHelp(label, anchor){
   box.innerHTML='<div class="bh-top"><span class="lab '+setupToneClass(label)+'">Breakout '+esc(label)+'</span>'+
     '<div class="bh-title">What this means</div><button class="bh-x" type="button" aria-label="Close">×</button></div>'+
     '<div class="bh-text">'+esc(BREAKOUT_HELP[label]||BREAKOUT_HELP.unknown)+'</div>'+
-    '<div class="bh-note">Context only - not used in FairEntry score, Buy / Watch / Avoid, or backtest verdicts.</div>';
+    '<div class="bh-note">This is the existing breakout label, not another score. Its quantitative factors feed the existing Growth and Market Confirmation categories.</div>';
   document.body.appendChild(box);
   var left=Math.min(window.innerWidth-box.offsetWidth-14, Math.max(14, r.left));
   var top=Math.min(window.innerHeight-box.offsetHeight-14, r.bottom+8);
@@ -646,22 +647,21 @@ function dmShort(d){
   var a=r.market_alpha_pct;
   return a==null?'':(' 3m '+(Number(a)>=0?'+':'')+Number(a).toFixed(0)+'% vs SPY');
 }
-// compact demand/momentum chips for the board grid — context only, NEVER scored.
-// dashed border + "read" prefix (see .ctx-row CSS) marks them apart from scoring labels.
+// Compact demand/context and breakout/score-evidence chips for the board grid.
 function contextChips(s){ var c=s.context||{};
   var parts=[];
   function chip(name, d){ if(!d||d.label==='n/a') return;
     var cls=(d.label==='strong'||d.label==='rotating in')?'good':(d.label==='soft'||d.label==='out of favor')?'bad':'info';
-    parts.push('<span class="ctag '+cls+'">'+esc(name)+' '+esc(d.label)+'</span>'); }
+    parts.push('<span class="ctag '+cls+'">Read · '+esc(name)+' '+esc(d.label)+'</span>'); }
   chip('Biz demand', c.demand); chip('Expectations', c.momentum);
   if(s.demand_momentum&&s.demand_momentum.tone){
-    parts.push('<span class="ctag '+dmToneClass(s.demand_momentum.tone)+'">Price demand '+esc(s.demand_momentum.tone)+esc(dmShort(s.demand_momentum))+'</span>');
+    parts.push('<span class="ctag '+dmToneClass(s.demand_momentum.tone)+'">Read · Price demand '+esc(s.demand_momentum.tone)+esc(dmShort(s.demand_momentum))+'</span>');
   }
   if(s.breakout_setup&&s.breakout_setup.overall){
-    parts.push('<span class="ctag clickable '+setupToneClass(s.breakout_setup.overall)+'" role="button" tabindex="0" data-breakout="'+esc(s.breakout_setup.overall)+'">Breakout '+esc(s.breakout_setup.overall)+'</span>');
+    parts.push('<span class="ctag breakout-scored clickable '+setupToneClass(s.breakout_setup.overall)+'" role="button" tabindex="0" data-breakout="'+esc(s.breakout_setup.overall)+'">Score evidence · Breakout '+esc(s.breakout_setup.overall)+'</span>');
   }
   if(!parts.length) return '';
-  return '<div class="ctx-row" title="Context only - not part of the score. Does not affect Buy / Watch / Avoid.">'+parts.join('')+'</div>';
+  return '<div class="ctx-row" title="Demand chips are context-only. Breakout factors are traceable inputs to the existing score.">'+parts.join('')+'</div>';
 }
 function tileHTML(s){ var c=compute(s), shown=c.displayVerdict||c.verdict, vk=c.verdict.toLowerCase();
   var kv='<div class="kv"><span>Price <b>$'+esc(s.price)+'</b></span>'+
@@ -717,29 +717,40 @@ function addToPortfolio(ticker){
 }
 
 /* ---------- detail drill-down ---------- */
-function pctbar(sc){ return '<span class="mini"><i style="width:'+sc+'%;background:'+HUE(sc)+'"></i></span>'; }
+function pctbar(sc){ return sc==null?'<span class="mini"></span>':'<span class="mini"><i style="width:'+sc+'%;background:'+HUE(sc)+'"></i></span>'; }
 // leaf metric: expected vs actual, the rule that maps them, and the resulting score
-function metricHTML(it){ return '<div class="metricbox"><div class="ea">'+
+function metricHTML(it){ var missing=it.score==null, shown=missing?'n/a':it.score;
+  return '<div class="metricbox"><div class="ea">'+
+  (it.definition?'<span class="k">What it means</span><span class="v">'+esc(it.definition)+'</span>':'')+
   '<span class="k">Expected</span><span class="v exp">'+esc(it.expected)+'</span>'+
-  '<span class="k">Actual</span><span class="v act">'+esc(it.actual)+'</span>'+
-  '<span class="k">How</span><span class="v">'+esc(it.rule)+'</span></div>'+
-  '<div class="scoreline"><span class="big" style="color:'+HUET(it.score)+'">'+it.score+'<span style="font-size:11px;color:var(--ink-faint);font-weight:600">/100</span></span>'+
-  pctbar(it.score)+'<span class="why">weight '+it.weight+' · source '+esc(it.source)+' · fetched '+esc(it.fetched_at||'unknown')+'</span></div></div>'; }
+  '<span class="k">Actual</span><span class="v act">'+esc(it.raw_actual||it.actual)+'</span>'+
+  (it.formula?'<span class="k">Formula</span><span class="v">'+esc(it.formula)+'</span>':'')+
+  '<span class="k">Scoring rule</span><span class="v">'+esc(it.rule)+'</span>'+
+  (it.evidence?'<span class="k">Evidence</span><span class="v">'+esc(it.evidence)+'</span>':'')+'</div>'+
+  '<div class="scoreline"><span class="big" style="color:'+(missing?'var(--ink-faint)':HUET(it.score))+'">'+shown+(missing?'':'<span style="font-size:11px;color:var(--ink-faint);font-weight:600">/100</span>')+'</span>'+
+  pctbar(it.score)+'<span class="why">weight '+it.weight+(it.contribution==null?'':' · contribution '+it.contribution.toFixed(2))+' · source '+esc(it.source)+(it.observed_at?' · observed '+esc(it.observed_at):'')+' · fetched '+esc(it.fetched_at||'unknown')+(it.calculation_version?' · '+esc(it.calculation_version):'')+'</span></div>'+
+  (missing?'<div class="why" style="margin-top:8px">Missing data is excluded; available item weights are normalized. The stock is not assigned an invented neutral value.</div>':'')+'</div>'; }
 function itemHTML(it){ return '<div class="item" data-exp><button class="row"><span class="chev">›</span><span class="rname">'+esc(it.label)+
-  '</span><span class="rmeta"><span class="wchip tnum">w '+it.weight+'</span>'+pctbar(it.score)+'<span class="rscore tnum" style="color:'+HUET(it.score)+'">'+it.score+'</span></span></button>'+
+  '</span><span class="rmeta"><span class="wchip tnum">w '+it.weight+'</span>'+pctbar(it.score)+'<span class="rscore tnum" style="color:'+(it.score==null?'var(--ink-faint)':HUET(it.score))+'">'+(it.score==null?'n/a':it.score)+'</span></span></button>'+
   '<div class="detail"><div class="detail-in">'+metricHTML(it)+'</div></div></div>'; }
 // category: shows the weighted-average arithmetic, then each item
 function catHTML(c){
-  var terms=c.items.map(function(i){return i.weight+'×'+i.score;}).join(' + ');
-  var wsum=c.items.reduce(function(a,i){return a+i.weight;},0);
-  var num=c.items.reduce(function(a,i){return a+i.weight*i.score;},0);
-  var math='<div class="mathbox" style="margin:12px 14px"><div class="mformula"><b>'+c.score+'</b> = ('+terms+') ÷ '+wsum+
-    ' = '+(num/wsum).toFixed(1)+'  <span style="color:var(--ink-faint)">— weighted average of '+c.items.length+' items · click each for expected vs actual</span></div></div>';
+  var scored=c.items.filter(function(i){return i.score!=null;});
+  var terms=scored.map(function(i){return i.weight+'×'+i.score;}).join(' + ')||'no available items';
+  var wsum=scored.reduce(function(a,i){return a+i.weight;},0);
+  var num=scored.reduce(function(a,i){return a+i.weight*i.score;},0);
+  var math='<div class="mathbox" style="margin:12px 14px"><div class="mformula"><b>'+(c.score==null?'n/a':c.score)+'</b> = ('+terms+') ÷ '+wsum+
+    (wsum?' = '+(num/wsum).toFixed(1):'')+'  <span style="color:var(--ink-faint)">— '+scored.length+' scored, '+(c.items.length-scored.length)+' missing · available weights normalized · click each for raw evidence</span></div></div>';
   return '<div class="cat" data-exp><button class="row"><span class="chev">›</span><span class="rname">'+esc(c.label)+
-    '</span><span class="rmeta"><span class="wchip tnum">weight '+S.weights[c.id]+'</span>'+pctbar(c.score)+'<span class="rscore tnum" style="color:'+HUET(c.score)+'">'+c.score+'</span></span></button>'+
+    '</span><span class="rmeta"><span class="wchip tnum">weight '+S.weights[c.id]+'</span>'+pctbar(c.score)+'<span class="rscore tnum" style="color:'+(c.score==null?'var(--ink-faint)':HUET(c.score))+'">'+(c.score==null?'n/a':c.score)+'</span></span></button>'+
     '<div class="detail"><div class="detail-in">'+math+c.items.map(itemHTML).join('')+'</div></div></div>'; }
 // overall: the category-contribution table that produces the base score
 function scoreMathHTML(s,c){
+  if(!settingsChanged() && s.decision_trace){ var d=s.decision_trace, cats=s.categories||s.cats;
+    var brows=cats.filter(function(x){return x.score!=null;}).map(function(cat){return '<tr><td>'+esc(cat.label)+'</td><td class="n">'+cat.weight+'</td><td class="n">'+cat.score+'</td><td class="n contrib">'+Number(cat.contribution||0).toFixed(2)+'</td></tr>';}).join('');
+    var effects=(d.vetoes||[]).concat(d.soft_gates||[]).map(function(x){return '<div style="margin-top:6px"><b>'+esc(x.effect)+':</b> '+esc(x.reason)+' <span style="color:var(--ink-faint)">('+esc(x.condition)+')</span></div>';}).join('');
+    return '<div class="mathbox"><table class="mtable"><thead><tr><th>Category</th><th class="n">Weight</th><th class="n">Score</th><th class="n">Score contribution</th></tr></thead><tbody>'+brows+'</tbody></table>'+
+      '<div class="mformula">Base = '+d.base_numerator+' ÷ '+d.available_category_weight+' = <b>'+Number(d.base_score).toFixed(1)+'</b> &nbsp;·&nbsp; existing thesis modifier <b>'+(d.thesis_modifier>=0?'+':'')+d.thesis_modifier+'</b> &nbsp;→&nbsp; final score <b>'+d.final_score+'</b> &nbsp;→&nbsp; score band <b>'+esc(d.score_band_verdict)+'</b> &nbsp;→&nbsp; final verdict <b>'+esc(d.final_verdict)+'</b>'+effects+'</div></div>'; }
   var rows=s.cats.map(function(cat){ var w=S.weights[cat.id]; return '<tr><td>'+esc(cat.label)+'</td><td class="n">'+w+'</td><td class="n">'+cat.score+'</td><td class="n contrib">'+(w*cat.score)+'</td></tr>'; }).join('');
   var wsum=CATS.reduce(function(a,k){return a+S.weights[k[0]];},0);
   var num=s.cats.reduce(function(a,cat){return a+S.weights[cat.id]*cat.score;},0);
@@ -890,23 +901,19 @@ function demandMomentumHTML(s){
 function fmtBool(x){ return x==null?'n/a':(x?'yes':'no'); }
 function setupHTML(s){
   var b=s.breakout_setup; if(!b) return '';
-  var f=b.fundamental_stabilization||{}, sr=b.support_resistance||{}, sp=b.short_pressure||{}, sec=b.sector_trend||{};
-  function val(x,suffix){ return x==null?'n/a':Number(x).toFixed(1)+(suffix||''); }
-  function pill(label){ return '<span class="lab '+setupToneClass(label)+'">'+esc(label||'unknown')+'</span>'; }
-  var rows=[
-    ['Fundamental stabilization', pill(f.label), 'Revenue '+esc(f.revenue_trend||'unknown')+', gross margin '+esc(f.gross_margin_trend||'unknown')+', operating margin '+esc(f.operating_margin_trend||'unknown')+', P/FCF proxy '+esc(f.fcf_proxy_trend||'unknown')],
-    ['Support / resistance setup', pill(sr.label), '52w low distance '+val(sr.distance_to_52w_low_pct,'%')+', resistance distance '+val(sr.distance_to_resistance_pct,'%')+', support holds '+esc(sr.support_touches||0)+', breakout '+fmtBool(sr.breakout)],
-    ['Short interest pressure', pill(sp.label), 'Short float '+val(sp.short_float,'%')+', short trend '+esc(sp.short_float_trend||'unknown')+', days-to-cover '+esc(sp.days_to_cover==null?'n/a':sp.days_to_cover)],
-    ['Sector trend', pill(sec.label), 'ETF '+esc(sec.sector_etf||'n/a')+', above 50d '+fmtBool(sec.above_50d)+', above 200d '+fmtBool(sec.above_200d)+', 3m vs SPY '+val(sec.sector_vs_spy_3m_pct,'%')]
-  ].map(function(r){
-    return '<tr><td>'+esc(r[0])+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>';
-  }).join('');
-  return '<div class="sub-h">Deep Value Breakout Setup <span style="font-weight:400;color:var(--ink-faint);font-size:12px">(context only &mdash; NOT scored; leading indicators)</span></div>'+
-    '<div class="dm-box"><div class="dm-head"><span class="lab '+setupToneClass(b.overall)+'">'+esc(b.overall||'unknown')+'</span><div class="dm-summary">'+esc(b.summary||'Breakout setup unavailable.')+'</div><span class="dm-note">not scored</span></div>'+
-    '<table class="dm-table"><thead><tr><th>Area</th><th>Label</th><th>Evidence</th></tr></thead><tbody>'+rows+'</tbody></table>'+
-    '<div style="font-size:11.5px;color:var(--ink-faint);padding:10px 14px;border-top:1px solid var(--line-soft);line-height:1.45">'+
-      esc(f.fcf_proxy_note||'')+(sp.days_to_cover_note?' '+esc(sp.days_to_cover_note):'')+' '+esc(b.note||'')+
-    '</div></div>';
+  var counts=b.counts||{}, strategy=b.strategy==='quality_growth'?'Quality Growth':'Deep Value';
+  var statusLabel={satisfied:'Satisfied',partial:'Partial',failed:'Failed',contradicted:'Opposing',unknown:'Unknown'};
+  var groups={market_confirmation:'Market confirmation',business_support:'Strategy-specific business support',human_and_flow:'Human / flow evidence',human_and_catalyst:'Qualitative, management & catalysts'};
+  var by={}; (b.factors||[]).forEach(function(f){(by[f.group]||(by[f.group]=[])).push(f);});
+  var sections=Object.keys(groups).map(function(g){ if(!by[g]||!by[g].length)return '';
+    return '<div class="cat" data-exp><button class="row"><span class="chev">›</span><span class="rname">'+esc(groups[g])+'</span><span class="rmeta">'+by[g].filter(function(f){return f.status==='satisfied';}).length+' / '+by[g].length+' supportive</span></button><div class="detail"><div class="detail-in">'+
+      by[g].map(function(f){return '<div class="item" data-exp><button class="row"><span class="chev">›</span><span class="rname">'+esc(f.label)+'</span><span class="rmeta"><span class="lab '+setupToneClass(f.status==='satisfied'?'improving':f.status==='contradicted'?'failed':f.status)+'">'+esc(statusLabel[f.status]||f.status)+'</span></span></button>'+
+        '<div class="detail"><div class="detail-in"><div class="metricbox"><div class="ea"><span class="k">Expected</span><span class="v exp">'+esc(f.expected||'—')+'</span><span class="k">Actual</span><span class="v act">'+esc(f.actual==null?'n/a':f.actual)+'</span><span class="k">Formula / decision rule</span><span class="v">'+esc(f.formula||'qualitative evidence review')+'</span><span class="k">Evidence</span><span class="v">'+esc(f.evidence||'—')+'</span></div><div class="scoreline"><span class="why">source '+esc(f.source||'—')+(f.observed_at?' · observed '+esc(f.observed_at):'')+(f.calculation_version?' · '+esc(f.calculation_version):'')+(f.modifier_effect?' · '+esc(f.modifier_effect):'')+'</span></div></div></div></div></div>';}).join('')+
+      '</div></div></div>';}).join('');
+  var countLine=(counts.satisfied||0)+' satisfied · '+(counts.partial||0)+' partial · '+(counts.failed||0)+' failed · '+(counts.contradicted||0)+' opposing · '+(counts.unknown||0)+' unknown';
+  return '<div class="sub-h">Breakout confirmation <span style="font-weight:400;color:var(--ink-faint);font-size:12px">(existing label · '+esc(strategy)+' rules · no additional score)</span></div>'+
+    '<div class="dm-box"><div class="dm-head"><span class="lab '+setupToneClass(b.overall)+'">Breakout '+esc(b.overall||'unknown')+'</span><div class="dm-summary">'+esc(b.summary||'Breakout setup unavailable.')+'<div style="margin-top:5px;font-size:12px;color:var(--ink-faint)">'+esc(countLine)+'</div></div></div>'+sections+
+    '<div style="font-size:11.5px;color:var(--ink-faint);padding:10px 14px;border-top:1px solid var(--line-soft);line-height:1.45">'+esc(b.note||'')+' '+esc(b.qualitative_note||'')+'</div></div>';
 }
 function num$(x){ return (x==null)?'—':('$'+x); }
 function growthEntryHTML(s){ var g=s.growth_entry; if(!g) return '';
@@ -1009,7 +1016,7 @@ function openDetail(tk){ var s=STOCKS.find(function(x){return x.ticker===tk;}); 
     [['Action',verdictAction(c)],['Position size',s.action.size],['Add trigger',s.action.add],['Invalidation / stop',s.action.stop],['Entry logic',s.action.entry],['Review',s.action.review]]
     .map(function(a){return '<div class="acard"><div class="l">'+a[0]+'</div><div class="v">'+esc(a[1])+'</div></div>';}).join('')+'</div>';
   var mathSec='<div class="sub-h">How the '+Math.round(c.prelim)+' was computed</div>'+scoreMathHTML(s,c);
-  var scorecard='<div class="sub-h">Scorecard — click a category for its arithmetic, then any item for expected vs actual</div>'+s.cats.map(catHTML).join('');
+  var scorecard='<div class="sub-h">Scorecard — click a category for its arithmetic, then any item for expected vs actual, formula, source and date</div>'+(s.categories||s.cats).map(catHTML).join('');
   $('#d-body').innerHTML=hero+businessHTML(s)+mathSec+scorecard+demandMomentumHTML(s)+setupHTML(s)+valHTML(s)+growthEntryHTML(s)+contextHTML(s)+situationHTML(s)+newsHTML(s)+watchHTML(s)+action;
   openDrawer('#detail');
 }

@@ -312,6 +312,29 @@ def snapshots_for(closes: list[tuple[str, float]], price_now: float,
             snap["sma200"] = round((px / ma40 - 1) * 100, 2)
         if ma200:
             snap["dist_200wma_pct"] = round((px / ma200 - 1) * 100, 2)
+        # Point-in-time analogues of the live breakout_v2 price factors. Weekly
+        # snapshots do not contain volume, so volume/flow items remain missing
+        # and the normal scoring renormalization documents that absence.
+        prior = window[-68:-5] if len(window) >= 68 else window[:-5]
+        if prior:
+            resistance = max(prior)
+            above = (px / resistance - 1) * 100 if resistance else None
+            if above is not None:
+                snap["breakout_price_score"] = round(max(0, min(100, 40 + above * 20)))
+                if above >= 2:
+                    snap["breakout_price_score"] = max(85, snap["breakout_price_score"])
+        trend_checks = []
+        if ma10:
+            trend_checks.append(px > ma10)
+        if ma40:
+            trend_checks.append(px > ma40)
+        if ma10 and ma40:
+            trend_checks.append(ma10 > ma40)
+        prior_ma10 = _ma(window[:-4], 10) if len(window) >= 14 else None
+        if ma10 and prior_ma10:
+            trend_checks.append(ma10 > prior_ma10)
+        if trend_checks:
+            snap["trend_regime_score"] = round(sum(trend_checks) / len(trend_checks) * 100)
         per_date.append((d, snap))
 
     constants = {}

@@ -41,9 +41,9 @@ categories:
     label: Growth & Operating Momentum
     weight: 14
     items:
-      - {id: revenue_growth, label: "Revenue growth vs sector", weight: 40, metric: rev_growth_qoq, expected: "≥ sector median", rule: {type: sector_rel, full_delta: 10, floor_delta: -10}}
+      - {id: revenue_growth, label: "Revenue growth vs sector", weight: 35, metric: rev_growth_qoq, expected: "≥ sector median", rule: {type: sector_rel, full_delta: 10, floor_delta: -10}}
       - {id: eps_growth,     label: "EPS growth (next yr)",     weight: 30, metric: eps_growth_next_y, expected: "≥ 15%", rule: {type: higher_better, full_at: 30, floor_at: -10}}
-      - {id: momentum,       label: "Price momentum (1y)",      weight: 30, metric: perf_year, expected: "positive vs market", rule: {type: higher_better, full_at: 40, floor_at: -40}}
+      - {id: margin_trend,   label: "Margin direction",         weight: 35, metric: margin_trend_score, expected: "stable or improving", rule: {type: passthrough, drop_if_missing: true}}
   valuation:
     label: Valuation & Margin of Safety
     weight: 18
@@ -55,18 +55,20 @@ categories:
     label: Market Confirmation
     weight: 11
     items:
-      - {id: near_200wma,    label: "200-week MA proximity", weight: 25, metric: dist_200wma_pct, expected: "within ±15% = near", rule: {type: band, bands: [{max: 5, min: -15, score: 85}, {max: 15, min: -30, score: 55}, {max: 100, min: -100, score: 25}]}}
-      - {id: trend,          label: "Above 200-day MA",     weight: 20, metric: sma200, expected: "price > 200DMA", rule: {type: higher_better, full_at: 5, floor_at: -20}}
-      - {id: inst_flow,      label: "Institutional flow",   weight: 20, metric: inst_trans, expected: "net buying", rule: {type: higher_better, full_at: 2, floor_at: -3}}
-      - {id: smart_money,    label: "Smart-money 13F",      weight: 20, metric: thirteenf_score, expected: "owned / added by respected funds", rule: {type: passthrough, drop_if_missing: true}}
-      - {id: insider_buying, label: "Insider buying",       weight: 30, metric: insider_score, expected: "fresh / cluster / top-exec buys", rule: {type: passthrough}}
+      - {id: price_breakout, label: "Price above resistance", weight: 25, metric: breakout_price_score, expected: "close ≥2% above resistance", rule: {type: passthrough, drop_if_missing: true}}
+      - {id: breakout_volume,label: "Breakout volume",        weight: 20, metric: breakout_volume_score, expected: "≥1.5× prior 50-day average", rule: {type: passthrough, drop_if_missing: true}}
+      - {id: relative_strength,label: "Relative strength",    weight: 15, metric: relative_strength_score, expected: "outperform sector and SPY", definition: "Three-month stock return compared with both its sector ETF and SPY; positive means the stock is attracting capital faster than its benchmarks.", rule: {type: passthrough, drop_if_missing: true}}
+      - {id: trend_regime,   label: "Trend regime",           weight: 15, metric: trend_regime_score, expected: "supportive moving-average trend", definition: "Percentage of four checks passing: price above 50DMA, price above 200DMA, 50DMA above 200DMA, and a rising 50DMA.", rule: {type: passthrough, drop_if_missing: true}}
+      - {id: inst_flow,      label: "Institutional ownership change", weight: 10, metric: inst_trans, expected: "positive change in reported institutional ownership", definition: "Finviz Institutional Transactions: percentage change in aggregate institutional ownership over its reported recent period. This is a broad ownership-change field, not FairEntry's curated SEC 13F calculation.", formula: "score = clamp((institutional ownership change + 3) / 5 × 100, 0, 100)", rule: {type: higher_better, full_at: 2, floor_at: -3}}
+      - {id: smart_money,    label: "Smart-money SEC 13F",    weight: 5, metric: thirteenf_score, expected: "owned / added by respected tracked funds", definition: "A separate FairEntry signal built from two successive SEC 13F-HR filings for the curated managers in config/managers.yaml; it measures ownership breadth, new positions, additions, trims, exits, and aggregate share change.", rule: {type: passthrough, drop_if_missing: true}}
+      - {id: insider_buying, label: "Insider buying",         weight: 10, metric: insider_score, expected: "fresh / cluster / top-exec buys", rule: {type: passthrough, drop_if_missing: true}}
   catalysts:
     label: Catalysts & Narrative
     weight: 9
     items:
       - {id: news_sentiment, label: "News sentiment",   weight: 40, metric: news_sentiment_score, expected: "positive stance", rule: {type: passthrough}}
       - {id: analyst,        label: "Analyst consensus", weight: 25, metric: analyst_recom, expected: "≤ 2 (Buy)", rule: {type: lower_better, full_at: 1.5, floor_at: 3.5}}
-      - {id: est_revisions,  label: "Estimate revisions", weight: 20, metric: estimate_revision_score, expected: "analyst targets rising", rule: {type: passthrough, drop_if_missing: true}}
+      - {id: est_revisions,  label: "Analyst target revisions", weight: 20, metric: estimate_revision_score, expected: "mean analyst price target rising", rule: {type: passthrough, drop_if_missing: true}}
       - {id: sqz_context,    label: "Short-squeeze fuel", weight: 15, metric: short_float, expected: "elevated but not extreme", rule: {type: band, bands: [{min: 15, max: 30, score: 70}, {min: 5, max: 15, score: 55}, {min: 0, max: 5, score: 45}]}}
   risk:
     label: Risk, Red Flags & Fragility
