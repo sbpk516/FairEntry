@@ -265,6 +265,15 @@ analyst target, analyst recommendation, short float, beta, insider score,
   remove later by computing medians as-of the entry date.
 - **Deterministic gate only.** The backtest scores on the numbers; it does not
   apply the LLM thesis nudge, so it validates the *numbers-based* Buy filter.
+- **Structured thesis drivers are context-only.** Business-model drivers,
+  leading indicators, risks, and capital-allocation evidence must not enter a
+  backtest until each observation has a source date and a point-in-time history.
+  Current exports mark these fields `backtest_eligible: false` to prevent a
+  present-day narrative from leaking into historical cohorts.
+- **Valuation experiments are shadow-only.** Business-model P/B eligibility and
+  reliability-weighted fair-value aggregation remain available to the ablation
+  runner, but production scoring uses the original unweighted method set
+  until an out-of-sample test demonstrates improvement.
 - **Prices only.** No dividends; alpha is vs. the universe average, not a formal
   index.
 
