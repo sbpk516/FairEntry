@@ -156,7 +156,7 @@ def _validate_scoring(sc: dict, known_metrics: set[str]) -> list[str]:
 
 # Names available to veto / soft-gate `when` expressions at scoring time
 # (see engine.score_ticker). Beyond metrics: per-category scores + a few extras.
-_WHEN_EXTRA_NAMES = {"target_upside"}
+_WHEN_EXTRA_NAMES = {"target_upside", "coverage_pct", "valuation_confidence"}
 
 
 def _validate_when_expressions(sc: dict, cats: dict, known_metrics: set[str]) -> list[str]:
@@ -167,7 +167,8 @@ def _validate_when_expressions(sc: dict, cats: dict, known_metrics: set[str]) ->
     reject any `when` that won't compile or references an unknown name.
     """
     names = (set(known_metrics) | COMPUTED_METRICS | _WHEN_EXTRA_NAMES
-             | {f"category_{cid}" for cid in cats})
+             | {f"category_{cid}" for cid in cats}
+             | {f"coverage_{cid}" for cid in cats})
     errs: list[str] = []
     for group in ("vetoes", "soft_gates"):
         for rule in sc.get(group, []):

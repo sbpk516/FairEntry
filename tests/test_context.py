@@ -55,10 +55,14 @@ def test_context_is_present_but_does_not_change_the_verdict():
     assert stock["context"]["demand"]["label"] in ("strong", "steady", "soft", "n/a")
     assert stock["context"]["momentum"]["label"] in ("rotating in", "neutral", "out of favor", "n/a")
 
-    # ...and the verdict is byte-for-byte what the scored model returns (context ignored)
+    # ...and the internal model verdict is byte-for-byte what scoring returns.
+    # The user-facing label is intentionally more explicit while review is pending.
     med = sector_medians(cfg, store)
     s = {"margin_of_safety_pct": 15, "target_upside_pct": 30, "weights": _preset_weights(cfg, "deep_value")}
     rec = score_ticker(cfg, store.securities()[0], store.metrics_for("AAA"), med, s)
     store.close()
-    assert stock["verdict"] == rec["verdict"]
+    assert stock["model_verdict"] == rec["verdict"]
+    assert stock["verdict"] == "Buy"
+    assert stock["display_verdict"] == "Quant Buy"
+    assert stock["thesis"]["driver_history"]["backtest_eligible"] is False
     assert stock["score"] == rec["score"]

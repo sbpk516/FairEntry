@@ -79,6 +79,15 @@ jobs:
           python scripts/backtest.py --db data/backtest.db --rolling \
             --hold "$HOLD" --step "$STEP" \
             --md-out "$GITHUB_STEP_SUMMARY" --json-out web/data/backtest.json --json | tee backtest_result.txt
+      - name: Run scoring ablation
+        run: |
+          python scripts/ablation_backtest.py --db data/backtest.db \
+            --hold "$HOLD" --step "$STEP" \
+            --json-out web/data/ablation.json | tee ablation_result.txt
+          echo '### Scoring ablation' >> "$GITHUB_STEP_SUMMARY"
+          echo '```text' >> "$GITHUB_STEP_SUMMARY"
+          cat ablation_result.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
       - name: Tune weights (regime-robust, downside-protected) -> summary
         run: |
           python scripts/tune_weights.py --db data/backtest.db \
@@ -92,6 +101,8 @@ jobs:
           name: fairentry-backtest
           path: |
             backtest_result.txt
+            ablation_result.txt
             data/backtest.db
             web/data/backtest.json
+            web/data/ablation.json
           retention-days: 14

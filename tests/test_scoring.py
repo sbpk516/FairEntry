@@ -46,6 +46,31 @@ def test_lower_better_and_band():
     assert s == 90
 
 
+def test_sector_relative_lower_better_rewards_discount_not_premium():
+    """Regression: a P/S premium must not receive the score for a discount."""
+    rule = {"type": "sector_rel", "full_delta": -1, "floor_delta": 4,
+            "lower_better": True}
+    cheap, cheap_why = apply_rule(rule, 1.0, 2.0)
+    expensive, expensive_why = apply_rule(rule, 6.0, 2.0)
+    assert cheap == 100
+    assert expensive == 0
+    assert "-1.0" in cheap_why
+    assert "+4.0" in expensive_why
+
+
+def test_ablation_can_reproduce_legacy_ps_direction():
+    rule = {"type": "sector_rel", "full_delta": -1, "floor_delta": 4,
+            "lower_better": True, "legacy_lower_better_inversion": True}
+    assert apply_rule(rule, 1.0, 2.0)[0] == 60
+    assert apply_rule(rule, 6.0, 2.0)[0] == 100
+
+
+def test_sector_relative_higher_better_still_rewards_premium():
+    rule = {"type": "sector_rel", "full_delta": 5, "floor_delta": -5}
+    assert apply_rule(rule, 15, 10)[0] == 100
+    assert apply_rule(rule, 5, 10)[0] == 0
+
+
 def test_missing_metric_is_na():
     s, why = apply_rule({"type": "higher_better", "full_at": 20, "floor_at": 0}, None)
     assert s is None and why == "no data"
@@ -292,6 +317,43 @@ def test_missing_survival_data_caps_buy():
                for g in r["soft_gates"])
 
 
+def test_partial_survival_coverage_caps_buy_and_reports_low_confidence():
+    cfg = load_config()
+    m = _strong_metrics()
+    m.pop("altman_z")
+    m.pop("current_ratio")
+    m.pop("share_count_yoy", None)
+    r = score_ticker(cfg, _SEC, m, _MED, _SETTINGS)
+    survival = next(c for c in r["categories"] if c["id"] == "survival")
+    assert survival["coverage"] < 60
+    assert any(g["id"] == "survival_coverage" for g in r["soft_gates"])
+    assert r["verdict"] != "Buy"
+
+
+def test_ablation_can_disable_coverage_gates_without_hiding_coverage():
+    cfg = load_config()
+    m = _strong_metrics()
+    m.pop("altman_z")
+    m.pop("current_ratio")
+    r = score_ticker(cfg, _SEC, m, _MED,
+                     {**_SETTINGS, "model_features": {"coverage_gates": False}})
+    assert next(c for c in r["categories"] if c["id"] == "survival")["coverage"] < 60
+    assert not any(g["id"] in {"survival_coverage", "overall_coverage"}
+                   for g in r["soft_gates"])
+
+
+def test_overall_coverage_is_item_weighted_and_gated():
+    cfg = load_config()
+    sparse = {"price": {"value": 100}, "target_price": {"value": 180},
+              "gross_margin": {"value": 80}, "oper_margin": {"value": 30},
+              "roic": {"value": 30}}
+    r = score_ticker(cfg, _SEC, sparse,
+                     {"Technology": {"gross_margin": 40, "roic": 10}}, _SETTINGS)
+    assert r["coverage_pct"] < 70
+    assert r["coverage_confidence"] == "low"
+    assert any(g["id"] == "overall_coverage" for g in r["soft_gates"])
+
+
 # ---- multi-method fair value -------------------------------------------------
 
 def test_fair_value_blends_multiple_methods():
@@ -306,6 +368,39 @@ def test_fair_value_blends_multiple_methods():
     assert fv["upside_pct"] > 0                         # cheap on every method -> upside
     assert fv["valuation_label"] == "cheap"
     assert fv["buy_zone"] < fv["fair_base"]             # MoS discount applied
+
+
+def test_fair_value_excludes_book_for_asset_light_company():
+    metrics = {"price": {"value": 100}, "target_price": {"value": 130},
+               "pb_ratio": {"value": 8}, "pfcf_ratio": {"value": 12}}
+    fv = fair_value(metrics, sector_med={"pb_ratio": 3},
+                    company_context={"sector": "Consumer Cyclical",
+                                     "business_model": "asset_light"},
+                    features={"pb_applicability": True})
+    assert "book" not in {m["key"] for m in fv["methods"]}
+    assert "book" in {m["key"] for m in fv["excluded_methods"]}
+
+
+def test_ablation_can_restore_original_book_and_unweighted_median():
+    metrics = {"price": {"value": 100}, "target_price": {"value": 100},
+               "pb_ratio": {"value": 5}, "pfcf_ratio": {"value": 10}}
+    fv = fair_value(metrics, sector_med={"pb_ratio": 1},
+                    company_context={"sector": "Technology"},
+                    features={"pb_applicability": False, "valuation_weights": False})
+    assert "book" in {m["key"] for m in fv["methods"]}
+    assert fv["fair_base"] == 100
+
+
+def test_fair_value_keeps_book_for_financial_and_warns_on_dispersion():
+    metrics = {"price": {"value": 100}, "target_price": {"value": 200},
+               "pb_ratio": {"value": 5}, "pfcf_ratio": {"value": 10}}
+    fv = fair_value(metrics, sector_med={"pb_ratio": 1},
+                    company_context={"sector": "Financial Services"},
+                    features={"pb_applicability": True, "valuation_weights": True})
+    assert "book" in {m["key"] for m in fv["methods"]}
+    assert fv["dispersion_pct"] > 75
+    assert fv["valuation_confidence"] == "low"
+    assert fv["warnings"]
 
 
 def test_fair_value_no_price_is_unknown():

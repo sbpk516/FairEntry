@@ -63,21 +63,27 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
     mos = settings.get("margin_of_safety_pct", 15)
     target_upside = settings.get("target_upside_pct", 30)
     weights = settings.get("weights") or {cid: c["weight"] for cid, c in cfg.categories.items()}
+    features = settings.get("model_features") or {}
+    ps_direction_fix = features.get("ps_direction_fix", True)
+    coverage_gates = features.get("coverage_gates", True)
 
     # flat metric map + provenance
     flat = {k: (v["value"] if isinstance(v, dict) else v) for k, v in metrics_raw.items()}
     prov = {k: v for k, v in metrics_raw.items()}
 
     med = medians.get(sec["sector"], {})
-    fv = fair_value(metrics_raw, mos, med)
+    fv = fair_value(metrics_raw, mos, med, sec, features)
     flat.update({"intrinsic_gap_pct": fv["intrinsic_gap_pct"],
                  "upside_pct": fv["upside_pct"], "valuation_label": fv["valuation_label"]})
     categories, cat_scores = [], {}
     for cid, cat in cfg.categories.items():
-        items, num, den = [], 0.0, 0.0
+        items, num, den, covered_weight = [], 0.0, 0.0, 0.0
         for it in cat["items"]:
             val = flat.get(it["metric"])
-            score, how = apply_rule(it["rule"], val, med.get(it["metric"]))
+            rule = it["rule"]
+            if it["id"] == "sales_value" and not ps_direction_fix:
+                rule = {**rule, "legacy_lower_better_inversion": True}
+            score, how = apply_rule(rule, val, med.get(it["metric"]))
             rec = {"id": it["id"], "label": it["label"], "weight": it["weight"],
                    "metric": it["metric"], "actual": val, "expected": it.get("expected", ""),
                    "definition": it.get("definition", ""), "formula": it.get("formula", ""),
@@ -90,6 +96,8 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
             if score is not None:
                 num += it["weight"] * score
                 den += it["weight"]
+                if val is not None:
+                    covered_weight += it["weight"]
         cscore = round(num / den) if den else None
         configured_item_weight = sum(i["weight"] for i in cat["items"])
         for item in items:
@@ -97,11 +105,21 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
                                     if item["score"] is not None and den else None)
         cat_scores[cid] = cscore
         categories.append({"id": cid, "label": cat["label"], "weight": weights.get(cid, cat["weight"]),
-                           "score": cscore, "coverage": round(den / configured_item_weight * 100),
-                           "available_item_weight": den,
+                           "score": cscore,
+                           "coverage": round(covered_weight / configured_item_weight * 100),
+                           "available_item_weight": covered_weight,
                            "configured_item_weight": configured_item_weight,
-                           "missing_item_weight": configured_item_weight - den,
+                           "missing_item_weight": configured_item_weight - covered_weight,
                            "items": items})
+
+    # Overall coverage is the category-weighted share of item evidence, not
+    # merely the share of categories with at least one value.
+    total_category_weight = sum(weights.get(cid, cfg.categories[cid]["weight"])
+                                for cid in cfg.categories)
+    overall_coverage = round(sum(
+        weights.get(c["id"], cfg.categories[c["id"]]["weight"]) * c["coverage"] / 100
+        for c in categories
+    ) / total_category_weight * 100) if total_category_weight else 0
 
     # base score = weighted avg of covered categories
     bnum = sum(weights.get(cid, cfg.categories[cid]["weight"]) * s
@@ -120,6 +138,9 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
     # -- vetoes / gates namespace --
     ns = dict(flat)
     ns.update({f"category_{cid}": s for cid, s in cat_scores.items()})
+    ns.update({f"coverage_{c['id']}": c["coverage"] for c in categories})
+    ns["coverage_pct"] = overall_coverage
+    ns["valuation_confidence"] = fv["valuation_confidence"]
     ns["target_upside"] = target_upside
     ns["upside_pct"] = fv["upside_pct"]
     ns["valuation_label"] = fv["valuation_label"]
@@ -129,6 +150,8 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
               for v in cfg.scoring.get("vetoes", []) if _safe_eval(v["when"], ns) is True]
     gates = []
     for g in cfg.scoring.get("soft_gates", []):
+        if not coverage_gates and g["id"] in {"survival_coverage", "overall_coverage"}:
+            continue
         fired = _safe_eval(g["when"], ns)
         if fired is True:
             gates.append({"id": g["id"], "reason": g["reason"], "condition": g["when"],
@@ -174,7 +197,8 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
         "score": round(preliminary), "verdict": verdict,
         "categories": categories, "valuation": fv,
         "vetoes": vetoes, "soft_gates": gates,
-        "coverage_pct": round(bden / sum(weights.get(cid, cfg.categories[cid]["weight"])
-                                         for cid in cfg.categories) * 100) if bden else 0,
+        "coverage_pct": overall_coverage,
+        "coverage_confidence": "high" if overall_coverage >= 85 else
+                               "medium" if overall_coverage >= 70 else "low",
         "decision_trace": decision_trace,
     }
