@@ -68,6 +68,7 @@
   .iconbtn{ border:1px solid var(--line); background:var(--panel); color:var(--ink-soft); border-radius:9px;
     padding:8px 12px; font-size:13px; font-weight:600; display:inline-flex; gap:7px; align-items:center; }
   .iconbtn:hover{ border-color:var(--accent); color:var(--accent); }
+  #wmafilter.on{border-color:var(--buy);background:var(--buy-bg);color:var(--buy-text)}
 
   /* controls */
   .controls{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:14px 20px 6px; }
@@ -81,6 +82,8 @@
 
   /* board */
   .board{ display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:14px; padding:14px 20px 60px; }
+  .wma-alerts{display:none;margin:14px 20px 0;padding:12px 14px;border:1px solid var(--buy-line);background:var(--buy-bg);border-radius:10px;color:var(--ink)}
+  .wma-alerts.on{display:block}.wma-alerts b{color:var(--buy-text)}.wma-alerts span{display:inline-block;margin:5px 12px 0 0}
   .tile{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:0; overflow:hidden;
     cursor:pointer; transition:border-color .15s, transform .1s; position:relative; }
   .tile:hover{ border-color:var(--accent); transform:translateY(-1px); }
@@ -399,6 +402,7 @@
       <button data-v="Watch">Watch</button>
       <button data-v="Avoid">Avoid</button>
     </div>
+    <button class="iconbtn" id="wmafilter" type="button" aria-pressed="false">Near 200 WMA</button>
     <select id="sort">
       <option value="score">Sort: Score</option>
       <option value="upside">Sort: Upside</option>
@@ -407,6 +411,7 @@
     <span class="count" id="count"></span>
   </div>
 
+  <div class="wma-alerts" id="wma-alerts"></div>
   <div class="board" id="board"></div>
   <div class="note-banner">For personal research only, not investment advice. Scores are generated from the latest exported data and should be verified before acting.</div>
 </div>
@@ -456,6 +461,7 @@ function restoreS(){ try{ var raw=localStorage.getItem(SKEY); if(raw){ var o=JSO
   if(o&&o.weights){ S=Object.assign(JSON.parse(JSON.stringify(DEFAULTS)), o);
     S.weights=Object.assign({}, DEFAULTS.weights, o.weights); } } }catch(e){} }
 var MODE='all';
+var WMA_ONLY=false;
 var META={};                                   // board.json meta (filled on load)
 var MODE_STRATEGY={deepvalue:'deep_value', growth:'quality_growth'};
 
@@ -752,9 +758,10 @@ function tileHTML(s){ var c=compute(s), shown=c.displayVerdict||c.verdict, vk=c.
 
 function currentList(){
   var q=$('#search').value.trim().toLowerCase(), sec=$('#sector').value, vf=$('#vfilter .on').dataset.v, sort=$('#sort').value;
+  var wmaTickers={}; (META.wma_alerts||[]).forEach(function(a){wmaTickers[a.ticker]=true;});
   var list=STOCKS.filter(function(s){ return MODE==='all' || s.strategy.indexOf(MODE)>=0; })
     .map(function(s){ return {s:s, c:compute(s)}; })
-    .filter(function(o){ if(sec!=='all'&&o.s.sector!==sec)return false; if(vf!=='all'&&o.c.verdict!==vf)return false;
+    .filter(function(o){ if(WMA_ONLY&&!wmaTickers[o.s.ticker])return false; if(sec!=='all'&&o.s.sector!==sec)return false; if(vf!=='all'&&o.c.verdict!==vf)return false;
       if(q&&(o.s.ticker.toLowerCase().indexOf(q)<0&&o.s.company.toLowerCase().indexOf(q)<0))return false; return true; });
   var rank={Buy:0,Watch:1,Avoid:2};
   list.sort(function(a,b){ if(sort==='upside')return b.s.valuation.upside-a.s.valuation.upside;
@@ -764,7 +771,14 @@ function currentList(){
 function renderBoard(){ var list=currentList();
   $('#board').innerHTML=list.map(function(o){return tileHTML(o.s);}).join('')||'<div style="color:var(--ink-faint);padding:30px">No stocks match.</div>';
   var byv={Buy:0,Watch:0,Avoid:0}; list.forEach(function(o){byv[o.c.verdict]++;});
-  $('#count').textContent=list.length+' shown - '+byv.Buy+' Buy - '+byv.Watch+' Watch - '+byv.Avoid+' Avoid';
+  $('#count').textContent=list.length+' shown'+(WMA_ONLY?' near 200 WMA':'')+' - '+byv.Buy+' Buy - '+byv.Watch+' Watch - '+byv.Avoid+' Avoid';
+}
+function renderWmaAlerts(meta){
+  var box=$('#wma-alerts'), alerts=meta.wma_alerts||[];
+  if(!alerts.length){ box.className='wma-alerts'; box.innerHTML=''; return; }
+  box.className='wma-alerts on';
+  box.innerHTML='<b>Near 200-week moving average</b> (within '+esc(meta.wma_alert_threshold_pct)+'%): '+
+    alerts.map(function(a){ var side=a.distance_pct>=0?'above':'below'; return '<span><b>'+esc(a.ticker)+'</b> '+esc(a.verdict)+' - $'+esc(a.price)+' / WMA $'+esc(a.wma_200)+' ('+Math.abs(a.distance_pct)+'% '+side+')</span>'; }).join('');
 }
 function today(){ return new Date().toISOString().slice(0,10); }
 function portfolioLoad(){ try{return JSON.parse(localStorage.getItem(PORTKEY)||'[]');}catch(e){return [];} }
@@ -1307,6 +1321,7 @@ $('#modes').addEventListener('click',function(e){ var b=e.target.closest('button
   syncModelToMode(); renderSettings(); renderBoard(); });
 $('#vfilter').addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b)return;
   $('#vfilter .on').classList.remove('on'); b.classList.add('on'); renderBoard(); });
+$('#wmafilter').addEventListener('click',function(){ WMA_ONLY=!WMA_ONLY; this.classList.toggle('on',WMA_ONLY); this.setAttribute('aria-pressed',WMA_ONLY?'true':'false'); renderBoard(); });
 $('#search').addEventListener('input',renderBoard);
 $('#sector').addEventListener('change',renderBoard);
 $('#sort').addEventListener('change',renderBoard);
@@ -1347,6 +1362,7 @@ fetch('data/board.json', {cache:'no-store'}).then(function(r){ return r.json(); 
   var tag=document.querySelector('.brand .tag');
   if(tag) tag.textContent='working name - '+(m.count||STOCKS.length)+' stocks - '+((m.generated_at||'').slice(0,10));
   renderAiStatus(m.ai_review);
+  renderWmaAlerts(m);
   renderBoard();
 }).catch(function(e){ $('#board').innerHTML='<div style="padding:30px;color:var(--ink-faint)">Could not load <code>data/board.json</code> - run <code>python scripts/build_all.py</code> first.</div>'; });
 })();

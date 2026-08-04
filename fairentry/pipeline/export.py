@@ -12,6 +12,7 @@ from pathlib import Path
 from ..analytics.breakout_setup import build_context as build_breakout_setup
 from ..analytics.chart_history import write_chart_files
 from ..analytics.demand_momentum import build_context as build_demand_momentum
+from ..alerts import wma_alerts
 from ..scoring.engine import sector_medians, score_ticker
 from ..screeners import REGISTRY as SCREENERS
 
@@ -642,11 +643,15 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
     }
 
     stocks.sort(key=lambda r: -(r["cats"] and sum(c["score"] for c in r["cats"]) or 0))
+    threshold = float(cfg.defaults.get("wma_alert_threshold_pct", 3.0))
+    proximity_alerts = wma_alerts(stocks, metrics_by_ticker, threshold)
     return {"meta": {"generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                      "sectors": [s["id"] for s in cfg.enabled_sectors],
                      "config_version": cfg.scoring.get("version"), "count": len(stocks),
                      "reasoning": reasoning_summary,
                      "ai_review": ai_review,
+                     "wma_alerts": proximity_alerts,
+                     "wma_alert_threshold_pct": threshold,
                      "presets": cfg.scoring.get("presets", {}),
                      "default_weights": {cid: c["weight"] for cid, c in cfg.categories.items()},
                      # everything the UI needs to reproduce the backend verdict

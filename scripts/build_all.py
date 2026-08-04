@@ -56,6 +56,13 @@ def main():
                                      "opened": track["opened"], "closed": track["closed"],
                                      "signals": track.get("signals", 0)}
         path = write_board(board)
+        from fairentry.alerts import email_wma_alerts
+        wma_alerts = board["meta"].get("wma_alerts", [])
+        try:
+            emailed = email_wma_alerts(wma_alerts)
+        except Exception as exc:
+            emailed = False
+            print(f"200 WMA email failed: {exc}")
     if board["meta"].get("reasoning"):
         print("Reasoning:", board["meta"]["reasoning"])
     print(f"Tracking: {track['tracked']} tracked, {track.get('signals', 0)} signal snapshots, "
@@ -64,6 +71,7 @@ def main():
     for a in track["alerts"][:8]:
         print(f"  ALERT {a['ticker']} ({a['strategy']}): {a['from']} -> {a['to']} "
               f"(score {a['score_from']} -> {a['score_to']})")
+    print(f"200 WMA alerts: {len(wma_alerts)}" + (" (email sent)" if emailed else ""))
     from collections import Counter
     v = Counter(s["verdict"] if "verdict" in s else "" for s in [])  # verdict is recomputed in UI
     print(f"Exported {board['meta']['count']} stocks -> {path}")
