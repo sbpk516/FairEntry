@@ -288,3 +288,7 @@ out-of-sample results over time.
 **Green light to trust the filter:** the ladder is **monotonic** (Buy ≥ Watch ≥
 Avoid) with a **positive Buy − Avoid spread**, and it holds up across **many
 cohorts**, not just one.
+# Evidence implementation
+
+The versioned target/outcome design and its trust boundaries are documented in
+[`BACKTEST_EVIDENCE_IMPLEMENTATION.md`](BACKTEST_EVIDENCE_IMPLEMENTATION.md).

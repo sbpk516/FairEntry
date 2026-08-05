@@ -16,6 +16,7 @@ python scripts/refresh.py             # pull the universe into data/fairentry.db
 python scripts/build_all.py           # screen -> score -> export web/data/board.json
 python scripts/build_all.py --refresh --reason   # full run incl. LLM reasoning
 python scripts/backtest.py            # prospective signal backtest once signals mature
+python scripts/backtest.py --db data/backtest.db --rolling --json-out web/data/backtest.json
 python -m fairentry.mcp.stdio_server  # local MCP for Codex / Claude / ChatGPT clients
 
 # view the app
@@ -53,3 +54,7 @@ backtesting, and the web app includes a browser-local dummy portfolio tracker at
 See `docs/IMPLEMENTATION_PLAN.md` for the full plan and traceability matrix, and
 `docs/methodology.md` (generated from config) for the live scoring model. See
 `docs/fairentry-mcp.md` for ChatGPT/Codex/Claude connection steps.
+The rolling evidence report preserves frozen targets, target-hit timing,
+30/60/90/180/365-day outcomes, decision traces, and field-level provenance.
+Its reviewed architecture and trust boundaries are in
+[`docs/BACKTEST_EVIDENCE_IMPLEMENTATION.md`](docs/BACKTEST_EVIDENCE_IMPLEMENTATION.md).

@@ -28,3 +28,4 @@ Thumbs.db
 # regenerable UI data export (large; produced by build_all.py / CI)
 web/data/*.json
 web/data/charts/
+web/data/backtest-evidence/

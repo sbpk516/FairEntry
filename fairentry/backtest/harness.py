@@ -13,10 +13,15 @@ from __future__ import annotations
 
 import random
 import statistics
+import hashlib
+import json
 from datetime import date, timedelta
 
 from ..scoring.engine import sector_medians, medians_from, score_ticker
 from ..screeners import REGISTRY as SCREENERS
+from .strategy import load_strategy
+from .targets import targets_for
+from .evidence import quality_for, price_series, evaluate_path, summarize_targets
 
 
 def passes_screen(metrics: dict) -> bool:
@@ -30,6 +35,35 @@ def passes_screen(metrics: dict) -> bool:
         except Exception:
             continue
     return False
+
+
+def screen_evidence(metrics: dict) -> list[dict]:
+    out = []
+    for key, mod in SCREENERS.items():
+        try:
+            passed, detail = mod.passes(metrics)
+            out.append({"id": key, "passed": bool(passed), "detail": detail})
+        except Exception as exc:
+            out.append({"id": key, "passed": False, "detail": f"unavailable: {exc}"})
+    return out
+
+
+def _compact_categories(categories):
+    """Keep every factor value/result while avoiding repeated prose in a large
+    static artifact. Definitions and formulas remain versioned in scoring.yaml."""
+    return [{"id": c["id"], "label": c["label"], "weight": c["weight"],
+             "score": c["score"], "coverage": c.get("coverage"),
+             "items": [{k: i.get(k) for k in ("id", "label", "metric", "actual", "expected",
+                                                    "score", "source", "fetched_at", "status")}
+                       for i in c.get("items", [])]}
+            for c in categories]
+
+
+def _compact_valuation(valuation):
+    return {k: valuation.get(k) for k in ("fair_low", "fair_base", "fair_high", "buy_zone",
+                                           "upside_pct", "valuation_label", "method_count") } | {
+        "methods": [{k: m.get(k) for k in ("name", "key", "fair", "upside")}
+                    for m in valuation.get("methods", [])]}
 
 
 def _block_bootstrap_spread(per_obs, cohorts, B=1000, seed=42):
@@ -216,7 +250,8 @@ def _first_exit(dates: list[str], entry: str, hold_days: int) -> str | None:
 
 def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
                 min_names: int = 20, settings=None, screened_only: bool = True,
-                warmup_days: int = 300, bootstrap: int = 1000) -> dict:
+                warmup_days: int = 300, bootstrap: int = 1000,
+                strategy=None, include_evidence: bool = True) -> dict:
     """Rolling, benchmark-relative backtest.
 
     Replays MANY overlapping cohorts: every ~`step_days` it takes an entry date,
@@ -232,6 +267,10 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
     spread comes with a **block-bootstrap 90% CI** (resampling whole cohorts).
     """
     settings = settings or {"margin_of_safety_pct": 15, "target_upside_pct": 30}
+    strategy = strategy or load_strategy()
+    # Explicit argument remains useful for tests/CLI; strategy is the default.
+    if screened_only is True:
+        screened_only = strategy.screened_only
     dates = _dates(store)
     if len(dates) < 2:
         return {"ok": False, "reason": f"insufficient history: {len(dates)} snapshot date(s)."}
@@ -259,6 +298,7 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
     raw = {"Buy": [], "Watch": [], "Avoid": []}
     cohorts = []
     per_obs = {}        # {cohort_entry: [(verdict, alpha)]} for the block bootstrap
+    observations = []
     for entry in entries:
         exit_ = _first_exit(dates, entry, hold_days)
         if not exit_:
@@ -267,6 +307,9 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
         asof = {}
         for sec in secs:
             m = _asof_metrics(store, sec["ticker"], entry)
+            if strategy.data_quality_mode == "strict":
+                m = {k: v for k, v in m.items()
+                     if v.get("source") not in strategy.strict_excluded_sources}
             if "price" not in m:
                 continue
             if screened_only and not passes_screen(m):
@@ -282,6 +325,25 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
                 continue
             rec = score_ticker(cfg, sec, m, med, settings)
             rows.append((rec["verdict"], (p1 / p0 - 1) * 100))
+            if include_evidence:
+                adjusted_entry = p0 * (1 + (strategy.slippage_bps + strategy.transaction_cost_bps) / 10000)
+                targets = targets_for(rec, m, strategy)
+                path = price_series(store, tkr, entry, max(strategy.horizons_days + (strategy.target_expiry_days,)))
+                outcome = evaluate_path(path, adjusted_entry, targets, strategy.horizons_days, entry)
+                q = quality_for(m)
+                observations.append({
+                    "observation_id": f"{entry}:{tkr}", "ticker": tkr,
+                    "company": sec.get("company"), "sector": sec.get("sector"),
+                    "entry_date": entry, "entry_price": round(adjusted_entry, 2),
+                    "raw_close": round(p0, 2), "verdict": rec["verdict"],
+                    "score": rec["score"], "coverage_pct": rec.get("coverage_pct"),
+                    "screening": screen_evidence(m), "weights": settings.get("weights") or
+                        {cid: c["weight"] for cid, c in cfg.categories.items()},
+                    "thresholds": cfg.verdict_bands, "vetoes": rec["vetoes"],
+                    "soft_gates": rec["soft_gates"], "categories": _compact_categories(rec["categories"]),
+                    "valuation": _compact_valuation(rec["valuation"]), "targets": targets,
+                    "data_quality": q, "outcome": outcome,
+                })
         if len(rows) < min_names:
             continue
         mkt = statistics.mean(r for _, r in rows)   # cross-sectional benchmark
@@ -324,9 +386,17 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
     ci = _block_bootstrap_spread(per_obs, entry_list, B=bootstrap) if bootstrap else None
     significant = bool(ci and ci[0] > 0)   # 90% CI lower bound above zero
 
-    return {"ok": True, "hold_days": hold_days, "step_days": step_days,
+    run_basis = {"strategy": strategy.to_dict(), "window": [dates[0], dates[-1]],
+                 "hold": hold_days, "step": step_days, "settings": settings}
+    run_id = "bt-" + hashlib.sha256(json.dumps(run_basis, sort_keys=True).encode()).hexdigest()[:12]
+    return {"ok": True, "run_id": run_id, "strategy": strategy.to_dict(),
+            "data_quality": {"warning": "Seeded universe uses today's survivors; inspect each observation grade.",
+                             "universe_bias": "current_top_n_survivorship"},
+            "hold_days": hold_days, "step_days": step_days,
             "cohorts": len(cohorts), "window": [dates[0], dates[-1]],
             "screened_only": screened_only, "warmup_days": warmup_days,
             "by_verdict": by_verdict, "buy_minus_avoid_pct": spread,
             "spread_ci90": list(ci) if ci else None, "significant": significant,
-            "monotonic": monotonic, "per_cohort": cohorts}
+            "monotonic": monotonic, "per_cohort": cohorts,
+            "target_summary": summarize_targets(observations, strategy.primary_target) if include_evidence else {},
+            "observations": observations if include_evidence else []}

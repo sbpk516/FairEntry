@@ -11,11 +11,13 @@ Seed a history first with:
 import argparse
 import json
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from fairentry.backtest.harness import run, run_rolling
+from fairentry.backtest.strategy import load_strategy
 from fairentry.config import load_config
 from fairentry.store import Store
 from fairentry.store.db import DEFAULT_DB
@@ -57,13 +59,47 @@ def _markdown_rolling(res):
         "Population = screener-passing names as-of (matches the live board). "
         "Absolute alpha is optimistic (survivorship: universe = today's survivors).",
     ]
+    ts = res.get("target_summary") or {}
+    if ts:
+        rate = "n/a" if ts.get("hit_rate_pct") is None else f"{ts['hit_rate_pct']:.1f}%"
+        lines += ["", "### Frozen target evidence", "",
+                  f"Primary model: **{ts.get('primary_model')}** · Buy observations: **{ts.get('buy_recommendations', 0)}** · "
+                  f"evaluable: **{ts.get('evaluable', 0)}** · reached: **{ts.get('reached', 0)}** · hit rate: **{rate}** · "
+                  f"median days: **{ts.get('median_days_to_target') or 'n/a'}**",
+                  "", "> Active or incomplete observations are not counted as failures. Targets are frozen at entry."]
     return "\n".join(lines) + "\n"
 
 
 def _write_json(res, path):
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(json.dumps(res, indent=1), encoding="utf-8")
+    payload = dict(res)
+    observations = payload.get("observations") or []
+    if observations:
+        evidence_dir = p.parent / "backtest-evidence"
+        evidence_dir.mkdir(parents=True, exist_ok=True)
+        by_ticker = {}
+        compact = []
+        for o in observations:
+            by_ticker.setdefault(o["ticker"], []).append(o)
+            primary = payload.get("strategy", {}).get("primary_target", "fundamental")
+            target = o.get("outcome", {}).get("targets", {}).get(primary, {})
+            compact.append({k: o.get(k) for k in ("observation_id", "ticker", "company", "sector",
+                                                   "entry_date", "entry_price", "verdict", "score") } | {
+                "quality_grade": o.get("data_quality", {}).get("grade"),
+                "target": target,
+                "horizons": o.get("outcome", {}).get("horizons", {}),
+                "max_gain_pct": o.get("outcome", {}).get("max_gain_pct"),
+                "max_drawdown_pct": o.get("outcome", {}).get("max_drawdown_pct"),
+                "detail_path": f"data/backtest-evidence/{o['ticker']}.json",
+            })
+        for ticker, rows in by_ticker.items():
+            (evidence_dir / f"{ticker}.json").write_text(
+                json.dumps({"ticker": ticker, "observations": rows}, separators=(",", ":"), ensure_ascii=False),
+                encoding="utf-8")
+        payload["observations"] = compact
+        payload["evidence_delivery"] = {"mode": "per_ticker_lazy", "directory": "data/backtest-evidence"}
+    p.write_text(json.dumps(payload, separators=(",", ":"), ensure_ascii=False), encoding="utf-8")
 
 
 def _print_signal_backtest(res):
@@ -125,11 +161,27 @@ def main():
     parser.add_argument("--json", action="store_true", help="also dump the full result JSON")
     parser.add_argument("--json-out", default=None, help="write the full result JSON to this path")
     parser.add_argument("--md-out", default=None, help="write a markdown report to this path")
+    parser.add_argument("--strategy", default=None, help="versioned backtest YAML (default config/backtest.yaml)")
+    parser.add_argument("--no-evidence", action="store_true", help="omit per-stock evidence for a small alpha-only run")
+    parser.add_argument("--target-model", choices=("fundamental", "technical", "blended"),
+                        help="primary frozen target model for this run")
+    parser.add_argument("--target-expiry", type=int, help="target expiry in calendar days")
+    parser.add_argument("--horizons", help="comma-separated forward horizons, e.g. 30,60,90,180,365")
+    parser.add_argument("--quality-mode", choices=("strict", "mostly_point_in_time", "experimental"),
+                        help="label/policy recorded in the versioned strategy")
     args = parser.parse_args()
 
     cfg = load_config()
+    strategy = load_strategy(args.strategy)
+    overrides = {}
+    if args.target_model: overrides["primary_target"] = args.target_model
+    if args.target_expiry: overrides["target_expiry_days"] = args.target_expiry
+    if args.horizons: overrides["horizons_days"] = tuple(int(x) for x in args.horizons.split(","))
+    if args.quality_mode: overrides["data_quality_mode"] = args.quality_mode
+    if overrides: strategy = replace(strategy, **overrides)
     with Store(args.db) as store:
-        res = run_rolling(store, cfg, hold_days=args.hold, step_days=args.step) if args.rolling else run(store, cfg)
+        res = run_rolling(store, cfg, hold_days=args.hold, step_days=args.step,
+                          strategy=strategy, include_evidence=not args.no_evidence) if args.rolling else run(store, cfg)
 
     if args.rolling:
         _print_rolling(res)

@@ -1,0 +1,26 @@
+version: 1
+name: fairentry_evidence_v1
+universe:
+  mode: seeded
+  screened_only: true
+execution:
+  entry: snapshot_close
+  target_hit: close
+  slippage_bps: 10
+  transaction_cost_bps: 5
+benchmark:
+  mode: cohort_mean
+horizons_days: [30, 60, 90, 180, 365]
+target:
+  models: [fundamental, technical, blended]
+  primary: fundamental
+  expiry_days: 365
+  minimum_upside_pct: 10
+  maximum_upside_pct: 100
+data_quality:
+  mode: mostly_point_in_time
+  strict_excluded_sources: [seed_const]
+tuning:
+  promotion: manual
+  challenger_holds_days: [20, 30, 60, 90, 180]
+

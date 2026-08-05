@@ -420,7 +420,8 @@ def seed(src_db: Path | str, dst_db: Path | str = None, tickers=None,
                 for fid, v in snap.items():
                     if use_sec_history and fid in {"ps_ratio", "pb_ratio", "pfcf_ratio"} and sec_per_date:
                         continue
-                    dst.set_metric(t, fid, v, "seed_hist", d)
+                    source = "seed_price_scaled" if fid in _PRICE_SCALED else "seed_price"
+                    dst.set_metric(t, fid, v, source, d)
             seeded += 1
             if verbose and seeded % 25 == 0:
                 note = f", {sec_seeded} with SEC history" if use_sec_history else ""

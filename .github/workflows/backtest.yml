@@ -34,6 +34,15 @@ on:
         description: "Days between cohort entries"
         type: string
         default: "7"
+      target_model:
+        description: "Primary target model"
+        type: choice
+        options: [fundamental, technical, blended]
+        default: fundamental
+      target_expiry:
+        description: "Target expiry in calendar days"
+        type: string
+        default: "365"
 
 permissions:
   contents: read
@@ -52,6 +61,8 @@ jobs:
       LIMIT: ${{ github.event.inputs.limit || '150' }}
       HOLD: ${{ github.event.inputs.hold || '30' }}
       STEP: ${{ github.event.inputs.step || '7' }}
+      TARGET_MODEL: ${{ github.event.inputs.target_model || 'fundamental' }}
+      TARGET_EXPIRY: ${{ github.event.inputs.target_expiry || '365' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -82,6 +93,7 @@ jobs:
         run: |
           python scripts/backtest.py --db data/backtest.db --rolling \
             --hold "$HOLD" --step "$STEP" \
+            --target-model "$TARGET_MODEL" --target-expiry "$TARGET_EXPIRY" \
             --md-out "$GITHUB_STEP_SUMMARY" --json-out web/data/backtest.json --json | tee backtest_result.txt
       - name: Tune weights (regime-robust, downside-protected) -> summary
         run: |
@@ -98,4 +110,6 @@ jobs:
             backtest_result.txt
             data/backtest.db
             web/data/backtest.json
+            web/data/backtest-evidence/
+            config/backtest.yaml
           retention-days: 14

@@ -1,88 +1,18 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FairEntry Backtest</title>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FairEntry Backtest Evidence</title>
 <style>
-  :root{
-    --bg:#eef1f6;--panel:#fff;--panel-2:#f4f6fb;--sunk:#e8ecf4;--ink:#171b23;--ink-soft:#4a5262;--ink-faint:#657083;
-    --line:#dde2ec;--line-soft:#e9edf4;--accent:#4a5ee0;--accent-soft:#e7eafd;
-    --buy:#1f9d55;--buy-bg:#e2f4e9;--buy-text:#0f6e3a;--watch:#b07d13;--watch-bg:#f7eed6;--watch-text:#835d10;
-    --avoid:#cf3a54;--avoid-bg:#fbe4e8;--avoid-text:#b81d39;--mono:ui-monospace,"Cascadia Code","JetBrains Mono","SF Mono",Menlo,Consolas,monospace;
-    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  }
-  @media(prefers-color-scheme:dark){:root{--bg:#0d1016;--panel:#161b23;--panel-2:#1b212b;--sunk:#11151c;--ink:#e7ebf2;--ink-soft:#b3bccb;--ink-faint:#8b95a8;--line:#28303c;--line-soft:#1f2630;--accent:#8496ff;--accent-soft:#1c2440;--buy:#43c47a;--buy-bg:#11291b;--buy-text:#5ad78d;--watch:#e0ad42;--watch-bg:#2a2410;--watch-text:#eeba55;--avoid:#eb6a80;--avoid-bg:#2c1620;--avoid-text:#f38ba0}}
-  *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px}a{color:inherit;text-decoration:none}
-  .topbar{position:sticky;top:0;z-index:10;background:var(--panel);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:12px 20px;flex-wrap:wrap}
-  .logo{font-weight:800;font-size:19px}.logo b{color:var(--accent)}.tag{font-family:var(--mono);font-size:11px;color:var(--ink-faint)}.spacer{flex:1}
-  .btn{border:1px solid var(--line);background:var(--panel);color:var(--ink-soft);border-radius:9px;padding:8px 12px;font-size:13px;font-weight:700}
-  .wrap{padding:18px 20px 56px;max-width:1240px;margin:0 auto}.hero{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;margin-bottom:16px}
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}.body{padding:16px}.head{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}.head h2{margin:0;font-size:16px}
-  .status{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:800}.status.good{background:var(--buy-bg);color:var(--buy-text)}.status.warn{background:var(--watch-bg);color:var(--watch-text)}
-  .title{font-size:28px;font-weight:850;letter-spacing:-.02em;margin:0 0 8px}.sub{color:var(--ink-soft);line-height:1.55;margin:0}.meta{font-family:var(--mono);color:var(--ink-faint);font-size:12px;margin-top:12px}
-  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}.stat{background:var(--panel-2);border:1px solid var(--line-soft);border-radius:10px;padding:12px}.k{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-faint);font-weight:800}.v{font-family:var(--mono);font-size:23px;font-weight:850;margin-top:3px}.pos{color:var(--buy-text)}.neg{color:var(--avoid-text)}
-  table{width:100%;border-collapse:collapse}th,td{padding:10px 9px;border-bottom:1px solid var(--line-soft)}th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-faint)}td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
-  .pill{display:inline-block;border-radius:999px;padding:3px 8px;font-size:11px;font-weight:850}.Buy{background:var(--buy-bg);color:var(--buy-text)}.Watch{background:var(--watch-bg);color:var(--watch-text)}.Avoid{background:var(--avoid-bg);color:var(--avoid-text)}
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.note{color:var(--ink-soft);line-height:1.55;font-size:13px}.bar{height:7px;background:var(--sunk);border-radius:4px;overflow:hidden}.bar i{display:block;height:100%;background:var(--accent)}
-  .empty{padding:36px;text-align:center;color:var(--ink-faint);line-height:1.6}.small{font-size:12px;color:var(--ink-faint);font-family:var(--mono)}
-  @media(max-width:860px){.hero,.grid{grid-template-columns:1fr}.stats{grid-template-columns:1fr}.tablewrap{overflow-x:auto}table{min-width:720px}}
-</style>
-</head>
-<body>
-<div class="topbar">
-  <a href="index.html" class="logo">Fair<b>Entry</b></a><span class="tag">historical backtest</span>
-  <span class="spacer"></span>
-  <a class="btn" href="index.html">Board</a>
-  <a class="btn" href="portfolio.html">Portfolio</a>
-</div>
-<main class="wrap" id="app"><section class="panel"><div class="empty">Loading backtest report...</div></section></main>
+:root{--bg:#eef1f6;--panel:#fff;--ink:#171b23;--soft:#596276;--line:#dde2ec;--accent:#4a5ee0;--good:#177a45;--warn:#95670b;--bad:#b92943;--sunk:#f4f6fb;--mono:ui-monospace,Consolas,monospace}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px system-ui,-apple-system,"Segoe UI",sans-serif}a{color:inherit;text-decoration:none}.top{position:sticky;top:0;z-index:3;display:flex;gap:14px;align-items:center;padding:12px 20px;background:var(--panel);border-bottom:1px solid var(--line)}.logo{font-size:19px;font-weight:850}.logo b{color:var(--accent)}.spacer{flex:1}.btn,select,input{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:8px 10px}.wrap{max-width:1400px;margin:auto;padding:18px 20px 60px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-bottom:16px;overflow:hidden}.body{padding:16px}.head{padding:13px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}.head h2{margin:0;font-size:16px}.hero{display:grid;grid-template-columns:1.4fr .6fr;gap:16px}.title{font-size:28px;margin:7px 0}.sub,.note{color:var(--soft);line-height:1.55}.meta{font:12px var(--mono);color:var(--soft)}.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-top:15px}.stat{padding:11px;background:var(--sunk);border-radius:9px}.k{font-size:10px;text-transform:uppercase;color:var(--soft);font-weight:800}.v{font:800 21px var(--mono);margin-top:3px}.good{color:var(--good)}.bad{color:var(--bad)}.warn{color:var(--warn)}.filters{display:flex;gap:8px;flex-wrap:wrap}.filters input{min-width:180px}.tablewrap{overflow:auto;max-height:680px}table{width:100%;border-collapse:collapse;min-width:1050px}th,td{padding:9px;border-bottom:1px solid #edf0f5;text-align:left;white-space:nowrap}th{position:sticky;top:0;background:var(--panel);font-size:10px;text-transform:uppercase;color:var(--soft)}.num{text-align:right;font-family:var(--mono)}.pill{padding:3px 8px;border-radius:20px;font-weight:800;font-size:11px}.Buy,.reached,.strict{background:#e2f4e9;color:var(--good)}.Watch,.active,.mostly_point_in_time{background:#f7eed6;color:var(--warn)}.Avoid,.expired,.experimental{background:#fbe4e8;color:var(--bad)}tr[data-id]{cursor:pointer}tr[data-id]:hover{background:var(--sunk)}dialog{width:min(1050px,94vw);max-height:90vh;border:0;border-radius:14px;padding:0;color:var(--ink);background:var(--panel);box-shadow:0 18px 60px #0005}dialog::backdrop{background:#10141d99}.dlghead{position:sticky;top:0;background:var(--panel);padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;z-index:1}.dlgbody{padding:18px;overflow:auto}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.card{border:1px solid var(--line);border-radius:10px;padding:12px}.card h3{margin:0 0 10px;font-size:14px}details{border-top:1px solid var(--line);padding:10px 0}summary{font-weight:750;cursor:pointer}.path{font:11px var(--mono);white-space:pre-wrap;color:var(--soft)}.empty{text-align:center;padding:38px;color:var(--soft)}@media(max-width:900px){.hero,.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}}
+</style></head><body>
+<nav class="top"><a href="index.html" class="logo">Fair<b>Entry</b></a><span class="meta">backtest evidence</span><span class="spacer"></span><a class="btn" href="data/backtest.json" download>Download JSON</a><a class="btn" href="index.html">Board</a></nav>
+<main class="wrap" id="app"><section class="panel"><div class="empty">Loading evidence…</div></section></main>
+<dialog id="detail"><div class="dlghead"><strong id="dt"></strong><span class="spacer"></span><button class="btn" onclick="detail.close()">Close</button></div><div class="dlgbody" id="db"></div></dialog>
 <script>
-(function(){
-"use strict";
-var $=function(s,r){return (r||document).querySelector(s);};
-function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
-function pct(x){return x==null||!isFinite(x)?"-":(x>=0?"+":"")+Number(x).toFixed(2)+"%";}
-function num(x){return x==null?"-":Number(x).toLocaleString();}
-function row(v,d){return '<tr><td><span class="pill '+v+'">'+v+'</span></td><td class="num">'+num(d.n)+'</td><td class="num '+(d.mean_alpha_pct>=0?'pos':'neg')+'">'+pct(d.mean_alpha_pct)+'</td><td class="num">'+pct(d.median_alpha_pct)+'</td><td class="num">'+Number(d.hit_rate_pct).toFixed(1)+'%</td><td class="num">'+pct(d.mean_raw_return_pct)+'</td></tr>';}
-function cohortRow(c){return '<tr><td>'+esc(c.entry)+'</td><td>'+esc(c.exit)+'</td><td class="num">'+num(c.n)+'</td><td class="num">'+num(c.buy_n)+'</td><td class="num '+(c.mkt_return_pct>=0?'pos':'neg')+'">'+pct(c.mkt_return_pct)+'</td><td class="num '+(c.buy_alpha_pct>=0?'pos':'neg')+'">'+pct(c.buy_alpha_pct)+'</td></tr>';}
-function render(b){
-  if(!b.ok){$("#app").innerHTML='<section class="panel"><div class="empty">Backtest not ready: '+esc(b.reason||"unknown")+'</div></section>';return;}
-  var buy=b.by_verdict.Buy||{}, watch=b.by_verdict.Watch||{}, avoid=b.by_verdict.Avoid||{};
-  var healthy=b.monotonic && (b.buy_minus_avoid_pct||0)>0;
-  var latest=(b.per_cohort||[]).slice(-12);
-  $("#app").innerHTML=
-    '<section class="hero">'+
-      '<div class="panel"><div class="body">'+
-        '<span class="status '+(healthy?'good':'warn')+'">'+(healthy?'Validated':'Needs review')+'</span>'+
-        '<h1 class="title">Buy beat Avoid, but the ladder is not perfect</h1>'+
-        '<p class="sub">This rolling replay uses the generated SEC + yfinance history. Alpha means each stock return minus the average stock in that same cohort, so it measures stock selection rather than market direction.</p>'+
-        '<div class="meta">'+esc(b.window[0])+' -> '+esc(b.window[1])+' · '+num(b.cohorts)+' cohorts · hold '+esc(b.hold_days)+'d / step '+esc(b.step_days)+'d</div>'+
-        '<div class="stats">'+
-          '<div class="stat"><div class="k">Buy alpha</div><div class="v pos">'+pct(buy.mean_alpha_pct)+'</div></div>'+
-          '<div class="stat"><div class="k">Buy - Avoid</div><div class="v '+(b.buy_minus_avoid_pct>=0?'pos':'neg')+'">'+pct(b.buy_minus_avoid_pct)+'</div></div>'+
-          '<div class="stat"><div class="k">Monotonic</div><div class="v">'+esc(String(b.monotonic))+'</div></div>'+
-        '</div>'+
-      '</div></div>'+
-      '<div class="panel"><div class="head"><h2>Read This First</h2></div><div class="body note">'+
-        '<p><b>Good:</b> Buy generated positive alpha and a better hit-rate than Avoid.</p>'+
-        '<p><b>Caution:</b> Avoid also beat Watch in this run, so the score ladder is not fully clean. Treat this as evidence to refine the model, not proof.</p>'+
-        '<p class="small">Free-data limitation: analyst targets, short float, beta, and news history are not point-in-time here.</p>'+
-      '</div></div>'+
-    '</section>'+
-    '<section class="grid">'+
-      '<div class="panel"><div class="head"><h2>Verdict Buckets</h2></div><div class="tablewrap"><table><thead><tr><th>Verdict</th><th class="num">N</th><th class="num">Mean alpha</th><th class="num">Median</th><th class="num">Hit-rate</th><th class="num">Raw return</th></tr></thead><tbody>'+
-        row("Buy",buy)+row("Watch",watch)+row("Avoid",avoid)+
-      '</tbody></table></div></div>'+
-      '<div class="panel"><div class="head"><h2>Latest Cohorts</h2></div><div class="tablewrap"><table><thead><tr><th>Entry</th><th>Exit</th><th class="num">Names</th><th class="num">Buys</th><th class="num">Market</th><th class="num">Buy alpha</th></tr></thead><tbody>'+
-        latest.map(cohortRow).join("")+
-      '</tbody></table></div></div>'+
-    '</section>';
-}
-fetch("data/backtest.json",{cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("missing");return r.json();}).then(render).catch(function(){
-  $("#app").innerHTML='<section class="panel"><div class="empty">No UI backtest report found yet.<br><span class="small">Run: python scripts\\seed_backtest.py --sec-history --limit 150<br>then: python scripts\\backtest.py --db data\\backtest.db --rolling --hold 30 --step 7 --json-out web\\data\\backtest.json</span></div></section>';
-});
-})();
-</script>
-</body>
-</html>
+"use strict";let DATA,ROWS=[];const $=s=>document.querySelector(s),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])),pct=x=>x==null?"—":`${x>=0?"+":""}${Number(x).toFixed(2)}%`,money=x=>x==null?"—":"$"+Number(x).toFixed(2),pill=x=>`<span class="pill ${esc(x)}">${esc(x)}</span>`;
+function overview(b){let t=b.target_summary||{},buy=b.by_verdict.Buy||{};return `<section class="hero"><div class="panel"><div class="body"><div class="meta">RUN ${esc(b.run_id)} · STRATEGY ${esc(b.strategy?.strategy_id)}</div><h1 class="title">Recommendation evidence, from decision to outcome</h1><p class="sub">Frozen targets, time-to-target, horizon returns and every input used. Active targets are not counted as failures.</p><div class="stats"><div class="stat"><div class="k">Buy alpha</div><div class="v ${buy.mean_alpha_pct>=0?'good':'bad'}">${pct(buy.mean_alpha_pct)}</div></div><div class="stat"><div class="k">Target hit rate</div><div class="v">${t.hit_rate_pct==null?'—':t.hit_rate_pct+'%'}</div></div><div class="stat"><div class="k">Reached</div><div class="v good">${t.reached||0}</div></div><div class="stat"><div class="k">Evaluable</div><div class="v">${t.evaluable||0}</div></div><div class="stat"><div class="k">Median days</div><div class="v">${t.median_days_to_target??'—'}</div></div></div></div></div><div class="panel"><div class="body note"><b>Trust boundary</b><p>${esc(b.data_quality?.warning)}</p><p>Primary target: <b>${esc(t.primary_model)}</b><br>Universe: current top-N survivors<br>Target detection: sampled weekly close</p></div></div></section>`}
+function controls(){return `<section class="panel"><div class="head"><h2>Historical recommendations</h2><span class="spacer"></span><span class="meta" id="count"></span></div><div class="body filters"><input id="q" placeholder="Ticker or company"><select id="v"><option value="">All verdicts</option><option>Buy</option><option>Watch</option><option>Avoid</option></select><select id="s"><option value="">All target states</option><option>reached</option><option>expired</option><option>active</option></select><select id="g"><option value="">All quality grades</option><option>strict</option><option>mostly_point_in_time</option><option>experimental</option></select></div><div class="tablewrap"><table><thead><tr><th>Entry</th><th>Ticker</th><th>Verdict</th><th class="num">Score</th><th class="num">Entry</th><th class="num">Target</th><th>Status</th><th class="num">Days</th><th class="num">30d</th><th class="num">60d</th><th class="num">90d</th><th>Quality</th></tr></thead><tbody id="rows"></tbody></table></div></section>`}
+function target(o){return o.target||o.outcome?.targets?.[DATA.strategy.primary_target]||{}}
+function draw(){let q=$('#q').value.toLowerCase(),v=$('#v').value,s=$('#s').value,g=$('#g').value;ROWS=(DATA.observations||[]).filter(o=>(!q||(o.ticker+' '+(o.company||'')).toLowerCase().includes(q))&&(!v||o.verdict===v)&&(!s||target(o).status===s)&&(!g||(o.quality_grade||o.data_quality?.grade)===g));$('#count').textContent=`${ROWS.length.toLocaleString()} observations`;$('#rows').innerHTML=ROWS.slice(0,1000).map((o,i)=>{let t=target(o),h=o.horizons||o.outcome?.horizons||{};return `<tr data-id="${esc(o.observation_id)}"><td>${o.entry_date}</td><td><b>${esc(o.ticker)}</b></td><td>${pill(o.verdict)}</td><td class="num">${o.score}</td><td class="num">${money(o.entry_price)}</td><td class="num">${money(t.price)}</td><td>${pill(t.status||'unavailable')}</td><td class="num">${t.days_to_target??'—'}</td><td class="num">${pct(h['30']?.return_pct)}</td><td class="num">${pct(h['60']?.return_pct)}</td><td class="num">${pct(h['90']?.return_pct)}</td><td>${pill(o.quality_grade||o.data_quality?.grade)}</td></tr>`}).join('');document.querySelectorAll('tr[data-id]').forEach(r=>r.onclick=async()=>{let summary=(DATA.observations||[]).find(o=>o.observation_id===r.dataset.id);if(summary.detail_path){$('#dt').textContent='Loading evidence…';$('#db').innerHTML='<div class="empty">Loading stock evidence…</div>';detail.showModal();let pack=await fetch(summary.detail_path,{cache:'no-store'}).then(x=>x.json());show(pack.observations.find(o=>o.observation_id===summary.observation_id),true)}else show(summary)})}
+function show(o,alreadyOpen){let targets=Object.entries(o.outcome?.targets||{}).map(([k,t])=>`<tr><td>${esc(k)}</td><td>${money(t.price)}</td><td>${pct(t.upside_pct)}</td><td>${pill(t.status)}</td><td>${t.hit_date||'—'}</td><td class="num">${t.days_to_target??'—'}</td></tr>`).join(''),h=Object.entries(o.outcome?.horizons||{}).map(([k,x])=>`<tr><td>${k}d</td><td>${x.date||x.status}</td><td>${money(x.price)}</td><td class="num">${pct(x.return_pct)}</td></tr>`).join(''),cats=(o.categories||[]).map(c=>`<details><summary>${esc(c.label)} — ${c.score??'unknown'} (weight ${c.weight})</summary>${(c.items||[]).map(i=>`<p><b>${esc(i.label)}</b>: ${esc(i.actual)} · score ${i.score??'unknown'} · ${esc(i.status)}<br><span class="meta">${esc(i.source)} · ${esc(i.fetched_at)}</span></p>`).join('')}</details>`).join(''),fields=(o.data_quality?.fields||[]).map(f=>`<tr><td>${esc(f.field)}</td><td>${esc(f.value)}</td><td>${esc(f.source)}</td><td>${esc(f.effective_at)}</td><td>${pill(f.quality)}</td></tr>`).join('');$('#dt').textContent=`${o.ticker} · ${o.entry_date} · ${o.verdict}`;$('#db').innerHTML=`<div class="grid"><div class="card"><h3>Frozen decision</h3><p>Entry ${money(o.entry_price)} · score ${o.score} · coverage ${pct(o.coverage_pct)}<br>Max gain ${pct(o.outcome?.max_gain_pct)} · max drawdown ${pct(o.outcome?.max_drawdown_pct)}</p><p class="meta">Weights ${esc(JSON.stringify(o.weights))}</p></div><div class="card"><h3>Screening</h3>${(o.screening||[]).map(s=>`<p><b>${esc(s.id)}</b>: ${s.passed?'passed':'failed'}<br><span class="meta">${esc(JSON.stringify(s.detail))}</span></p>`).join('')}</div></div><div class="card"><h3>Targets</h3><table><tr><th>Model</th><th>Price</th><th>Upside</th><th>Status</th><th>Hit date</th><th>Days</th></tr>${targets}</table></div><div class="card"><h3>Forward outcomes</h3><table><tr><th>Horizon</th><th>Date</th><th>Price</th><th>Return</th></tr>${h}</table></div><div class="card"><h3>Scoring factors, gates and vetoes</h3><p><b>Gates:</b> ${esc(JSON.stringify(o.soft_gates))}<br><b>Vetoes:</b> ${esc(JSON.stringify(o.vetoes))}</p>${cats}</div><details><summary>Raw point-in-time inputs and provenance</summary><div class="tablewrap"><table><tr><th>Field</th><th>Value</th><th>Source</th><th>Effective</th><th>Quality</th></tr>${fields}</table></div></details><details><summary>Price path</summary><div class="path">${esc(JSON.stringify(o.outcome?.path||[],null,2))}</div></details>`;if(!alreadyOpen)detail.showModal()}
+fetch('data/backtest.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error();return r.json()}).then(b=>{DATA=b;$('#app').innerHTML=overview(b)+controls();['q','v','s','g'].forEach(id=>$('#'+id).oninput=draw);draw()}).catch(()=>$('#app').innerHTML='<section class="panel"><div class="empty">No evidence artifact found. Run the seeded rolling backtest to generate web/data/backtest.json.</div></section>');
+</script></body></html>
