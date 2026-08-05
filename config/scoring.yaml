@@ -93,7 +93,19 @@ soft_gates:
 
 # Presets — bias the weights per strategy (user can pick / edit in the UI).
 presets:
-  conservative_deep_value: {survival: 22, valuation: 20, risk: 18, quality: 16, growth: 10, confirmation: 8, catalysts: 6}
-  aggressive_deep_value:   {catalysts: 14, confirmation: 16, valuation: 18, survival: 16, quality: 14, growth: 12, risk: 10}
-  quality_growth_entry:    {growth: 22, quality: 20, valuation: 16, confirmation: 12, survival: 14, catalysts: 8, risk: 8}
-  patient_entry:           {valuation: 22, confirmation: 16, survival: 18, quality: 14, risk: 12, growth: 10, catalysts: 8}
+  balanced_opportunity: {quality: 18, survival: 14, growth: 18, valuation: 16, confirmation: 14, catalysts: 10, risk: 10}
+  quality_compounder:   {quality: 20, survival: 9,  growth: 24, valuation: 12, confirmation: 16, catalysts: 12, risk: 7}
+  aggressive_growth:    {quality: 20, survival: 6,  growth: 28, valuation: 8,  confirmation: 18, catalysts: 14, risk: 6}
+  recovery_value:       {quality: 12, survival: 12, growth: 12, valuation: 22, confirmation: 16, catalysts: 16, risk: 10}
+
+# Human-facing guidance for the Tune Weights picker. The weights above remain
+# plain numeric maps so the scoring engine and backtest tuner stay deterministic.
+preset_profiles:
+  balanced_opportunity:
+    {label: "Balanced Opportunity", risk: "Moderate", horizon: "1-2 years", description: "Balanced growth, value and price confirmation. Best general-purpose starting point."}
+  quality_compounder:
+    {label: "Quality Compounder", risk: "Moderate-high", horizon: "1-3 years", description: "Prioritizes durable growth and quality with enough market confirmation to avoid weak trends."}
+  aggressive_growth:
+    {label: "Aggressive Growth", risk: "High", horizon: "1-2 years", description: "Chases faster growth and momentum; accepts expensive valuations and larger drawdowns."}
+  recovery_value:
+    {label: "Recovery Value", risk: "High", horizon: "1-3 years", description: "Looks for cheap, improving businesses with catalysts and confirmation; turnaround failure risk is higher."}

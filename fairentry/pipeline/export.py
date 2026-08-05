@@ -652,6 +652,7 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
                      "ai_review": ai_review,
                      "wma_alerts": proximity_alerts,
                      "wma_alert_threshold_pct": threshold,
+                     "preset_profiles": cfg.scoring.get("preset_profiles", {}),
                      "presets": cfg.scoring.get("presets", {}),
                      "default_weights": {cid: c["weight"] for cid, c in cfg.categories.items()},
                      # everything the UI needs to reproduce the backend verdict

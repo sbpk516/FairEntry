@@ -27,5 +27,5 @@ settings:
 
 # Which preset each strategy loads by default.
 strategy_presets:
-  deep_value: conservative_deep_value
-  quality_growth: quality_growth_entry
+  deep_value: recovery_value
+  quality_growth: quality_compounder

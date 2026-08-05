@@ -454,6 +454,7 @@ var DEFAULTS={ weights:{quality:16,survival:18,growth:14,valuation:18,confirmati
   buyBand:72, watchBand:50, mos:15, target:30 };
 var S=JSON.parse(JSON.stringify(DEFAULTS));
 var PRESETS={};                       // filled from board.json meta
+var PRESET_PROFILES={};               // readable labels, risk and purpose
 var SKEY='fairentry_settings_v1';
 var PORTKEY='fairentry_dummy_portfolio_v1';
 function saveS(){ try{ localStorage.setItem(SKEY, JSON.stringify(S)); }catch(e){} }
@@ -1237,10 +1238,14 @@ function slider(key,label,min,max,val,def,impact){ return '<div class="setgrp"><
   '<input type="range" min="'+min+'" max="'+max+'" value="'+val+'" data-set="'+key+'"><div class="impact">'+impact+'</div></div>'; }
 function renderSettings(){
   var body='<div class="changed" id="changed-note"></div>';
-  body+='<div class="sub-h">Preset</div>';
+  body+='<div class="sub-h">Analyst profile</div>';
   body+='<select id="preset-pick" style="width:100%;font-size:13px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:8px 11px;margin-bottom:14px">'+
-    '<option value="">" apply a preset "</option><option value="__default">Recommended defaults</option>'+
-    Object.keys(PRESETS).map(function(p){ return '<option value="'+p+'">'+p.replace(/_/g,' ')+'</option>'; }).join('')+'</select>';
+    '<option value="">Choose an analyst profile</option><option value="__default"'+(S.activePreset==='__default'?' selected':'')+'>Strategy recommended</option>'+
+    Object.keys(PRESETS).map(function(p){ var info=PRESET_PROFILES[p]||{}; return '<option value="'+p+'"'+(S.activePreset===p?' selected':'')+'>'+esc(info.label||p.replace(/_/g,' '))+'</option>'; }).join('')+'</select>';
+  if(S.activePreset&&S.activePreset!=='__default'){
+    var pi=PRESET_PROFILES[S.activePreset]||{};
+    body+='<div class="impact" style="margin:-5px 0 16px;padding:10px;border:1px solid var(--line-soft);border-radius:8px"><b>'+esc(pi.label||S.activePreset)+'</b> - Risk: '+esc(pi.risk||'n/a')+' - Horizon: '+esc(pi.horizon||'n/a')+'<br>'+esc(pi.description||'')+'</div>';
+  }
   var bl=baseline();   // the mode's recommended model (backend preset + bands)
   body+='<div class="sub-h">Category weights</div>';
   CATS.forEach(function(c){ body+=slider('w.'+c[0], c[1], 0, 30, S.weights[c[0]], bl.weights[c[0]], 'How much '+c[1]+' moves the base score.'); });
@@ -1334,7 +1339,7 @@ $('#themebtn').addEventListener('click',function(){ var r=document.documentEleme
   r.setAttribute('data-theme', dark?'light':'dark'); });
 
 $('#s-body').addEventListener('input',function(e){ var inp=e.target.closest('[data-set]'); if(!inp)return;
-  var key=inp.dataset.set, val=+inp.value; if(key.indexOf('w.')===0){ S.weights[key.slice(2)]=val; S.userTuned=true; } else { S[key]=val; if(key==='buyBand'||key==='watchBand') S.userBands=true; }
+  var key=inp.dataset.set, val=+inp.value; S.activePreset=null; if(key.indexOf('w.')===0){ S.weights[key.slice(2)]=val; S.userTuned=true; } else { S[key]=val; if(key==='buyBand'||key==='watchBand') S.userBands=true; }
   var cur=$('#cur-'+key.replace('.','\\.')); var curEl=document.getElementById('cur-'+key); if(curEl)curEl.textContent=val;
   updateChanged(); saveS(); renderBoard(); if($('#detail').classList.contains('on')){ /* keep detail in sync */ var t=$('#d-title').textContent.trim().split(' ')[0]; openDetail(t); }
 });
@@ -1342,7 +1347,7 @@ $('#s-body').addEventListener('change',function(e){ if(e.target.id!=='preset-pic
   if(v==='__default'){ S.weights=Object.assign(JSON.parse(JSON.stringify(DEFAULTS.weights)), META.default_weights||{}); }
   else if(v&&PRESETS[v]){ S.weights=Object.assign(JSON.parse(JSON.stringify(DEFAULTS.weights)), PRESETS[v]); }
   else return;
-  S.userTuned=true;
+  S.userTuned=true; S.activePreset=v;
   saveS(); renderSettings(); renderBoard();
   if($('#detail').classList.contains('on')){ var t=$('#d-title').textContent.trim().split(' ')[0]; openDetail(t); } });
 $('#s-body').addEventListener('click',function(e){ if(e.target.id==='resetbtn'){ S=JSON.parse(JSON.stringify(DEFAULTS));
@@ -1354,7 +1359,7 @@ restoreS();          // restore the user's saved weights/thresholds
 renderSettings();
 fetch('data/board.json', {cache:'no-store'}).then(function(r){ return r.json(); }).then(function(b){
   STOCKS = (b.stocks || []).map(function(s){ if(s.categories){ s.cats=s.categories; } return s; });
-  var m=b.meta||{}; META=m; PRESETS=m.presets||{};
+  var m=b.meta||{}; META=m; PRESETS=m.presets||{}; PRESET_PROFILES=m.preset_profiles||{};
   syncModelToMode();          // apply the mode's backend preset weights + bands
   renderSettings();           // now includes preset options
   var secs=Array.from(new Set(STOCKS.map(function(s){return s.sector;}))).sort();
