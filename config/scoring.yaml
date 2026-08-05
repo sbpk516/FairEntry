@@ -87,6 +87,8 @@ vetoes:
 # Soft gates -> cap Buy to Watch.
 soft_gates:
   - {id: survival_floor,   when: "category_survival < 30",  reason: "Survival score below floor"}
+  - {id: survival_coverage, when: "coverage_survival < 60", reason: "Survival evidence coverage below 60%"}
+  - {id: overall_coverage, when: "coverage_pct < 70", reason: "Overall evidence coverage below 70%"}
   - {id: upside_below_target, when: "upside_pct < target_upside", reason: "Upside below target"}
   - {id: no_confirmation,  when: "category_confirmation < 35", reason: "No market confirmation"}
   - {id: expensive,        when: "valuation_label == 'expensive'", reason: "Valuation is expensive"}

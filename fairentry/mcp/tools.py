@@ -33,7 +33,7 @@ TOOLS: list[dict[str, Any]] = [
         "name": "find_stocks",
         "description": "Filter FairEntry stocks by verdict, sector, score, upside, and context-only demand tone.",
         "inputSchema": _schema({
-            "verdict": {"type": "string", "enum": ["Buy", "Watch", "Avoid"]},
+            "verdict": {"type": "string", "enum": ["Quant Buy", "Buy", "Watch", "Avoid"]},
             "sector": {"type": "string"},
             "min_score": {"type": "number"},
             "min_upside": {"type": "number"},

@@ -60,6 +60,22 @@ def test_find_stocks_filters_by_verdict_and_demand():
     assert result["stocks"][0]["ticker"] == "BBB"
 
 
+def test_buy_filter_includes_quant_buy_for_backward_compatibility():
+    board = sample_board()
+    board["stocks"][0]["verdict"] = "Quant Buy"
+    result = data.find_stocks(board, verdict="Buy")
+    assert result["stocks"][0]["ticker"] == "AAA"
+    assert data.board_summary(board)["buy_count"] == 1
+
+
+def test_mcp_prefers_user_facing_quant_buy_but_keeps_model_verdict():
+    board = sample_board()
+    board["stocks"][0]["display_verdict"] = "Quant Buy"
+    brief = data.get_stock(board, "AAA")["brief"]
+    assert brief["verdict"] == "Quant Buy"
+    assert brief["model_verdict"] == "Buy"
+
+
 def test_get_stock_unknown_ticker_raises():
     with pytest.raises(data.FairEntryDataError):
         data.get_stock(sample_board(), "NOPE")

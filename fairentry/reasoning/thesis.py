@@ -10,7 +10,7 @@ from . import cache
 from .provider import get_provider
 from ..adapters.finnhub import fetch_news
 
-PROMPT_VERSION = "v5"   # v5 standardizes management/catalyst evidence rows
+PROMPT_VERSION = "v6"   # v6 combines breakout evidence and source-dated thesis drivers
 
 _SYS = ("You are a disciplined value+growth equity analyst. Think like a careful "
         "investor, not a hype machine. Reply with a single JSON object only, no prose.")
@@ -37,6 +37,16 @@ _BREAKOUT_EVIDENCE_SCHEMA = (
     "(specific metric, event, or headline supplied in this prompt; never invent evidence), "
     "source (metric name or supplied headline source), date (supplied date or '')}), ")
 
+_DRIVER_SCHEMA = (
+    "thesis_drivers (array of up to 5 objects: {name, category(one of business_model/"
+    "growth/unit_economics/capital_allocation/catalyst), evidence, source, as_of_date}), "
+    "leading_indicators (array of up to 5 objects: {name, value, direction(one of improving/"
+    "stable/deteriorating/unknown), source, as_of_date}), "
+    "thesis_risks (array of up to 5 objects: {name, severity(one of low/medium/high/critical), "
+    "evidence, source, as_of_date}), "
+    "capital_allocation (array of up to 3 objects: {action, value, source, as_of_date}), "
+    "Only include an item when the supplied facts/news support it; never invent a source or date. ")
+
 _RECOVERY_SCHEMA = (
     "Return JSON with exactly these keys: "
     "recovery_score (integer 0-100, higher = more credible recovery), "
@@ -46,7 +56,7 @@ _RECOVERY_SCHEMA = (
     "resolved/worsening), severity(low/medium/high/critical), evidence(short, cite a metric)}), "
     "key_catalyst (short string or ''), expected_timeframe (short string), "
     "kill_switch (short string: what would prove the thesis wrong), "
-    "summary (<=40 words), " + _BREAKOUT_EVIDENCE_SCHEMA + _WATCHLIST_SCHEMA)
+    "summary (<=40 words), " + _BREAKOUT_EVIDENCE_SCHEMA + _DRIVER_SCHEMA + _WATCHLIST_SCHEMA)
 
 _GROWTH_SCHEMA = (
     "Return JSON with exactly these keys: "
@@ -55,7 +65,7 @@ _GROWTH_SCHEMA = (
     "durability (one of: durable, moderate, fragile, unknown), "
     "entry_view (one of: buy_now, starter, wait_for_pullback, wait_for_confirmation, avoid), "
     "summary (<=40 words), kill_switch (short string), "
-    + _BREAKOUT_EVIDENCE_SCHEMA + _WATCHLIST_SCHEMA)
+    + _BREAKOUT_EVIDENCE_SCHEMA + _DRIVER_SCHEMA + _WATCHLIST_SCHEMA)
 
 
 def _facts(sec, metrics):

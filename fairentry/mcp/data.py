@@ -69,7 +69,8 @@ def _brief_stock(stock: dict[str, Any]) -> dict[str, Any]:
         "company": stock.get("company"),
         "sector": stock.get("sector"),
         "country": stock.get("country"),
-        "verdict": stock.get("verdict"),
+        "verdict": stock.get("display_verdict") or stock.get("verdict"),
+        "model_verdict": stock.get("model_verdict") or stock.get("verdict"),
         "score": stock.get("preliminary", stock.get("score")),
         "price": stock.get("price"),
         "fair_value": valuation.get("base"),
@@ -87,18 +88,20 @@ def _brief_stock(stock: dict[str, Any]) -> dict[str, Any]:
 
 def board_summary(board: dict[str, Any]) -> dict[str, Any]:
     ss = stocks(board)
-    verdicts = Counter(str(s.get("verdict") or "Unknown") for s in ss)
+    verdicts = Counter(str(s.get("display_verdict") or s.get("verdict") or "Unknown") for s in ss)
+    model_verdicts = Counter(str(s.get("model_verdict") or s.get("verdict") or "Unknown") for s in ss)
     sectors = Counter(str(s.get("sector") or "Unknown") for s in ss)
     strategies = Counter(
         str(strategy)
         for s in ss
         for strategy in (s.get("strategy") or [])
     )
-    buys = [s for s in ss if s.get("verdict") == "Buy"]
+    buys = [s for s in ss if s.get("verdict") in {"Buy", "Quant Buy"}]
     return {
         "generated_at": (board.get("meta") or {}).get("generated_at"),
         "stock_count": len(ss),
         "verdicts": dict(verdicts),
+        "model_verdicts": dict(model_verdicts),
         "sectors": dict(sectors),
         "strategies": dict(strategies),
         "buy_count": len(buys),
@@ -121,6 +124,8 @@ def get_stock(board: dict[str, Any], ticker: str) -> dict[str, Any]:
         "context": stock.get("context"),
         "demand_momentum": stock.get("demand_momentum"),
         "thesis": stock.get("thesis"),
+        "coverage_pct": stock.get("coverage_pct"),
+        "coverage_confidence": stock.get("coverage_confidence"),
         "action": stock.get("action") or stock.get("action_plan"),
         "vetoes": stock.get("vetoes"),
         "soft_gates": stock.get("soft_gates") or stock.get("soft"),
@@ -139,8 +144,13 @@ def find_stocks(
     rows = []
     for stock in stocks(board):
         brief = _brief_stock(stock)
-        if verdict and str(brief.get("verdict", "")).lower() != verdict.lower():
-            continue
+        if verdict:
+            actual = str(brief.get("verdict", "")).lower()
+            wanted = verdict.lower()
+            if wanted == "buy" and actual not in {"buy", "quant buy"}:
+                continue
+            if wanted != "buy" and actual != wanted:
+                continue
         if sector and str(brief.get("sector", "")).lower() != sector.lower():
             continue
         if min_score is not None and (brief.get("score") or 0) < min_score:

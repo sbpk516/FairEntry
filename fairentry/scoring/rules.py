@@ -40,8 +40,13 @@ def apply_rule(rule: dict, value, sector_median=None):
         if sector_median is None:
             # fall back to an absolute-ish read so we still produce a score
             return 50.0, "no sector median — neutral"
+        # Deltas are always reported as company minus sector.  For a
+        # lower-is-better metric the configured full_delta is therefore below
+        # the floor_delta (for example P/S: -1 is excellent, +4 is poor).
+        # _lerp supports reversed bounds, so do not invert the delta as well;
+        # doing both reverses the signal and rewards expensive companies.
         delta = value - sector_median
-        if rule.get("lower_better"):
+        if rule.get("legacy_lower_better_inversion") and rule.get("lower_better"):
             delta = -delta
         s = _lerp(delta, rule["floor_delta"], rule["full_delta"])
         sign = "+" if delta >= 0 else ""
