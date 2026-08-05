@@ -24,14 +24,14 @@ thesis_modifier:                          # recovery/growth score -> +/- to base
 categories:
   quality:
     label: Business Quality
-    weight: 16
+    weight: 16.99
     items:
       - {id: gross_margin_vs_sector, label: "Gross margin vs sector", weight: 30, metric: gross_margin, expected: "≥ sector median", rule: {type: sector_rel, full_delta: 5, floor_delta: -15}}
       - {id: roic_quality,           label: "ROIC vs sector",        weight: 35, metric: roic,        expected: "≥ sector median", rule: {type: sector_rel, full_delta: 4, floor_delta: -8}}
       - {id: profitability,          label: "Operating margin",      weight: 35, metric: oper_margin, expected: "positive & healthy", rule: {type: higher_better, full_at: 20, floor_at: -5}}
   survival:
     label: Financial Strength & Survival
-    weight: 18
+    weight: 17.07
     items:
       - {id: altman_z,       label: "Altman-Z",         weight: 35, metric: altman_z,     expected: "> 2.6 = safe", rule: {type: band, bands: [{min: 2.6, score: 90}, {min: 1.8, score: 55}, {min: 0, score: 20}]}}
       - {id: leverage,       label: "Debt / equity",    weight: 25, metric: debt_eq,      expected: "< 0.7 comfortable", rule: {type: lower_better, full_at: 0.3, floor_at: 2.0}}
@@ -39,21 +39,21 @@ categories:
       - {id: dilution,       label: "Share-count trend", weight: 20, metric: share_count_yoy, expected: "≤ 0 (no dilution)", rule: {type: lower_better, full_at: -1, floor_at: 10}}
   growth:
     label: Growth & Operating Momentum
-    weight: 14
+    weight: 11.20
     items:
       - {id: revenue_growth, label: "Revenue growth vs sector", weight: 35, metric: rev_growth_qoq, expected: "≥ sector median", rule: {type: sector_rel, full_delta: 10, floor_delta: -10}}
       - {id: eps_growth,     label: "EPS growth (next yr)",     weight: 30, metric: eps_growth_next_y, expected: "≥ 15%", rule: {type: higher_better, full_at: 30, floor_at: -10}}
       - {id: margin_trend,   label: "Margin direction",         weight: 35, metric: margin_trend_score, expected: "stable or improving", rule: {type: passthrough, drop_if_missing: true}}
   valuation:
     label: Valuation & Margin of Safety
-    weight: 18
+    weight: 16.99
     items:
       - {id: intrinsic_gap,  label: "Intrinsic-value gap",  weight: 40, metric: intrinsic_gap_pct, expected: "≥ 12% below fair", rule: {type: higher_better, full_at: 30, floor_at: -10}}
       - {id: fcf_value,      label: "P/Free Cash Flow",     weight: 30, metric: pfcf_ratio, expected: "< 15 cheap", rule: {type: lower_better, full_at: 12, floor_at: 40}}
       - {id: sales_value,    label: "P/S vs sector",        weight: 30, metric: ps_ratio, expected: "≤ sector median", rule: {type: sector_rel, full_delta: -1, floor_delta: 4, lower_better: true}}
   confirmation:
     label: Market Confirmation
-    weight: 11
+    weight: 14.21
     items:
       - {id: price_breakout, label: "Price above resistance", weight: 25, metric: breakout_price_score, expected: "close ≥2% above resistance", rule: {type: passthrough, drop_if_missing: true}}
       - {id: breakout_volume,label: "Breakout volume",        weight: 20, metric: breakout_volume_score, expected: "≥1.5× prior 50-day average", rule: {type: passthrough, drop_if_missing: true}}
@@ -64,7 +64,7 @@ categories:
       - {id: insider_buying, label: "Insider buying",         weight: 10, metric: insider_score, expected: "fresh / cluster / top-exec buys", rule: {type: passthrough, drop_if_missing: true}}
   catalysts:
     label: Catalysts & Narrative
-    weight: 9
+    weight: 10.45
     items:
       - {id: news_sentiment, label: "News sentiment",   weight: 40, metric: news_sentiment_score, expected: "positive stance", rule: {type: passthrough}}
       - {id: analyst,        label: "Analyst consensus", weight: 25, metric: analyst_recom, expected: "≤ 2 (Buy)", rule: {type: lower_better, full_at: 1.5, floor_at: 3.5}}
@@ -72,7 +72,7 @@ categories:
       - {id: sqz_context,    label: "Short-squeeze fuel", weight: 15, metric: short_float, expected: "elevated but not extreme", rule: {type: band, bands: [{min: 15, max: 30, score: 70}, {min: 5, max: 15, score: 55}, {min: 0, max: 5, score: 45}]}}
   risk:
     label: Risk, Red Flags & Fragility
-    weight: 14
+    weight: 13.09
     items:
       - {id: forensic,       label: "Forensic / accounting", weight: 40, metric: red_flags_score, expected: "clean", rule: {type: passthrough}}
       - {id: short_risk,     label: "Short interest (risk)", weight: 30, metric: short_float, expected: "< 10% = low", rule: {type: lower_better, full_at: 5, floor_at: 30}}
@@ -93,7 +93,7 @@ soft_gates:
 
 # Presets — bias the weights per strategy (user can pick / edit in the UI).
 presets:
-  balanced_opportunity: {quality: 18, survival: 14, growth: 18, valuation: 16, confirmation: 14, catalysts: 10, risk: 10}
+  backtest_recommended: {quality: 16.99, survival: 17.07, growth: 11.20, valuation: 16.99, confirmation: 14.21, catalysts: 10.45, risk: 13.09}
   quality_compounder:   {quality: 20, survival: 9,  growth: 24, valuation: 12, confirmation: 16, catalysts: 12, risk: 7}
   aggressive_growth:    {quality: 20, survival: 6,  growth: 28, valuation: 8,  confirmation: 18, catalysts: 14, risk: 6}
   recovery_value:       {quality: 12, survival: 12, growth: 12, valuation: 22, confirmation: 16, catalysts: 16, risk: 10}
@@ -101,8 +101,8 @@ presets:
 # Human-facing guidance for the Tune Weights picker. The weights above remain
 # plain numeric maps so the scoring engine and backtest tuner stay deterministic.
 preset_profiles:
-  balanced_opportunity:
-    {label: "Balanced Opportunity", risk: "Moderate", horizon: "1-2 years", description: "Balanced growth, value and price confirmation. Best general-purpose starting point."}
+  backtest_recommended:
+    {label: "Backtest Recommended", risk: "Moderate", horizon: "20-60 trading days tested", description: "Protected tuner winner: improved every held-out window while keeping survival and risk near the original defaults."}
   quality_compounder:
     {label: "Quality Compounder", risk: "Moderate-high", horizon: "1-3 years", description: "Prioritizes durable growth and quality with enough market confirmation to avoid weak trends."}
   aggressive_growth:

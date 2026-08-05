@@ -294,18 +294,18 @@ var $=function(s,r){return (r||document).querySelector(s);};
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
 
 /* ---------- default settings (user-editable) ---------- */
-var DEFAULTS={ weights:{quality:16,survival:18,growth:14,valuation:18,confirmation:11,catalysts:9,risk:14},
+var DEFAULTS={ weights:{quality:16.99,survival:17.07,growth:11.20,valuation:16.99,confirmation:14.21,catalysts:10.45,risk:13.09},
   buyBand:72, watchBand:50, mos:15, target:30 };
 var S=JSON.parse(JSON.stringify(DEFAULTS));
 var MODE='deepvalue';
 var PRESETS={
-  balanced_opportunity:{quality:18,survival:14,growth:18,valuation:16,confirmation:14,catalysts:10,risk:10},
+  backtest_recommended:{quality:16.99,survival:17.07,growth:11.20,valuation:16.99,confirmation:14.21,catalysts:10.45,risk:13.09},
   quality_compounder:{quality:20,survival:9,growth:24,valuation:12,confirmation:16,catalysts:12,risk:7},
   aggressive_growth:{quality:20,survival:6,growth:28,valuation:8,confirmation:18,catalysts:14,risk:6},
   recovery_value:{quality:12,survival:12,growth:12,valuation:22,confirmation:16,catalysts:16,risk:10}
 };
 var PRESET_PROFILES={
-  balanced_opportunity:{label:'Balanced Opportunity',risk:'Moderate',horizon:'1-2 years',description:'Balanced growth, value and price confirmation. Best general-purpose starting point.'},
+  backtest_recommended:{label:'Backtest Recommended',risk:'Moderate',horizon:'20-60 trading days tested',description:'Protected tuner winner: improved every held-out window while keeping survival and risk near the original defaults.'},
   quality_compounder:{label:'Quality Compounder',risk:'Moderate-high',horizon:'1-3 years',description:'Prioritizes durable growth and quality with enough market confirmation to avoid weak trends.'},
   aggressive_growth:{label:'Aggressive Growth',risk:'High',horizon:'1-2 years',description:'Chases faster growth and momentum; accepts expensive valuations and larger drawdowns.'},
   recovery_value:{label:'Recovery Value',risk:'High',horizon:'1-3 years',description:'Looks for cheap, improving businesses with catalysts and confirmation; turnaround failure risk is higher.'}

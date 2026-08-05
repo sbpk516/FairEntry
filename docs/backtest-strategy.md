@@ -50,24 +50,25 @@ selection, market direction removed).
 
 ## Current status
 
-_Last reviewed: 2026-07-15 (seeded backtest, 148 names, 2023-07 → 2026-07)._
+_Last reviewed: 2026-08-05 using the successful 2026-08-02 scheduled run
+(161 cohorts, 2022-08 through 2026-07)._
 
-**Rolling backtest — Buy filter:** ✅ validated
+**Rolling backtest — Buy filter:** useful Buy separation; lower ladder still imperfect
 ```
-Buy   n=2059  +4.73% α  58.6% hit   ·  Buy − Avoid spread +5.82%  ·  monotonic ✓
-Watch          -0.37% α  43.6% hit
-Avoid          -1.09% α  42.1% hit
+Buy   n=931  +3.54% alpha  57.4% hit
+Watch        -0.34% alpha  44.0% hit
+Avoid        +0.67% alpha  46.7% hit
+Buy - Avoid spread +2.87%  ·  90% CI [+1.87%, +3.99%]  ·  monotonic: no
 ```
-The Buy filter reliably beats the average stock across 152 cohorts and three
-years. Buys are up ~59% of the time vs ~42% for Avoids.
+The Buy bucket separates positively with a confidence interval above zero, but
+Avoid still beats Watch on mean alpha. Treat the model as a useful Buy-candidate
+filter, not a perfectly ordered three-bucket ranking.
 
-**Weight tuning:** **no change adopted — current defaults kept.** An *unprotected*
-tuner found a quality/growth tilt that beat default out-of-sample (+2.25%), but it
-did so by cutting `risk` 14→6.2 and `survival` 18→14.6. When we re-ran with the
-downside guardrail (`risk`/`survival` pinned near default), the edge **vanished** —
-the tuned vector was marginally *worse* than default at every hold window
-(verdict: KEEP DEFAULT). Conclusion: the apparent gain was **taking more risk in a
-bull market**, not stock-selection skill. See Decision log.
+**Weight tuning:** **protected recommendation adopted as the new default.** The
+2026-08-02 tuner improved the final held-out Buy-Avoid spread at 20/30/60 days
+(7.28/11.13/19.08 to 8.27/13.69/24.79), won all three windows, and improved the
+worst selection-fold result from +0.10% to +0.57%. Risk and survival remained
+inside their explicit ±3-point guardrails.
 
 ---
 
@@ -75,6 +76,18 @@ bull market**, not stock-selection skill. See Decision log.
 
 Newest first. Record every weight change: date, what changed, the evidence, and
 what would reverse it.
+
+### 2026-08-05 — Adopted protected tuner recommendation
+- **Decision:** make the 2026-08-02 protected tuner vector the base default and
+  the automatic preset for both Deep Value and Quality Growth.
+- **Weights:** quality 16.99, survival 17.07, growth 11.20, valuation 16.99,
+  confirmation 14.21, catalysts 10.45, risk 13.09.
+- **Evidence:** the tuned vector won every held-out 20/30/60-day window and
+  improved the worst selection-fold spread while respecting downside guards.
+- **Limitation:** this validates short holding windows, not the desired 1–2 year
+  horizon. Reassess after adding 6/12/24-month profile-level results.
+- **What would reverse it:** repeated loss to the former default, a confidence
+  interval crossing zero, or materially worse drawdown/live signal outcomes.
 
 ### 2026-07-15 — Reviewed weight tuning → **kept defaults** (no change)
 - **Decision:** no change to `config/scoring.yaml`. The scoring weights remain the

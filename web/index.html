@@ -450,12 +450,12 @@ var esc=function(s){return cleanText(s).replace(/[&<>"']/g,function(c){return{'&
 var safeUrl=function(u){ u=String(u==null?'':u).trim(); return /^https?:\/\//i.test(u)?u:''; };
 
 /* ---------- default settings (user-editable) ---------- */
-var DEFAULTS={ weights:{quality:16,survival:18,growth:14,valuation:18,confirmation:11,catalysts:9,risk:14},
+var DEFAULTS={ weights:{quality:16.99,survival:17.07,growth:11.20,valuation:16.99,confirmation:14.21,catalysts:10.45,risk:13.09},
   buyBand:72, watchBand:50, mos:15, target:30 };
 var S=JSON.parse(JSON.stringify(DEFAULTS));
 var PRESETS={};                       // filled from board.json meta
 var PRESET_PROFILES={};               // readable labels, risk and purpose
-var SKEY='fairentry_settings_v1';
+var SKEY='fairentry_settings_v2';
 var PORTKEY='fairentry_dummy_portfolio_v1';
 function saveS(){ try{ localStorage.setItem(SKEY, JSON.stringify(S)); }catch(e){} }
 function restoreS(){ try{ var raw=localStorage.getItem(SKEY); if(raw){ var o=JSON.parse(raw);

@@ -11,6 +11,10 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/backtest.yml"
+      - "config/scoring.yaml"
+      - "config/defaults.yaml"
+      - "fairentry/scoring/**"
+      - "fairentry/screeners/**"
       - "fairentry/backtest/**"
       - "scripts/backtest.py"
       - "scripts/seed_backtest.py"

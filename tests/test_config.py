@@ -22,7 +22,7 @@ def test_analyst_profiles_have_labels_and_normalized_weights():
     assert set(presets) == set(profiles)
     assert len(presets) == 4
     for key, weights in presets.items():
-        assert sum(weights.values()) == 100, key
+        assert abs(sum(weights.values()) - 100) < 0.001, key
         assert profiles[key]["label"]
         assert profiles[key]["description"]
 def test_bad_weights_rejected():

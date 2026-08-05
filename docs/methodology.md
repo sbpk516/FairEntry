@@ -6,7 +6,7 @@ _Generated from `config/scoring.yaml`. Do not edit by hand._
 
 ## Categories & items
 
-### Business Quality — weight 16
+### Business Quality — weight 16.99
 
 | Item | Weight | Metric | Expected | Rule |
 |---|--:|---|---|---|
@@ -14,7 +14,7 @@ _Generated from `config/scoring.yaml`. Do not edit by hand._
 | ROIC vs sector | 35 | `roic` | ≥ sector median | `sector_rel` |
 | Operating margin | 35 | `oper_margin` | positive & healthy | `higher_better` |
 
-### Financial Strength & Survival — weight 18
+### Financial Strength & Survival — weight 17.07
 
 | Item | Weight | Metric | Expected | Rule |
 |---|--:|---|---|---|
@@ -23,7 +23,7 @@ _Generated from `config/scoring.yaml`. Do not edit by hand._
 | Current ratio | 20 | `current_ratio` | > 1.5 | `higher_better` |
 | Share-count trend | 20 | `share_count_yoy` | ≤ 0 (no dilution) | `lower_better` |
 
-### Growth & Operating Momentum — weight 14
+### Growth & Operating Momentum — weight 11.2
 
 | Item | Weight | Metric | Expected | Rule |
 |---|--:|---|---|---|
@@ -31,7 +31,7 @@ _Generated from `config/scoring.yaml`. Do not edit by hand._
 | EPS growth (next yr) | 30 | `eps_growth_next_y` | ≥ 15% | `higher_better` |
 | Margin direction | 35 | `margin_trend_score` | stable or improving | `passthrough` |
 
-### Valuation & Margin of Safety — weight 18
+### Valuation & Margin of Safety — weight 16.99
 
 | Item | Weight | Metric | Expected | Rule |
 |---|--:|---|---|---|
@@ -39,7 +39,7 @@ _Generated from `config/scoring.yaml`. Do not edit by hand._
 | P/Free Cash Flow | 30 | `pfcf_ratio` | < 15 cheap | `lower_better` |
 | P/S vs sector | 30 | `ps_ratio` | ≤ sector median | `sector_rel` |
 
-### Market Confirmation — weight 11
+### Market Confirmation — weight 14.21
 
 | Item | Weight | Metric | Expected | Rule |
 |---|--:|---|---|---|
@@ -51,7 +51,7 @@ _Generated from `config/scoring.yaml`. Do not edit by hand._
 | Smart-money SEC 13F | 5 | `thirteenf_score` | owned / added by respected tracked funds | `passthrough` |
 | Insider buying | 10 | `insider_score` | fresh / cluster / top-exec buys | `passthrough` |
 
-### Catalysts & Narrative — weight 9
+### Catalysts & Narrative — weight 10.45
 
 | Item | Weight | Metric | Expected | Rule |
 |---|--:|---|---|---|
@@ -60,7 +60,7 @@ _Generated from `config/scoring.yaml`. Do not edit by hand._
 | Analyst target revisions | 20 | `estimate_revision_score` | mean analyst price target rising | `passthrough` |
 | Short-squeeze fuel | 15 | `short_float` | elevated but not extreme | `band` |
 
-### Risk, Red Flags & Fragility — weight 14
+### Risk, Red Flags & Fragility — weight 13.09
 
 | Item | Weight | Metric | Expected | Rule |
 |---|--:|---|---|---|
