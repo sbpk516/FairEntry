@@ -20,10 +20,10 @@ class BacktestStrategy:
     transaction_cost_bps: float = 5
     benchmark: str = "cohort_mean"
     horizons_days: tuple[int, ...] = (30, 60, 90, 180, 365)
-    target_models: tuple[str, ...] = ("fundamental", "technical", "blended")
-    primary_target: str = "fundamental"
+    target_models: tuple[str, ...] = ("practical", "fundamental", "technical", "blended")
+    primary_target: str = "practical"
     target_expiry_days: int = 365
-    minimum_upside_pct: float = 10
+    minimum_upside_pct: float = 30
     maximum_upside_pct: float = 100
     data_quality_mode: str = "mostly_point_in_time"
     strict_excluded_sources: tuple[str, ...] = ("seed_const",)
@@ -52,10 +52,10 @@ def load_strategy(path: str | Path | None = None) -> BacktestStrategy:
         transaction_cost_bps=float(raw.get("execution", {}).get("transaction_cost_bps", 5)),
         benchmark=raw.get("benchmark", {}).get("mode", "cohort_mean"),
         horizons_days=tuple(raw.get("horizons_days", [30, 60, 90, 180, 365])),
-        target_models=tuple(raw.get("target", {}).get("models", ["fundamental"])),
-        primary_target=raw.get("target", {}).get("primary", "fundamental"),
+        target_models=tuple(raw.get("target", {}).get("models", ["practical", "fundamental", "technical", "blended"])),
+        primary_target=raw.get("target", {}).get("primary", "practical"),
         target_expiry_days=int(raw.get("target", {}).get("expiry_days", 365)),
-        minimum_upside_pct=float(raw.get("target", {}).get("minimum_upside_pct", 10)),
+        minimum_upside_pct=float(raw.get("target", {}).get("minimum_upside_pct", 30)),
         maximum_upside_pct=float(raw.get("target", {}).get("maximum_upside_pct", 100)),
         data_quality_mode=raw.get("data_quality", {}).get("mode", "mostly_point_in_time"),
         strict_excluded_sources=tuple(raw.get("data_quality", {}).get("strict_excluded_sources", ["seed_const"])),
@@ -63,4 +63,3 @@ def load_strategy(path: str | Path | None = None) -> BacktestStrategy:
         challenger_holds_days=tuple(raw.get("tuning", {}).get("challenger_holds_days", [20, 30, 60])),
         metadata={"source": str(path)},
     )
-

@@ -14,6 +14,7 @@ from ..analytics.chart_history import write_chart_files
 from ..analytics.demand_momentum import build_context as build_demand_momentum
 from ..alerts import wma_alerts
 from ..scoring.engine import sector_medians, score_ticker
+from ..scoring.targets import build_target_plan
 from ..screeners import REGISTRY as SCREENERS
 
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -410,6 +411,7 @@ def _map(rec, strategies, strategy_key):
                       "confidence": fv.get("valuation_confidence"),
                       "warnings": fv.get("warnings", [])},
         "growth_entry": growth_entry,
+        "target_plan": rec.get("_target_plan"),
         "demand_momentum": rec.get("_demand_momentum"),
         "breakout_setup": breakout,
         "vetoes": [v["reason"] for v in rec["vetoes"]],
@@ -618,6 +620,10 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
     context_records = [(r, metrics_by_ticker.get(r["ticker"], {})) for r in recs]
     demand_context = build_demand_momentum(context_records)
     for rec in recs:
+        rec["_target_plan"] = build_target_plan(
+            rec, metrics_by_ticker.get(rec["ticker"], {}),
+            minimum_upside_pct=settings.get("target_upside_pct", 30), maximum_upside_pct=100,
+            expiry_days=365, historical=False)
         store.set_score_result(rec["ticker"], rec["_primary"], rec["base_score"],
                                rec["preliminary"], rec["verdict"], rec)
         rec["_demand_momentum"] = demand_context.get(rec["ticker"])

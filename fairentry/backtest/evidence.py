@@ -37,7 +37,9 @@ def price_series(store, ticker: str, entry: str, days: int) -> list[dict]:
 
 def evaluate_path(series: list[dict], entry_price: float, targets: dict, horizons: tuple[int, ...], entry: str) -> dict:
     if not series or not entry_price:
-        return {"status": "data_unavailable", "horizons": {}, "targets": {}}
+        return {"status": "data_unavailable", "horizons": {},
+                "targets": {k: {**v, "status": "data_unavailable", "hit_date": None,
+                                "days_to_target": None} for k, v in targets.items()}}
     start = date.fromisoformat(entry)
     horizon_results = {}
     for h in horizons:
@@ -77,3 +79,27 @@ def summarize_targets(observations: list[dict], primary="fundamental") -> dict:
             "active_or_unavailable": len(rows) - len(evaluable),
             "hit_rate_pct": round(len(reached) / len(evaluable) * 100, 1) if evaluable else None,
             "median_days_to_target": round(statistics.median(days), 1) if days else None}
+
+
+def summarize_methods(observations: list[dict]) -> dict:
+    """Hit-rate and timing for every disclosed target among historical Buys."""
+    buys = [o for o in observations if o.get("verdict") == "Buy"]
+    names = sorted({k for o in buys for k in o.get("outcome", {}).get("targets", {})})
+    out = {}
+    for name in names:
+        rows = [o["outcome"]["targets"][name] for o in buys
+                if name in o.get("outcome", {}).get("targets", {})
+                and o["outcome"]["targets"][name].get("role") != "reference"
+                and o["outcome"]["targets"][name].get("relevance") != "low"
+                and not o["outcome"]["targets"][name].get("excluded")]
+        completed = [r for r in rows if r.get("status") in {"reached", "expired"}]
+        reached = [r for r in completed if r.get("status") == "reached"]
+        days = [r["days_to_target"] for r in reached if r.get("days_to_target") is not None]
+        upsides = [r["upside_pct"] for r in rows if isinstance(r.get("upside_pct"), (int, float))]
+        out[name] = {"observations": len(rows), "evaluable": len(completed),
+                     "reached": len(reached), "expired": len(completed) - len(reached),
+                     "active": sum(1 for r in rows if r.get("status") == "active"),
+                     "hit_rate_pct": round(len(reached) / len(completed) * 100, 1) if completed else None,
+                     "median_days_to_target": round(statistics.median(days), 1) if days else None,
+                     "median_upside_pct": round(statistics.median(upsides), 2) if upsides else None}
+    return out

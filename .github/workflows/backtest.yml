@@ -37,8 +37,8 @@ on:
       target_model:
         description: "Primary target model"
         type: choice
-        options: [fundamental, technical, blended]
-        default: fundamental
+        options: [practical]
+        default: practical
       target_expiry:
         description: "Target expiry in calendar days"
         type: string
@@ -61,7 +61,7 @@ jobs:
       LIMIT: ${{ github.event.inputs.limit || '150' }}
       HOLD: ${{ github.event.inputs.hold || '30' }}
       STEP: ${{ github.event.inputs.step || '7' }}
-      TARGET_MODEL: ${{ github.event.inputs.target_model || 'fundamental' }}
+      TARGET_MODEL: ${{ github.event.inputs.target_model || 'practical' }}
       TARGET_EXPIRY: ${{ github.event.inputs.target_expiry || '365' }}
     steps:
       - uses: actions/checkout@v4

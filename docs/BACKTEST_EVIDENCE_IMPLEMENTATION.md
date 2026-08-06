@@ -56,15 +56,25 @@ thresholds, screening outcomes, vetoes, gates, category/item traces, valuation,
 field-level provenance and a data-quality grade. The generated JSON artifact is
 the immutable portable ledger for that run.
 
-### Phase 3 — Target models
+### Phase 3 — Shared target models and practical expectation
 
-- `fundamental`: median of non-analyst fair-value methods available at entry;
-- `technical`: 10% continuation or recovery to the 200-week mean, capped;
-- `blended`: median of available fundamental and technical targets.
+- every existing fair-value method remains visible as a target milestone;
+- `fundamental`: median of applicable non-analyst fair-value methods;
+- `technical`: the configured minimum-upside continuation objective or recovery
+  to the 200-week mean;
+- `blended`: median of available fundamental and technical objectives;
+- `practical`: the nearest credible objective that clears the same minimum-upside
+  setting used by current screening (30% by default).
 
-Targets are frozen at entry, bounded by configured minimum/maximum upside, and
-include their basis. Analyst targets are excluded from the primary historical
-target because the seeded dataset cannot prove their point-in-time value.
+Targets are frozen at entry and include their basis, applicability and quality.
+Below-minimum values remain visible as reference milestones rather than becoming
+"unavailable." Analyst targets reconstructed from current-value proxies remain
+visible but are excluded from historical practical-target selection.
+
+The shared engine is called by both `build_board` and rolling replay. A valid
+price always produces one practical target. The backtest enforces this as a
+runtime invariant and refuses to publish an observation without both a practical
+target price and an outcome status.
 
 ### Phase 4 — Outcome and reliability engine
 
@@ -103,4 +113,3 @@ against simple baselines.
 The tuner runs automatically and publishes an `ADOPT`, `KEEP DEFAULT`, or
 `NO GAIN` recommendation. It never edits scoring configuration, commits code,
 or deploys weights. Promotion remains an explicit, audited version change.
-

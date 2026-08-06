@@ -4,6 +4,7 @@ from datetime import date, timedelta
 from fairentry.backtest.evidence import evaluate_path, quality_for, summarize_targets
 from fairentry.backtest.strategy import BacktestStrategy, load_strategy
 from fairentry.backtest.targets import targets_for
+from fairentry.scoring.targets import build_target_plan
 
 
 def test_strategy_has_stable_version_id():
@@ -23,6 +24,45 @@ def test_target_excludes_analyst_anchor_and_is_frozen():
     assert out["fundamental"]["price"] == 130
     assert out["fundamental"]["price"] != 500
     assert out["blended"]["available"]
+    assert out["practical"]["price"] is not None
+    assert out["practical"]["status"] == "pending"
+
+
+def test_live_and_backtest_use_identical_shared_target_engine():
+    strategy = BacktestStrategy(minimum_upside_pct=10)
+    metrics = {"price": {"value": 100, "source": "seed_price"},
+               "sma200": {"value": 120, "source": "seed_price"},
+               "pb_ratio": {"value": 2, "source": "sec_hist"}}
+    rec = {"price": 100, "valuation": {"methods": [
+        {"name": "Book", "key": "book", "fair": 106, "upside": 6, "basis": "book"}]}}
+    live = build_target_plan(rec, metrics, minimum_upside_pct=10,
+                             maximum_upside_pct=100, expiry_days=365,
+                             historical=True)["targets"]
+    historical = targets_for(rec, metrics, strategy)
+    assert live == historical
+    # The below-minimum book target remains visible, while technical becomes
+    # the guaranteed practical expectation.
+    assert historical["book"]["price"] == 106
+    assert historical["practical"]["price"] == 110
+    assert historical["practical"]["selected_method"] == "technical"
+
+
+def test_every_valid_price_has_practical_target():
+    plan = build_target_plan({"price": 10, "valuation": {"methods": []}},
+                             {"price": {"value": 10, "source": "seed_price"}},
+                             historical=True)
+    assert plan["practical"]["price"] == 11
+    assert plan["practical"]["status"] == "pending"
+
+
+def test_low_relevance_book_value_does_not_drive_technology_target():
+    plan = build_target_plan(
+        {"price": 100, "sector": "Technology", "valuation": {"methods": [
+            {"name": "Book", "key": "book", "fair": 132, "upside": 32, "basis": "book"}]}},
+        {"price": {"value": 100, "source": "seed_price"}},
+        minimum_upside_pct=30, historical=True)
+    assert plan["targets"]["book"]["relevance"] == "low"
+    assert plan["practical"]["selected_method"] == "technical"
 
 
 def test_target_censoring_and_time_to_target():

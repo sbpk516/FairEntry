@@ -82,7 +82,7 @@ def _write_json(res, path):
         compact = []
         for o in observations:
             by_ticker.setdefault(o["ticker"], []).append(o)
-            primary = payload.get("strategy", {}).get("primary_target", "fundamental")
+            primary = payload.get("strategy", {}).get("primary_target", "practical")
             target = o.get("outcome", {}).get("targets", {}).get(primary, {})
             compact.append({k: o.get(k) for k in ("observation_id", "ticker", "company", "sector",
                                                    "entry_date", "entry_price", "verdict", "score") } | {
@@ -163,7 +163,7 @@ def main():
     parser.add_argument("--md-out", default=None, help="write a markdown report to this path")
     parser.add_argument("--strategy", default=None, help="versioned backtest YAML (default config/backtest.yaml)")
     parser.add_argument("--no-evidence", action="store_true", help="omit per-stock evidence for a small alpha-only run")
-    parser.add_argument("--target-model", choices=("fundamental", "technical", "blended"),
+    parser.add_argument("--target-model", choices=("practical",),
                         help="primary frozen target model for this run")
     parser.add_argument("--target-expiry", type=int, help="target expiry in calendar days")
     parser.add_argument("--horizons", help="comma-separated forward horizons, e.g. 30,60,90,180,365")

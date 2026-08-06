@@ -12,10 +12,10 @@ benchmark:
   mode: cohort_mean
 horizons_days: [30, 60, 90, 180, 365]
 target:
-  models: [fundamental, technical, blended]
-  primary: fundamental
+  models: [practical, fundamental, technical, blended]
+  primary: practical
   expiry_days: 365
-  minimum_upside_pct: 10
+  minimum_upside_pct: 30
   maximum_upside_pct: 100
 data_quality:
   mode: mostly_point_in_time
@@ -23,4 +23,3 @@ data_quality:
 tuning:
   promotion: manual
   challenger_holds_days: [20, 30, 60, 90, 180]
-

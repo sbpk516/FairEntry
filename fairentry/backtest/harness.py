@@ -21,7 +21,7 @@ from ..scoring.engine import sector_medians, medians_from, score_ticker
 from ..screeners import REGISTRY as SCREENERS
 from .strategy import load_strategy
 from .targets import targets_for
-from .evidence import quality_for, price_series, evaluate_path, summarize_targets
+from .evidence import quality_for, price_series, evaluate_path, summarize_targets, summarize_methods
 
 
 def passes_screen(metrics: dict) -> bool:
@@ -328,8 +328,13 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
             if include_evidence:
                 adjusted_entry = p0 * (1 + (strategy.slippage_bps + strategy.transaction_cost_bps) / 10000)
                 targets = targets_for(rec, m, strategy)
-                path = price_series(store, tkr, entry, max(strategy.horizons_days + (strategy.target_expiry_days,)))
+                longest_target = max((t.get("expiry_days", strategy.target_expiry_days)
+                                      for t in targets.values()), default=strategy.target_expiry_days)
+                path = price_series(store, tkr, entry, max(strategy.horizons_days + (longest_target,)))
                 outcome = evaluate_path(path, adjusted_entry, targets, strategy.horizons_days, entry)
+                practical = outcome.get("targets", {}).get("practical")
+                if not practical or not practical.get("price") or not practical.get("status"):
+                    raise RuntimeError(f"target completeness invariant failed for {tkr} on {entry}")
                 q = quality_for(m)
                 observations.append({
                     "observation_id": f"{entry}:{tkr}", "ticker": tkr,
@@ -342,6 +347,7 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
                     "thresholds": cfg.verdict_bands, "vetoes": rec["vetoes"],
                     "soft_gates": rec["soft_gates"], "categories": _compact_categories(rec["categories"]),
                     "valuation": _compact_valuation(rec["valuation"]), "targets": targets,
+                    "practical_target": practical,
                     "data_quality": q, "outcome": outcome,
                 })
         if len(rows) < min_names:
@@ -399,4 +405,5 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
             "spread_ci90": list(ci) if ci else None, "significant": significant,
             "monotonic": monotonic, "per_cohort": cohorts,
             "target_summary": summarize_targets(observations, strategy.primary_target) if include_evidence else {},
+            "target_method_summary": summarize_methods(observations) if include_evidence else {},
             "observations": observations if include_evidence else []}

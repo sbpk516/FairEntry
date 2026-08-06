@@ -744,9 +744,10 @@ function contextChips(s){ var c=s.context||{};
   return '<div class="ctx-row" title="Demand chips are context-only. Breakout factors are traceable inputs to the existing score.">'+parts.join('')+'</div>';
 }
 function tileHTML(s){ var c=compute(s), shown=c.displayVerdict||c.verdict, vk=c.verdict.toLowerCase();
+  var pt=s.target_plan&&s.target_plan.practical;
   var kv='<div class="kv"><span>Price <b>$'+esc(s.price)+'</b></span>'+
-    '<span>Fair <b>$'+esc(s.valuation.base)+'</b></span>'+
-    '<span>Upside <b>'+(s.valuation.upside>=0?'+':'')+s.valuation.upside+'%</b></span>'+
+    '<span>Practical target <b>$'+esc(pt?pt.price:s.valuation.base)+'</b></span>'+
+    '<span>Target upside <b>'+((pt?pt.upside_pct:s.valuation.upside)>=0?'+':'')+esc(pt?pt.upside_pct:s.valuation.upside)+'%</b></span>'+
     '<span>Fair gap <b>'+s.valuation.label+'</b></span>'+
     '<span>AI read <b>'+esc(thesisPlain(s))+'</b></span></div>';
   var labs=s.labels.slice(0,4).map(function(l){return '<span class="lab '+l[1]+'">'+esc(l[0])+'</span>';}).join('');
@@ -1048,6 +1049,13 @@ var VAL_WHY={
     why:'Answers "what are the assets worth?" rather than "what are the earnings worth?" - most useful for asset-heavy or badly beaten-down names where earnings power is uncertain.',
     watch:'Book value is a poor guide for asset-light businesses (software, brands) where the real value isn\'t on the balance sheet.'}
 };
+function targetPlanHTML(s){ var p=s.target_plan; if(!p||!p.practical)return '';
+  var practical=p.practical, targets=p.targets||{};
+  var rows=Object.keys(targets).filter(function(k){return k!=='practical';}).sort(function(a,b){return targets[a].price-targets[b].price;}).map(function(k){
+    var t=targets[k], warning=t.excluded?' · excluded: '+(t.reason||'low-quality input'):'';
+    return '<div class="cat" data-exp><button class="row"><span class="chev"></span><span class="rname">'+esc(t.label||k)+' <span class="lab '+(t.role==='bull'?'warn':t.excluded?'bad':'info')+'">'+esc(t.role)+'</span></span><span class="rmeta"><b>$'+esc(t.price)+'</b> · '+(t.upside_pct>=0?'+':'')+esc(t.upside_pct)+'%</span></button><div class="detail"><div class="detail-in"><div class="vmeth-box"><div>'+esc(t.basis||'')+'</div><div class="vmeth-watch">Expected window: '+esc(t.timeframe_days)+' days · confidence '+esc(t.confidence)+' · sector relevance '+esc(t.relevance||'medium')+' · data '+esc(t.quality)+esc(warning)+'</div></div></div></div></div>';
+  }).join('');
+  return '<div class="sub-h">Target plan</div><div class="vgauge"><div class="vg-nums"><div class="vg-num"><div class="l">Practical target</div><div class="v">$'+esc(practical.price)+'</div></div><div class="vg-num"><div class="l">Minimum expected upside</div><div class="v">+'+esc(practical.upside_pct)+'%</div></div><div class="vg-num"><div class="l">Expected within</div><div class="v">'+esc(practical.timeframe_days)+' days</div></div><div class="vg-num"><div class="l">Selected method</div><div class="v">'+esc(practical.selected_method)+'</div></div></div><div class="vg-explain">'+esc(p.explanation)+'</div><div class="vmeth-head">Additional target milestones</div>'+rows+'</div>'; }
 function valHTML(s){ var v=s.valuation, price=s.price;
   var buyBelow=+(v.base*(1-S.mos/100)).toFixed(1);
   var lo=Math.min(v.low, price)*0.9, hi=Math.max(v.high, price)*1.08, span=(hi-lo)||1;
@@ -1105,7 +1113,7 @@ function openDetail(tk){ var s=STOCKS.find(function(x){return x.ticker===tk;}); 
     .map(function(a){return '<div class="acard"><div class="l">'+a[0]+'</div><div class="v">'+esc(a[1])+'</div></div>';}).join('')+'</div>';
   var mathSec='<div class="sub-h">How the '+Math.round(c.prelim)+' was computed</div>'+scoreMathHTML(s,c);
   var scorecard='<div class="sub-h">Scorecard - click a category for its arithmetic, then any item for expected vs actual, formula, source and date</div>'+(s.categories||s.cats).map(catHTML).join('');
-  $('#d-body').innerHTML=hero+businessHTML(s)+mathSec+scorecard+demandMomentumHTML(s)+setupHTML(s)+valHTML(s)+growthEntryHTML(s)+contextHTML(s)+situationHTML(s)+newsHTML(s)+watchHTML(s)+action;
+  $('#d-body').innerHTML=hero+businessHTML(s)+mathSec+scorecard+demandMomentumHTML(s)+setupHTML(s)+targetPlanHTML(s)+valHTML(s)+growthEntryHTML(s)+contextHTML(s)+situationHTML(s)+newsHTML(s)+watchHTML(s)+action;
   openDrawer('#detail');
 }
 
