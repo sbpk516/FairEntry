@@ -1,7 +1,7 @@
 import tempfile
 from datetime import date, timedelta
 
-from fairentry.backtest.evidence import evaluate_path, quality_for, summarize_targets
+from fairentry.backtest.evidence import evaluate_path, quality_for, summarize_methods, summarize_targets
 from fairentry.backtest.strategy import BacktestStrategy, load_strategy
 from fairentry.backtest.targets import targets_for
 from fairentry.scoring.targets import build_target_plan
@@ -74,6 +74,34 @@ def test_target_censoring_and_time_to_target():
     assert out["targets"]["fundamental"]["status"] == "reached"
     assert out["targets"]["fundamental"]["days_to_target"] == 60
     assert out["horizons"]["30"]["return_pct"] == 8
+
+
+def test_target_below_entry_is_day_zero_reference_not_a_hit():
+    series = [{"date": "2024-01-01", "close": 100},
+              {"date": "2024-02-01", "close": 110}]
+    targets = {"fcf": {"price": 80, "available": True, "role": "reference",
+                       "expiry_days": 365}}
+    out = evaluate_path(series, 100, targets, (30,), "2024-01-01")
+    fcf = out["targets"]["fcf"]
+    assert fcf["status"] == "already_above_at_entry"
+    assert fcf["hit_date"] == "2024-01-01"
+    assert fcf["days_to_target"] == 0
+
+
+def test_method_summary_separates_day_zero_references_from_hits():
+    obs = [
+        {"verdict": "Buy", "outcome": {"targets": {"fcf": {
+            "price": 80, "role": "reference", "status": "already_above_at_entry",
+            "available": True, "relevance": "high", "upside_pct": -20}}}},
+        {"verdict": "Buy", "outcome": {"targets": {"fcf": {
+            "price": 120, "role": "growth", "status": "reached", "available": True,
+            "relevance": "high", "upside_pct": 20, "days_to_target": 60}}}},
+    ]
+    fcf = summarize_methods(obs)["fcf"]
+    assert fcf["already_above_at_entry"] == 1
+    assert fcf["evaluable"] == 1
+    assert fcf["reached"] == 1
+    assert fcf["hit_rate_pct"] == 100
 
 
 def test_unavailable_target_is_not_reported_as_failure():

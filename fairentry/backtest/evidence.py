@@ -54,13 +54,20 @@ def evaluate_path(series: list[dict], entry_price: float, targets: dict, horizon
     target_results = {}
     for model, target in targets.items():
         value = target.get("price")
-        hits = [p for p in series if value and p["close"] >= value]
+        # A value at or below the entry was already exceeded when the position
+        # was opened. Preserve that Day 0 fact, but do not describe it as a
+        # post-entry target hit (or include it in target hit-rate statistics).
+        already_above = bool(value and value <= entry_price)
+        hits = [] if already_above else [p for p in series if value and p["close"] >= value]
         expired = (date.fromisoformat(series[-1]["date"]) - start).days >= target.get("expiry_days", 365)
-        status = "unavailable" if not value else "reached" if hits else "expired" if expired else "active"
+        status = ("unavailable" if not value else
+                  "already_above_at_entry" if already_above else
+                  "reached" if hits else "expired" if expired else "active")
         first = hits[0] if hits else None
         target_results[model] = {**target, "status": status,
-            "hit_date": first["date"] if first else None,
-            "days_to_target": (date.fromisoformat(first["date"]) - start).days if first else None}
+            "hit_date": entry if already_above else first["date"] if first else None,
+            "days_to_target": 0 if already_above else
+                (date.fromisoformat(first["date"]) - start).days if first else None}
     return {"status": "complete", "horizons": horizon_results, "targets": target_results,
             "max_gain_pct": round((max(closes) / entry_price - 1) * 100, 2),
             "max_drawdown_pct": round((min(closes) / entry_price - 1) * 100, 2),
@@ -87,11 +94,14 @@ def summarize_methods(observations: list[dict]) -> dict:
     names = sorted({k for o in buys for k in o.get("outcome", {}).get("targets", {})})
     out = {}
     for name in names:
-        rows = [o["outcome"]["targets"][name] for o in buys
-                if name in o.get("outcome", {}).get("targets", {})
-                and o["outcome"]["targets"][name].get("role") != "reference"
-                and o["outcome"]["targets"][name].get("relevance") != "low"
-                and not o["outcome"]["targets"][name].get("excluded")]
+        disclosed = [o["outcome"]["targets"][name] for o in buys
+                     if name in o.get("outcome", {}).get("targets", {})
+                     and o["outcome"]["targets"][name].get("relevance") != "low"
+                     and not o["outcome"]["targets"][name].get("excluded")]
+        references = [r for r in disclosed if r.get("role") == "reference"
+                      or r.get("status") == "already_above_at_entry"]
+        rows = [r for r in disclosed if r.get("role") != "reference"
+                and r.get("status") != "already_above_at_entry"]
         completed = [r for r in rows if r.get("status") in {"reached", "expired"}]
         reached = [r for r in completed if r.get("status") == "reached"]
         days = [r["days_to_target"] for r in reached if r.get("days_to_target") is not None]
@@ -99,6 +109,7 @@ def summarize_methods(observations: list[dict]) -> dict:
         out[name] = {"observations": len(rows), "evaluable": len(completed),
                      "reached": len(reached), "expired": len(completed) - len(reached),
                      "active": sum(1 for r in rows if r.get("status") == "active"),
+                     "already_above_at_entry": len(references),
                      "hit_rate_pct": round(len(reached) / len(completed) * 100, 1) if completed else None,
                      "median_days_to_target": round(statistics.median(days), 1) if days else None,
                      "median_upside_pct": round(statistics.median(upsides), 2) if upsides else None}
