@@ -405,7 +405,7 @@
     <button class="iconbtn" id="wmafilter" type="button" aria-pressed="false">Near 200 WMA</button>
     <select id="sort">
       <option value="score">Sort: Score</option>
-      <option value="upside">Sort: Upside</option>
+      <option value="upside">Sort: Valuation upside</option>
       <option value="verdict">Sort: Verdict</option>
     </select>
     <span class="count" id="count"></span>
@@ -451,7 +451,7 @@ var safeUrl=function(u){ u=String(u==null?'':u).trim(); return /^https?:\/\//i.t
 
 /* ---------- default settings (user-editable) ---------- */
 var DEFAULTS={ weights:{quality:16.99,survival:17.07,growth:11.20,valuation:16.99,confirmation:14.21,catalysts:10.45,risk:13.09},
-  buyBand:72, watchBand:50, mos:15, target:30 };
+  buyBand:72, watchBand:50, mos:15, target:30, activePreset:'backtest_recommended' };
 var S=JSON.parse(JSON.stringify(DEFAULTS));
 var PRESETS={};                       // filled from board.json meta
 var PRESET_PROFILES={};               // readable labels, risk and purpose
@@ -581,7 +581,7 @@ var STOCKS=[
      situation:[], kill:'Growth slips below ~15% or the EU expansion stalls.' },
    valuation:{ low:56, base:72, high:88, upside:33, label:'faircheap' },
    vetoes:[], soft:[], riskPenalty:0,
-   labels:[['Growth +24%','good'],['18% below fair value','good'],['Upside 33%','good'],['Entry: acceptable','info']],
+   labels:[['Growth +24%','good'],['18% below fair value','good'],['Valuation upside 33%','good'],['Entry: acceptable','info']],
    action:{ action:'Buy Now', size:'3%', entry:'Quality high, ~33% upside above your 30% target, trending up - enter now.', add:'Add on the next earnings confirmation.', stop:'Growth < 15% or EU expansion stalls.', review:'Next earnings (~5 wks)' } }
 ];
 
@@ -603,7 +603,7 @@ function softGates(s){ var g=[];
   var conf=s.cats.find(function(c){return c.id==='confirmation';});
   if(!conf) g.push('No market confirmation (missing data)');
   else if(conf.score<35) g.push('No market confirmation');
-  if(s.valuation.upside < S.target) g.push('Upside '+s.valuation.upside+'% < target '+S.target+'%');
+  if(s.valuation.upside < S.target) g.push('Valuation upside '+s.valuation.upside+'% < target '+S.target+'%');
   return g; }
 // Has the USER moved the model off its recommended baseline? Compare against the
 // mode's preset (via the userTuned/userBands flags), NOT DEFAULTS - because
@@ -750,7 +750,10 @@ function tileHTML(s){ var c=compute(s), shown=c.displayVerdict||c.verdict, vk=c.
     '<span>Target upside <b>'+((pt?pt.upside_pct:s.valuation.upside)>=0?'+':'')+esc(pt?pt.upside_pct:s.valuation.upside)+'%</b></span>'+
     '<span>Fair gap <b>'+s.valuation.label+'</b></span>'+
     '<span>AI read <b>'+esc(thesisPlain(s))+'</b></span></div>';
-  var labs=s.labels.slice(0,4).map(function(l){return '<span class="lab '+l[1]+'">'+esc(l[0])+'</span>';}).join('');
+  var labs=s.labels.slice(0,4).map(function(l){
+    var label=String(l[0]).replace(/^Upside(?=\s|$)/,'Valuation upside');
+    return '<span class="lab '+l[1]+'">'+esc(label)+'</span>';
+  }).join('');
   var nuance=actionNuance(c);
   return '<div class="tile" data-t="'+esc(s.ticker)+'" role="button" tabindex="0" aria-label="'+esc(s.ticker+' '+s.company+' - '+shown+', score '+Math.round(c.prelim))+'"><div class="vstripe st-'+vk+'"></div><div class="tile-in">'+
     '<div class="tile-top"><div class="tile-main"><div class="tick">'+esc(s.ticker)+'</div><div class="co">'+esc(s.company)+' - '+esc(s.sector)+'</div></div>'+
@@ -1066,7 +1069,7 @@ function valHTML(s){ var v=s.valuation, price=s.price;
   var nums='<div class="vg-nums">'+
     '<div class="vg-num"><div class="l">Current price</div><div class="v">$'+price+'</div></div>'+
     '<div class="vg-num"><div class="l">Fair value (base)</div><div class="v">$'+v.base+'</div></div>'+
-    '<div class="vg-num"><div class="l">Upside to fair</div><div class="v" style="color:'+upHue+'">'+(upside>=0?'+':'')+upside+'%</div></div>'+
+    '<div class="vg-num"><div class="l">Valuation upside</div><div class="v" style="color:'+upHue+'">'+(upside>=0?'+':'')+upside+'%</div></div>'+
     '<div class="vg-num"><div class="l">Buy below ('+S.mos+'% MoS)</div><div class="v">$'+buyBelow+'</div></div></div>';
   var line='<div class="vg-line">'+
     '<div class="vg-zones"><i class="z-cheap" style="width:'+zCheap+'%"></i><i class="z-fair" style="width:'+(zFairEnd-zCheap)+'%"></i><i class="z-exp" style="width:'+(100-zFairEnd)+'%"></i></div>'+
@@ -1248,8 +1251,8 @@ function renderSettings(){
   var body='<div class="changed" id="changed-note"></div>';
   body+='<div class="sub-h">Analyst profile</div>';
   body+='<select id="preset-pick" style="width:100%;font-size:13px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:8px 11px;margin-bottom:14px">'+
-    '<option value="">Choose an analyst profile</option><option value="__default"'+(S.activePreset==='__default'?' selected':'')+'>Strategy recommended</option>'+
-    Object.keys(PRESETS).map(function(p){ var info=PRESET_PROFILES[p]||{}; return '<option value="'+p+'"'+(S.activePreset===p?' selected':'')+'>'+esc(info.label||p.replace(/_/g,' '))+'</option>'; }).join('')+'</select>';
+    '<option value="">Choose an analyst profile</option>'+
+    Object.keys(PRESETS).map(function(p){ var info=PRESET_PROFILES[p]||{}; var label=info.label||p.replace(/_/g,' '); if(p==='backtest_recommended') label+=' (Default)'; return '<option value="'+p+'"'+(S.activePreset===p?' selected':'')+'>'+esc(label)+'</option>'; }).join('')+'</select>';
   if(S.activePreset&&S.activePreset!=='__default'){
     var pi=PRESET_PROFILES[S.activePreset]||{};
     body+='<div class="impact" style="margin:-5px 0 16px;padding:10px;border:1px solid var(--line-soft);border-radius:8px"><b>'+esc(pi.label||S.activePreset)+'</b> - Risk: '+esc(pi.risk||'n/a')+' - Horizon: '+esc(pi.horizon||'n/a')+'<br>'+esc(pi.description||'')+'</div>';

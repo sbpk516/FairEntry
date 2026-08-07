@@ -105,7 +105,7 @@ def _labels(rec):
             out.append(label)
     up = rec["valuation"]["upside_pct"]
     if up is not None:
-        out.append([f"Upside {'+' if up >= 0 else ''}{up:.0f}%", "good" if up >= 20 else "warn" if up >= 0 else "bad"])
+        out.append([f"Valuation upside {'+' if up >= 0 else ''}{up:.0f}%", "good" if up >= 20 else "warn" if up >= 0 else "bad"])
     out.append([rec["valuation"]["valuation_label"], "good" if rec["valuation"]["valuation_label"] == "cheap"
                 else "bad" if rec["valuation"]["valuation_label"] == "expensive" else "info"])
     for v in rec["vetoes"]:

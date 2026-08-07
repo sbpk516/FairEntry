@@ -270,7 +270,7 @@
     </div>
     <select id="sort">
       <option value="score">Sort: Score</option>
-      <option value="upside">Sort: Upside</option>
+      <option value="upside">Sort: Valuation upside</option>
       <option value="verdict">Sort: Verdict</option>
     </select>
     <span class="count" id="count"></span>
@@ -295,7 +295,7 @@ var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){re
 
 /* ---------- default settings (user-editable) ---------- */
 var DEFAULTS={ weights:{quality:16.99,survival:17.07,growth:11.20,valuation:16.99,confirmation:14.21,catalysts:10.45,risk:13.09},
-  buyBand:72, watchBand:50, mos:15, target:30 };
+  buyBand:72, watchBand:50, mos:15, target:30, activePreset:'backtest_recommended' };
 var S=JSON.parse(JSON.stringify(DEFAULTS));
 var MODE='deepvalue';
 var PRESETS={
@@ -403,7 +403,7 @@ var STOCKS=[
      situation:[], kill:'Growth slips below ~15% or the EU expansion stalls.' },
    valuation:{ low:56, base:72, high:88, upside:33, label:'fair→cheap' },
    vetoes:[], soft:[], riskPenalty:0,
-   labels:[['Growth +24%','good'],['18% below fair value','good'],['Upside 33%','good'],['Entry: acceptable','info']],
+   labels:[['Growth +24%','good'],['18% below fair value','good'],['Valuation upside 33%','good'],['Entry: acceptable','info']],
    action:{ action:'Buy Now', size:'3%', entry:'Quality high, ~33% upside above your 30% target, trending up — enter now.', add:'Add on the next earnings confirmation.', stop:'Growth < 15% or EU expansion stalls.', review:'Next earnings (~5 wks)' } }
 ];
 
@@ -412,7 +412,7 @@ function baseScore(s){ var num=0,den=0; s.cats.forEach(function(c){ var w=S.weig
 function thesisMod(s){ var t=s.thesis.score; return t>=80?6:t>=65?3:t>=50?0:t>=35?-5:-10; }
 function softGates(s){ var g=[]; if(s.soft.indexOf('expensive')>=0)g.push('Valuation is expensive');
   var surv=s.cats.find(function(c){return c.id==='survival';}); if(surv&&surv.score<30)g.push('Survival score < 30');
-  if(s.valuation.upside < S.target) g.push('Upside '+s.valuation.upside+'% < target '+S.target+'%'); return g; }
+  if(s.valuation.upside < S.target) g.push('Valuation upside '+s.valuation.upside+'% < target '+S.target+'%'); return g; }
 function compute(s){ var base=baseScore(s), mod=thesisMod(s), prelim=base+mod-(s.riskPenalty||0);
   var out={base:base, mod:mod, prelim:prelim, gates:[], vetoed:false};
   if(s.vetoes.length){ out.verdict='Avoid'; out.vetoed=true; return out; }
@@ -424,7 +424,7 @@ function compute(s){ var base=baseScore(s), mod=thesisMod(s), prelim=base+mod-(s
 /* ---------- board render ---------- */
 function bar(sc){ return '<div class="track"><i style="width:'+sc+'%;background:'+HUE(sc)+'"></i></div>'; }
 function tileHTML(s){ var c=compute(s), vk=c.verdict.toLowerCase();
-  var kv='<div class="kv"><span>Upside <b>'+(s.valuation.upside>=0?'+':'')+s.valuation.upside+'%</b></span>'+
+  var kv='<div class="kv"><span>Valuation upside <b>'+(s.valuation.upside>=0?'+':'')+s.valuation.upside+'%</b></span>'+
     '<span>Fair gap <b>'+s.valuation.label+'</b></span>'+
     '<span>Thesis <b>'+esc(s.thesis.label.split(' ').slice(0,2).join(' '))+'</b></span></div>';
   var labs=s.labels.slice(0,4).map(function(l){return '<span class="lab '+l[1]+'">'+esc(l[0])+'</span>';}).join('');
@@ -500,7 +500,7 @@ function valHTML(s){ var v=s.valuation, price=s.price;
   var nums='<div class="vg-nums">'+
     '<div class="vg-num"><div class="l">Current price</div><div class="v">$'+price+'</div></div>'+
     '<div class="vg-num"><div class="l">Fair value (base)</div><div class="v">$'+v.base+'</div></div>'+
-    '<div class="vg-num"><div class="l">Upside to fair</div><div class="v" style="color:'+upHue+'">'+(upside>=0?'+':'')+upside+'%</div></div>'+
+    '<div class="vg-num"><div class="l">Valuation upside</div><div class="v" style="color:'+upHue+'">'+(upside>=0?'+':'')+upside+'%</div></div>'+
     '<div class="vg-num"><div class="l">Buy below ('+S.mos+'% MoS)</div><div class="v">$'+buyBelow+'</div></div></div>';
   var line='<div class="vg-line">'+
     '<div class="vg-zones"><i class="z-cheap" style="width:'+zCheap+'%"></i><i class="z-fair" style="width:'+(zFairEnd-zCheap)+'%"></i><i class="z-exp" style="width:'+(100-zFairEnd)+'%"></i></div>'+
@@ -540,8 +540,8 @@ function slider(key,label,min,max,val,def,impact){ return '<div class="setgrp"><
 function renderSettings(){
   var body='<div class="changed" id="changed-note"></div>';
   body+='<div class="sub-h">Analyst profile</div><select id="preset-pick" style="width:100%;font-size:13px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:8px 11px;margin-bottom:14px">'+
-    '<option value="">Choose an analyst profile</option><option value="__default"'+(S.activePreset==='__default'?' selected':'')+'>Strategy recommended</option>'+
-    Object.keys(PRESETS).map(function(p){return '<option value="'+p+'"'+(S.activePreset===p?' selected':'')+'>'+esc(PRESET_PROFILES[p].label)+'</option>';}).join('')+'</select>';
+    '<option value="">Choose an analyst profile</option>'+
+    Object.keys(PRESETS).map(function(p){var label=PRESET_PROFILES[p].label+(p==='backtest_recommended'?' (Default)':'');return '<option value="'+p+'"'+(S.activePreset===p?' selected':'')+'>'+esc(label)+'</option>';}).join('')+'</select>';
   if(S.activePreset&&S.activePreset!=='__default'){var pi=PRESET_PROFILES[S.activePreset];body+='<div class="impact" style="margin:-5px 0 16px;padding:10px;border:1px solid var(--line-soft);border-radius:8px"><b>'+esc(pi.label)+'</b> - Risk: '+esc(pi.risk)+' - Horizon: '+esc(pi.horizon)+'<br>'+esc(pi.description)+'</div>';}
   body+='<div class="sub-h">Category weights</div>';
   CATS.forEach(function(c){ body+=slider('w.'+c[0], c[1], 0, 30, S.weights[c[0]], DEFAULTS.weights[c[0]], 'How much '+c[1]+' moves the base score.'); });

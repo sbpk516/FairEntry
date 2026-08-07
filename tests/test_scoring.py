@@ -197,6 +197,7 @@ def test_tile_labels_include_quality_growth_and_entry():
     assert ["Quality: excellent", "good"] in labels
     assert ["Growth +31%", "good"] in labels
     assert ["Entry: stretched", "warn"] in labels
+    assert ["Valuation upside +12%", "warn"] in labels
 
 
 # ---- veto / soft-gate firing -------------------------------------------------
