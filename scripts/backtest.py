@@ -10,8 +10,10 @@ Seed a history first with:
 """
 import argparse
 import json
+import os
 import sys
 from dataclasses import replace
+from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -51,7 +53,7 @@ def _markdown_rolling(res):
     tag = "working" if (mono and sig) else "check" if mono else "not monotonic"
     lines += [
         "",
-        f"**Buy - Avoid alpha spread:** {spread:+.2f}%{ci_txt} - "
+        f"**Buy - Avoid alpha spread:** {'n/a' if spread is None else f'{spread:+.2f}%'}{ci_txt} - "
         f"**monotonic:** {mono} - **CI excludes 0:** {sig} - {tag}",
         "",
         "> alpha = each name's return minus its cohort's cross-sectional mean "
@@ -74,6 +76,11 @@ def _write_json(res, path):
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     payload = dict(res)
+    payload["artifact"] = {
+        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "source_commit": os.getenv("GITHUB_SHA") or None,
+        "generator": "scripts/backtest.py",
+    }
     observations = payload.get("observations") or []
     if observations:
         evidence_dir = p.parent / "backtest-evidence"
@@ -85,7 +92,8 @@ def _write_json(res, path):
             primary = payload.get("strategy", {}).get("primary_target", "practical")
             target = o.get("outcome", {}).get("targets", {}).get(primary, {})
             compact.append({k: o.get(k) for k in ("observation_id", "ticker", "company", "sector",
-                                                   "entry_date", "entry_price", "verdict", "score") } | {
+                                                   "entry_date", "entry_price", "verdict", "score",
+                                                   "strategy_key", "strategy_memberships", "preset_name") } | {
                 "quality_grade": o.get("data_quality", {}).get("grade"),
                 "target": target,
                 "horizons": o.get("outcome", {}).get("horizons", {}),
@@ -147,7 +155,8 @@ def _print_rolling(res):
     ci, sig = res.get("spread_ci90"), res.get("significant")
     ci_txt = f"  90% CI [{ci[0]:+.2f}%, {ci[1]:+.2f}%]" if ci else ""
     scope = "screened candidates" if res.get("screened_only", True) else "full universe"
-    print(f"\nBuy - Avoid alpha spread: {spread:+.2f}%{ci_txt}   monotonic: {mono}   CI>0: {sig}")
+    spread_txt = "n/a" if spread is None else f"{spread:+.2f}%"
+    print(f"\nBuy - Avoid alpha spread: {spread_txt}{ci_txt}   monotonic: {mono}   CI>0: {sig}")
     print(f"population: {scope} - warmup {res.get('warmup_days', 0)}d")
     print("alpha = return minus cohort mean (selection, not market). Absolute alpha optimistic (survivorship).")
 
@@ -169,6 +178,8 @@ def main():
     parser.add_argument("--horizons", help="comma-separated forward horizons, e.g. 30,60,90,180,365")
     parser.add_argument("--quality-mode", choices=("strict", "mostly_point_in_time", "experimental"),
                         help="label/policy recorded in the versioned strategy")
+    parser.add_argument("--prospective-db", default=None,
+                        help="optional live store whose signal_events are reported separately")
     args = parser.parse_args()
 
     cfg = load_config()
@@ -182,6 +193,17 @@ def main():
     with Store(args.db) as store:
         res = run_rolling(store, cfg, hold_days=args.hold, step_days=args.step,
                           strategy=strategy, include_evidence=not args.no_evidence) if args.rolling else run(store, cfg)
+    if args.rolling and args.prospective_db:
+        with Store(args.prospective_db) as prospective_store:
+            prospective = run(prospective_store, cfg)
+        res["prospective_validation"] = prospective
+        res["survivorship_control"] = {
+            "seeded_universe_biased": True,
+            "prospective_store": str(args.prospective_db),
+            "prospective_signal_events": prospective.get("signals", 0),
+            "status": "matured" if prospective.get("ok") else "maturing",
+            "reason": prospective.get("reason"),
+        }
 
     if args.rolling:
         _print_rolling(res)

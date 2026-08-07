@@ -12,13 +12,15 @@ benchmark:
   mode: cohort_mean
 horizons_days: [30, 60, 90, 180, 365]
 target:
-  models: [practical, fundamental, technical, blended]
+  models: [practical, fundamental, technical, blended, fcf, book, peer_pe, peer_ps, analyst, lynch]
   primary: practical
   expiry_days: 365
   minimum_upside_pct: 30
   maximum_upside_pct: 100
 data_quality:
-  mode: mostly_point_in_time
+  # The current seeded artifact contains many current-proxy fundamentals.
+  # Choose experimental explicitly; mostly/strict now enforce source exclusion.
+  mode: experimental
   strict_excluded_sources: [seed_const]
 tuning:
   promotion: manual

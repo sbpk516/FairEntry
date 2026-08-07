@@ -149,6 +149,20 @@ _(Weights unchanged since project start.)_
   --sec-history` reconstructs core filing fundamentals (margins, growth, debt,
   Altman inputs, dilution) from **SEC companyfacts by filing date**, materially
   reducing the frozen-fundamentals look-ahead.
+- ~~Execution costs appeared only in target cards~~ → configured entry
+  slippage/costs now affect headline returns and alpha as well.
+- ~~Rejected small cohorts leaked into target evidence~~ → performance and
+  calibration now use the identical accepted-cohort population.
+- ~~Post-expiry grace observations could count as hits~~ → target crossings are
+  now strictly censored at each target's contractual expiry.
+- ~~Several YAML settings were descriptive only~~ → implemented settings are
+  operational and unsupported entry/hit/benchmark values fail fast; target
+  model selection and quality-source policies now change replay behavior.
+- ~~Per-strategy presets were not structurally replayed~~ → candidates now use
+  the live primary-strategy tie-break and that strategy's configured preset,
+  with separate portfolio summaries.
+- ~~Target rows looked like independent trials~~ → calibration now publishes
+  unique-stock/cohort counts, cohort-block intervals and per-year results.
 
 **Residual — the honest ceiling:**
 - **Survivorship bias (biggest residual).** The seeded universe is *today's*
@@ -167,7 +181,9 @@ _(Weights unchanged since project start.)_
   seed is valuation/momentum-accurate only. The live-history run has no such
   limitation.
 - **Deterministic gate only** (no LLM thesis nudge); **α is vs the universe
-  average, not a formal index**; prices exclude dividends and trading costs.
+  average, not a formal index**; prices exclude dividends. Configured entry
+  costs are included, but the model does not simulate liquidity-dependent
+  spreads, market impact, taxes, or exit commissions.
 
 Treat every result as **strong evidence, not proof**, and lean on the live
 paper-portfolio track record (`fairentry/tracking/`) as it accrues true

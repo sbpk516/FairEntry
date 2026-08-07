@@ -79,7 +79,8 @@ jobs:
         run: |
           python scripts/seed_backtest.py --sec-history --limit 150
           python scripts/backtest.py --db data/backtest.db --rolling \
-            --hold 30 --step 7 --json-out web/data/backtest.json
+            --hold 30 --step 7 --prospective-db data/fairentry.db \
+            --json-out web/data/backtest.json
       - name: Upload master.db artifact (regenerable; not committed)
         uses: actions/upload-artifact@v4
         with:

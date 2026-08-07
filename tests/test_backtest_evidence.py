@@ -1,4 +1,5 @@
 import tempfile
+import pytest
 from datetime import date, timedelta
 
 from fairentry.backtest.evidence import evaluate_path, quality_for, summarize_methods, summarize_targets
@@ -13,6 +14,21 @@ def test_strategy_has_stable_version_id():
     assert a.strategy_id == b.strategy_id
     assert a.tuning_promotion == "manual"
     assert (30, 60, 90, 180, 365) == a.horizons_days
+
+
+def test_strategy_rejects_descriptive_only_contract_values():
+    with pytest.raises(ValueError, match="unsupported backtest benchmark"):
+        BacktestStrategy(benchmark="sp500")
+    with pytest.raises(ValueError, match="primary_target"):
+        BacktestStrategy(target_models=("technical",), primary_target="practical")
+
+
+def test_target_models_actually_filter_shared_engine_output():
+    strategy = BacktestStrategy(target_models=("practical", "fcf"), primary_target="practical")
+    rec = {"price": 100, "valuation": {"methods": [
+        {"key": "fcf", "fair": 135}, {"key": "book", "fair": 125}]}}
+    out = targets_for(rec, {"sma200": {"value": 110}}, strategy)
+    assert set(out) == {"practical", "fcf"}
 
 
 def test_target_excludes_analyst_anchor_and_is_frozen():
@@ -76,6 +92,18 @@ def test_target_censoring_and_time_to_target():
     assert out["horizons"]["30"]["return_pct"] == 8
 
 
+def test_target_hit_after_expiry_is_an_expired_failure():
+    series = [{"date": "2024-01-01", "close": 100},
+              {"date": "2024-01-29", "close": 110},
+              {"date": "2024-02-05", "close": 125}]
+    targets = {"fundamental": {"price": 120, "available": True, "expiry_days": 30}}
+    out = evaluate_path(series, 100, targets, (30,), "2024-01-01")
+    target = out["targets"]["fundamental"]
+    assert target["status"] == "expired"
+    assert target["hit_date"] is None
+    assert target["days_to_target"] is None
+
+
 def test_target_below_entry_is_day_zero_reference_not_a_hit():
     series = [{"date": "2024-01-01", "close": 100},
               {"date": "2024-02-01", "close": 110}]
@@ -92,16 +120,21 @@ def test_method_summary_separates_day_zero_references_from_hits():
     obs = [
         {"verdict": "Buy", "outcome": {"targets": {"fcf": {
             "price": 80, "role": "reference", "status": "already_above_at_entry",
-            "available": True, "relevance": "high", "upside_pct": -20}}}},
+            "available": True, "relevance": "high", "upside_pct": -20,
+            "expiry_days": 365}}}, "ticker": "REF"},
         {"verdict": "Buy", "outcome": {"targets": {"fcf": {
             "price": 120, "role": "growth", "status": "reached", "available": True,
-            "relevance": "high", "upside_pct": 20, "days_to_target": 60}}}},
+            "relevance": "high", "upside_pct": 20, "days_to_target": 60,
+            "expiry_days": 730}}}, "ticker": "HIT"},
     ]
     fcf = summarize_methods(obs)["fcf"]
     assert fcf["already_above_at_entry"] == 1
     assert fcf["evaluable"] == 1
     assert fcf["reached"] == 1
     assert fcf["hit_rate_pct"] == 100
+    assert fcf["hit_rate_ci90"] == [27.0, 100.0]
+    assert fcf["unique_stocks"] == 1
+    assert fcf["expiry_days_range"] == [730, 730]
 
 
 def test_unavailable_target_is_not_reported_as_failure():

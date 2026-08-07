@@ -93,6 +93,7 @@ jobs:
         run: |
           python scripts/backtest.py --db data/backtest.db --rolling \
             --hold "$HOLD" --step "$STEP" \
+            --prospective-db data/fairentry.db \
             --target-model "$TARGET_MODEL" --target-expiry "$TARGET_EXPIRY" \
             --md-out "$GITHUB_STEP_SUMMARY" --json-out web/data/backtest.json --json | tee backtest_result.txt
       - name: Tune weights (regime-robust, downside-protected) -> summary

@@ -261,12 +261,35 @@ analyst target, analyst recommendation, short float, beta, insider score,
   be less complete. Missing fields are omitted rather than guessed.
 - **Survivorship bias.** A name that cratered and dropped out of the universe can
   silently vanish from a window, flattering the averages.
-- **Sector medians use the current snapshot** (a small look-ahead). Cheap to
-  remove later by computing medians as-of the entry date.
+- **Sector medians are reconstructed as-of each entry cohort.** This avoids the
+  earlier current-snapshot look-ahead in relative scoring rules.
 - **Deterministic gate only.** The backtest scores on the numbers; it does not
   apply the LLM thesis nudge, so it validates the *numbers-based* Buy filter.
 - **Prices only.** No dividends; alpha is vs. the universe average, not a formal
-  index.
+  index. Configured entry slippage and transaction costs are applied to both
+  headline forward returns and target-evidence entry prices.
+
+Target hits are censored at each method's contractual expiry. The reader may
+load the first weekly close after that boundary to prove expiration, but a
+threshold crossed only after expiry is recorded as expired, not reached. Only
+cohorts meeting the minimum-population rule contribute to headline performance
+or target-calibration denominators.
+
+The versioned strategy contract is executable rather than aspirational. Values
+outside the implemented entry (`snapshot_close`), target-hit (`close`) and
+benchmark (`cohort_mean`) capabilities are rejected. Configured target models
+filter the disclosed/evaluated target set, and data-quality modes control which
+source classes may enter screening and scoring.
+
+Each candidate is replayed with the same primary strategy and preset resolution
+as the live board (Deep Value wins a dual-screener tie). The report publishes
+separate Deep Value and Quality Growth results so later preset changes cannot
+silently diverge from the backtest.
+
+Pass `--prospective-db data/fairentry.db` to attach the live `signal_events`
+ledger as a separate survivorship-clean comparison. The weekly workflow does
+this automatically; it never mixes those prospective observations with the
+seeded universe.
 
 None of these are fatal — they're the normal caveats of a lightweight backtest.
 Read the result as **strong evidence**, not gospel, and lean on the live

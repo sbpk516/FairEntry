@@ -28,7 +28,10 @@ and uses cohort-block bootstrap intervals. Its principal limitations were:
 
 - **Entry:** the historical snapshot close plus configured slippage and costs.
 - **Primary target hit:** a sampled adjusted close at or above the frozen target.
-- **Target status:** `reached`, `expired`, `active`, or unavailable.
+- **Target status:** `reached`, `expired`, `active`, `already_above_at_entry`,
+  or unavailable. A value already below the entry price is a Day 0 valuation
+  reference, not a post-entry target hit, and is excluded from hit-rate
+  numerators and denominators.
 - **Active:** the target was not reached and the complete expiry window is not
   present. Active observations are never counted as failures.
 - **Target time:** calendar days from entry to the first qualifying close.
@@ -85,10 +88,26 @@ Buy–Avoid spread, cohort bootstrap interval, and verdict ladder remain intact.
 
 ### Phase 5 — Progressive-disclosure evidence UI
 
-The Backtest page moves from aggregate results to target summary, filterable
-historical recommendations, and an expandable stock record with target methods,
-horizon outcomes, price path, screen decisions, weights, factors, sources,
-effective dates, and quality labels. The complete JSON can be downloaded.
+The Backtest page has four explicit transparency layers before the stock ledger:
+
+1. **Strategy contract:** the version, run identity, data/entry windows,
+   population, cadence, warmup, costs, benchmark, horizons, target policy,
+   quality mode and tuning policy actually recorded in the artifact.
+2. **Validation health:** the Buy/Watch/Avoid ladder, raw and benchmark-relative
+   returns, Buy-Avoid spread, cohort-bootstrap interval, monotonicity and visible
+   acceptance-criteria checks.
+3. **Stability and concentration:** year and sector diagnostics, best/worst Buy
+   cohorts, quality-grade distribution, and explicit disclosure when prospective
+   or challenger comparisons are not bundled in the artifact.
+4. **Target calibration:** eligible, unique, Day 0, active, reached, expired and
+   evaluable counts; hit rate with a 90% Wilson interval; median timing/upside;
+   and the method's observed expiry range.
+
+The filterable historical ledger then expands into a stock record with target
+methods, horizon outcomes, price path, screen decisions, weights, factors,
+sources, effective dates, and quality labels. The complete JSON can be
+downloaded. Diagnostic year/sector tables are labelled as raw-return summaries,
+not separately validated strategies.
 
 ### Phase 6 — Strategy laboratory and controlled tuning
 
@@ -107,6 +126,33 @@ closes. A result dominated by current-proxy fields should be treated as
 experimental. Production adoption requires adequate sample size, chronological
 validation, an untouched test period, stability across regimes, and comparison
 against simple baselines.
+
+## Correctness invariants
+
+- A cohort contributes observations and target outcomes only after it passes
+  the configured minimum-population requirement.
+- Reported returns and benchmark-relative alpha use the configured
+  cost-adjusted entry price, matching the execution contract shown in the UI.
+- The weekly sampling grace period may prove that a target expired, but a price
+  first observed after contractual expiry is never counted as a successful hit.
+- Values already below the entry price remain Day-0 references and stay outside
+  post-entry target hit-rate denominators.
+- Contract values for entry, target-hit rule and benchmark are validated against
+  implemented capabilities; unsupported values fail at load time instead of
+  generating a misleading new strategy ID.
+- `target.models` filters the shared target engine's output. The configured list
+  explicitly names every model intended for disclosure.
+- Quality modes are operational: `experimental` includes every source,
+  `mostly_point_in_time` excludes configured current proxies, and `strict` also
+  excludes approximated sources.
+- Historical candidates use the same primary-strategy tie-break and configured
+  per-strategy preset as the live board. Separate Deep Value and Quality Growth
+  summaries make future preset divergence visible.
+- Target tables report unique stocks/cohorts, Wilson and cohort-block intervals,
+  per-entry-year calibration, and each method's actual expiry range.
+- The scheduled seeded report also reads the separate live store's prospective
+  signal ledger. Prospective outcomes are displayed as a survivorship-clean
+  control and are never pooled with seeded results.
 
 ## Promotion policy
 

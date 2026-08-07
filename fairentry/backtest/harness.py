@@ -6,8 +6,9 @@ each ticker's metrics as-of that date, scores them, then measures the forward
 return to a later snapshot — bucketed by verdict. With little history it reports
 "insufficient history" gracefully; results sharpen as daily runs accumulate.
 
-Note: sector medians use the current snapshot (a mild anachronism); acceptable
-for a first harness, refine once history is deep.
+Rolling replay sector medians are reconstructed from each cohort's as-of
+metrics. The simple one-window compatibility runner still uses current medians;
+use ``run_rolling`` for strategy validation.
 """
 from __future__ import annotations
 
@@ -46,6 +47,42 @@ def screen_evidence(metrics: dict) -> list[dict]:
         except Exception as exc:
             out.append({"id": key, "passed": False, "detail": f"unavailable: {exc}"})
     return out
+
+
+def _quality_metrics(metrics: dict, strategy) -> dict:
+    """Apply the strategy's declared source policy before screening/scoring."""
+    if strategy.data_quality_mode == "experimental":
+        return metrics
+    excluded = set(strategy.strict_excluded_sources)
+    filtered = {k: v for k, v in metrics.items() if v.get("source") not in excluded}
+    if strategy.data_quality_mode == "strict":
+        allowed = {"sec_hist", "seed_price", "seed_hist", "computed", "FairEntry breakout_v2"}
+        filtered = {k: v for k, v in filtered.items() if v.get("source") in allowed}
+    return filtered
+
+
+def _screen_memberships(metrics: dict) -> tuple[list[str], list[dict]]:
+    evidence = screen_evidence(metrics)
+    passed = [row["id"] for row in evidence if row["passed"]]
+    return passed, evidence
+
+
+def _live_primary_strategy(passed: list[str]) -> str | None:
+    """Mirror build_board: Deep Value wins ties; otherwise Quality Growth."""
+    if "deep_value" in passed:
+        return "deep_value"
+    if "quality_growth" in passed:
+        return "quality_growth"
+    return None
+
+
+def _settings_for_strategy(cfg, base: dict, strategy_key: str | None) -> tuple[dict, str | None]:
+    out = dict(base)
+    preset_name = cfg.defaults.get("strategy_presets", {}).get(strategy_key) if strategy_key else None
+    preset = cfg.scoring.get("presets", {}).get(preset_name) if preset_name else None
+    if preset:
+        out["weights"] = dict(preset)
+    return out, preset_name
 
 
 def _compact_categories(categories):
@@ -296,6 +333,8 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
     secs = store.securities()
     alpha = {"Buy": [], "Watch": [], "Avoid": []}
     raw = {"Buy": [], "Watch": [], "Avoid": []}
+    strategy_alpha: dict[str, dict[str, list[float]]] = {}
+    strategy_raw: dict[str, dict[str, list[float]]] = {}
     cohorts = []
     per_obs = {}        # {cohort_entry: [(verdict, alpha)]} for the block bootstrap
     observations = []
@@ -306,27 +345,32 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
         # candidates = screener-passing names as-of `entry` (matches the live board)
         asof = {}
         for sec in secs:
-            m = _asof_metrics(store, sec["ticker"], entry)
-            if strategy.data_quality_mode == "strict":
-                m = {k: v for k, v in m.items()
-                     if v.get("source") not in strategy.strict_excluded_sources}
+            m = _quality_metrics(_asof_metrics(store, sec["ticker"], entry), strategy)
             if "price" not in m:
                 continue
-            if screened_only and not passes_screen(m):
+            memberships, screening = _screen_memberships(m)
+            if screened_only and not memberships:
                 continue
-            asof[sec["ticker"]] = (sec, m)
+            asof[sec["ticker"]] = (sec, m, memberships, screening)
         # point-in-time sector medians from those names' AS-OF metrics (no look-ahead)
-        med = medians_from(cfg, [(sec["sector"], m) for sec, m in asof.values()])
+        med = medians_from(cfg, [(sec["sector"], m) for sec, m, _, _ in asof.values()])
         rows = []
-        for tkr, (sec, m) in asof.items():
+        cohort_observations = []
+        for tkr, (sec, m, memberships, screening) in asof.items():
             p0 = _price_on(store, tkr, entry)
             p1 = _price_on(store, tkr, exit_)
             if not (p0 and p1 and p0 > 0):
                 continue
-            rec = score_ticker(cfg, sec, m, med, settings)
-            rows.append((rec["verdict"], (p1 / p0 - 1) * 100))
+            primary_strategy = _live_primary_strategy(memberships)
+            scoring_settings, preset_name = _settings_for_strategy(cfg, settings, primary_strategy)
+            rec = score_ticker(cfg, sec, m, med, scoring_settings)
+            # Apply the execution contract to the measured investment return,
+            # not only to the target-evidence card. Because the configured
+            # costs are entry-side basis points, the adjusted entry is the
+            # denominator for both raw return and benchmark-relative alpha.
+            adjusted_entry = p0 * (1 + (strategy.slippage_bps + strategy.transaction_cost_bps) / 10000)
+            rows.append((rec["verdict"], (p1 / adjusted_entry - 1) * 100, primary_strategy))
             if include_evidence:
-                adjusted_entry = p0 * (1 + (strategy.slippage_bps + strategy.transaction_cost_bps) / 10000)
                 targets = targets_for(rec, m, strategy)
                 longest_target = max((t.get("expiry_days", strategy.target_expiry_days)
                                       for t in targets.values()), default=strategy.target_expiry_days)
@@ -336,13 +380,15 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
                 if not practical or not practical.get("price") or not practical.get("status"):
                     raise RuntimeError(f"target completeness invariant failed for {tkr} on {entry}")
                 q = quality_for(m)
-                observations.append({
+                cohort_observations.append({
                     "observation_id": f"{entry}:{tkr}", "ticker": tkr,
                     "company": sec.get("company"), "sector": sec.get("sector"),
+                    "strategy_key": primary_strategy, "strategy_memberships": memberships,
+                    "preset_name": preset_name,
                     "entry_date": entry, "entry_price": round(adjusted_entry, 2),
                     "raw_close": round(p0, 2), "verdict": rec["verdict"],
                     "score": rec["score"], "coverage_pct": rec.get("coverage_pct"),
-                    "screening": screen_evidence(m), "weights": settings.get("weights") or
+                    "screening": screening, "weights": scoring_settings.get("weights") or
                         {cid: c["weight"] for cid, c in cfg.categories.items()},
                     "thresholds": cfg.verdict_bands, "vetoes": rec["vetoes"],
                     "soft_gates": rec["soft_gates"], "categories": _compact_categories(rec["categories"]),
@@ -352,14 +398,22 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
                 })
         if len(rows) < min_names:
             continue
-        mkt = statistics.mean(r for _, r in rows)   # cross-sectional benchmark
+        # Evidence and calibration denominators must describe the same accepted
+        # cohorts as the headline alpha calculation. Do not leak observations
+        # from a cohort rejected by the minimum-population rule.
+        observations.extend(cohort_observations)
+        mkt = statistics.mean(r for _, r, _ in rows)   # cross-sectional benchmark
         cohort_alpha = {"Buy": [], "Watch": [], "Avoid": []}
         per_obs[entry] = []
-        for v, r in rows:
-            alpha.setdefault(v, []).append(r - mkt)
+        for v, r, strategy_key in rows:
+            a = r - mkt
+            alpha.setdefault(v, []).append(a)
             raw.setdefault(v, []).append(r)
-            cohort_alpha.setdefault(v, []).append(r - mkt)
-            per_obs[entry].append((v, r - mkt))
+            cohort_alpha.setdefault(v, []).append(a)
+            per_obs[entry].append((v, a))
+            skey = strategy_key or "unscreened"
+            strategy_alpha.setdefault(skey, {}).setdefault(v, []).append(a)
+            strategy_raw.setdefault(skey, {}).setdefault(v, []).append(r)
         cohorts.append({
             "entry": entry, "exit": exit_, "n": len(rows),
             "mkt_return_pct": round(mkt, 2),
@@ -378,6 +432,21 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
 
     by_verdict = {v: {**stats(a), "mean_raw_return_pct": round(statistics.mean(raw[v]), 2)}
                   for v, a in alpha.items() if a}
+    by_strategy = {}
+    for strategy_key, verdicts in strategy_alpha.items():
+        summary = {v: {**stats(vals),
+                       "mean_raw_return_pct": round(statistics.mean(strategy_raw[strategy_key][v]), 2)}
+                   for v, vals in verdicts.items() if vals}
+        buy = summary.get("Buy", {}).get("mean_alpha_pct")
+        avoid = summary.get("Avoid", {}).get("mean_alpha_pct")
+        by_strategy[strategy_key] = {
+            "preset": cfg.defaults.get("strategy_presets", {}).get(strategy_key),
+            "weights": (cfg.scoring.get("presets", {}).get(
+                cfg.defaults.get("strategy_presets", {}).get(strategy_key)) or {}),
+            "by_verdict": summary,
+            "buy_minus_avoid_pct": round(buy - avoid, 2)
+                if buy is not None and avoid is not None else None,
+        }
     buy_a = by_verdict.get("Buy", {}).get("mean_alpha_pct")
     avoid_a = by_verdict.get("Avoid", {}).get("mean_alpha_pct")
     watch_a = by_verdict.get("Watch", {}).get("mean_alpha_pct")
@@ -397,11 +466,27 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
     run_id = "bt-" + hashlib.sha256(json.dumps(run_basis, sort_keys=True).encode()).hexdigest()[:12]
     return {"ok": True, "run_id": run_id, "strategy": strategy.to_dict(),
             "data_quality": {"warning": "Seeded universe uses today's survivors; inspect each observation grade.",
-                             "universe_bias": "current_top_n_survivorship"},
+                             "universe_bias": "current_top_n_survivorship",
+                             "source_policy": strategy.data_quality_mode},
+            "contract_capabilities": {
+                "entry": ["snapshot_close"], "target_hit": ["close"],
+                "benchmark": ["cohort_mean"],
+                "data_quality": ["strict", "mostly_point_in_time", "experimental"],
+                "unsupported_values": "rejected_at_strategy_load",
+            },
+            "survivorship_control": {
+                "seeded_universe_biased": True,
+                "prospective_signal_events": _signal_count(store),
+                "status": "maturing" if _signal_count(store) else "not_started_in_this_store",
+            },
             "hold_days": hold_days, "step_days": step_days,
+            "execution": {"slippage_bps": strategy.slippage_bps,
+                          "transaction_cost_bps": strategy.transaction_cost_bps,
+                          "return_basis": "cost_adjusted_entry"},
             "cohorts": len(cohorts), "window": [dates[0], dates[-1]],
             "screened_only": screened_only, "warmup_days": warmup_days,
             "by_verdict": by_verdict, "buy_minus_avoid_pct": spread,
+            "by_strategy": by_strategy,
             "spread_ci90": list(ci) if ci else None, "significant": significant,
             "monotonic": monotonic, "per_cohort": cohorts,
             "target_summary": summarize_targets(observations, strategy.primary_target) if include_evidence else {},

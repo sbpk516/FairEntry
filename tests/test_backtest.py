@@ -8,7 +8,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from fairentry.config import load_config
 from fairentry.store import Store
 from fairentry.backtest.seed import snapshots_for, sec_fundamental_snapshots, _ma
-from fairentry.backtest.harness import run_rolling
+from fairentry.backtest.harness import run_rolling, _quality_metrics, _settings_for_strategy
+from fairentry.backtest.strategy import BacktestStrategy
 
 
 # ---- pure snapshot derivation ------------------------------------------------
@@ -158,7 +159,8 @@ def test_rolling_backtest_detects_buy_alpha():
     # screened_only=False / warmup_days=0 keeps this controlled full-population
     # world intact (the LOSE names would be screened out otherwise).
     res = run_rolling(store, cfg, hold_days=30, step_days=14, min_names=20,
-                      screened_only=False, warmup_days=0)
+                      screened_only=False, warmup_days=0,
+                      strategy=BacktestStrategy(data_quality_mode="experimental"))
     store.close()
 
     assert res["ok"], res
@@ -199,9 +201,85 @@ def test_screened_only_reduces_population():
     def total(r):
         return sum(d["n"] for d in r["by_verdict"].values())
     full = run_rolling(store, cfg, hold_days=30, step_days=14, min_names=5,
-                       screened_only=False, warmup_days=0, bootstrap=0)
+                       screened_only=False, warmup_days=0, bootstrap=0,
+                       strategy=BacktestStrategy(data_quality_mode="experimental"))
     scr = run_rolling(store, cfg, hold_days=30, step_days=14, min_names=5,
-                      screened_only=True, warmup_days=0, bootstrap=0)
+                      screened_only=True, warmup_days=0, bootstrap=0,
+                      strategy=BacktestStrategy(data_quality_mode="experimental"))
     store.close()
     assert full["ok"] and scr["ok"]
     assert total(scr) < total(full)          # LOSE names filtered out when screened
+
+
+def test_execution_costs_are_applied_to_reported_returns():
+    cfg = load_config()
+    store = Store(tempfile.mktemp(suffix=".db"))
+    dts = _weekly_dates(12)
+    fund = _fund(gross_margin=70, oper_margin=35, roic=30, debt_eq=0.2,
+                 current_ratio=3.2, altman_z=8, rev_growth_qoq=25,
+                 eps_growth_next_y=30, fwd_pe=12, ps_ratio=2, pb_ratio=2,
+                 pfcf_ratio=10, target_price=200, analyst_recom=1.3,
+                 red_flags_score=100, red_flags_critical=0, short_float=3, beta=1.0)
+    for i in range(3):
+        _seed(store, f"COST{i}", "Technology",
+              [(d, 100 + w * 2) for w, d in enumerate(dts)], fund)
+    store.commit()
+
+    free = run_rolling(store, cfg, hold_days=7, step_days=7, min_names=1,
+                       screened_only=False, warmup_days=0, bootstrap=0,
+                       strategy=BacktestStrategy(slippage_bps=0, transaction_cost_bps=0))
+    costly = run_rolling(store, cfg, hold_days=7, step_days=7, min_names=1,
+                         screened_only=False, warmup_days=0, bootstrap=0,
+                         strategy=BacktestStrategy(slippage_bps=500, transaction_cost_bps=500))
+    store.close()
+
+    verdict = next(iter(free["by_verdict"]))
+    assert costly["by_verdict"][verdict]["mean_raw_return_pct"] < free["by_verdict"][verdict]["mean_raw_return_pct"]
+    assert costly["execution"]["return_basis"] == "cost_adjusted_entry"
+
+
+def test_rejected_small_cohorts_do_not_leak_into_evidence():
+    cfg = load_config()
+    store = Store(tempfile.mktemp(suffix=".db"))
+    dts = _weekly_dates(12)
+    fund = _fund(gross_margin=70, oper_margin=35, roic=30, debt_eq=0.2,
+                 current_ratio=3.2, altman_z=8, rev_growth_qoq=25,
+                 eps_growth_next_y=30, fwd_pe=12, ps_ratio=2, pb_ratio=2,
+                 pfcf_ratio=10, target_price=200, analyst_recom=1.3,
+                 red_flags_score=100, red_flags_critical=0, short_float=3, beta=1.0)
+    _seed(store, "EARLY", "Technology", [(d, 100 + w) for w, d in enumerate(dts)], fund)
+    _seed(store, "LATE", "Technology", [(d, 100 + w) for w, d in enumerate(dts[4:])], fund)
+    store.commit()
+
+    res = run_rolling(store, cfg, hold_days=7, step_days=7, min_names=2,
+                      screened_only=False, warmup_days=0, bootstrap=0)
+    store.close()
+
+    assert res["ok"]
+    assert len(res["observations"]) == sum(c["n"] for c in res["per_cohort"])
+    assert all(o["entry_date"] >= dts[4] for o in res["observations"])
+
+
+def test_quality_modes_have_distinct_operational_source_policies():
+    metrics = {
+        "price": {"value": 10, "source": "seed_price"},
+        "fwd_pe": {"value": 12, "source": "seed_price_scaled"},
+        "growth": {"value": 20, "source": "seed_const"},
+    }
+    experimental = _quality_metrics(metrics, BacktestStrategy(data_quality_mode="experimental"))
+    mostly = _quality_metrics(metrics, BacktestStrategy(data_quality_mode="mostly_point_in_time"))
+    strict = _quality_metrics(metrics, BacktestStrategy(data_quality_mode="strict"))
+    assert set(experimental) == {"price", "fwd_pe", "growth"}
+    assert set(mostly) == {"price", "fwd_pe"}
+    assert set(strict) == {"price"}
+
+
+def test_live_strategy_presets_are_resolved_independently():
+    cfg = load_config()
+    cfg.defaults["strategy_presets"] = {"deep_value": "recovery_value",
+                                        "quality_growth": "quality_compounder"}
+    deep, deep_name = _settings_for_strategy(cfg, {}, "deep_value")
+    growth, growth_name = _settings_for_strategy(cfg, {}, "quality_growth")
+    assert deep_name == "recovery_value"
+    assert growth_name == "quality_compounder"
+    assert deep["weights"] != growth["weights"]
