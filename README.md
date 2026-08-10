@@ -19,6 +19,11 @@ python scripts/backtest.py            # prospective signal backtest once signals
 python scripts/backtest.py --db data/backtest.db --rolling --json-out web/data/backtest.json
 python -m fairentry.mcp.stdio_server  # local MCP for Codex / Claude / ChatGPT clients
 
+# licensed Sharadar SFA historical replay (raw data stays under ignored data/)
+python scripts/sharadar_snapshot.py --build-warehouse
+python scripts/build_sfa_features.py
+python scripts/sfa_backtest.py --step 30 --hold 30
+
 # view the app
 cd web && python -m http.server 8795   # open http://localhost:8795
 # portfolio tracker: http://localhost:8795/portfolio.html

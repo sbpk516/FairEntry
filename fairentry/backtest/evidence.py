@@ -7,6 +7,47 @@ import random
 from datetime import date, timedelta
 
 
+def source_quality(source: str | None, field_id: str | None = None) -> str:
+    """Classify provenance once so policy enforcement and UI labels agree."""
+    source = source or "unknown"
+    if source == "seed_const" or "current_proxy" in source:
+        return "current_proxy"
+    if "proxy" in source or source == "seed_price_scaled":
+        return "approximated"
+    if source == "sec_hist":
+        return "reconstructed"
+    if source.startswith("sharadar_") or source in {
+        "seed_price", "seed_hist", "computed", "FairEntry breakout_v2"
+    }:
+        return "point_in_time"
+    return "approximated"
+
+
+def metrics_for_policy(metrics: dict, strategy) -> dict:
+    """Apply the declared source policy before screening and scoring."""
+    if strategy.data_quality_mode == "experimental":
+        return dict(metrics)
+    excluded = set(strategy.strict_excluded_sources)
+    filtered = {
+        key: value for key, value in metrics.items()
+        if isinstance(value, dict)
+        and value.get("source") not in excluded
+        and source_quality(value.get("source"), key) not in excluded
+    }
+    filtered = {
+        key: value for key, value in filtered.items()
+        if source_quality(value.get("source"), key) != "current_proxy"
+    }
+    if strategy.data_quality_mode == "strict":
+        filtered = {
+            key: value for key, value in filtered.items()
+            if source_quality(value.get("source"), key) in {
+                "point_in_time", "reconstructed"
+            }
+        }
+    return filtered
+
+
 def _wilson_ci(successes: int, total: int, z: float = 1.644854) -> list[float] | None:
     """90% Wilson interval for a binomial hit rate, returned as percentages."""
     if total <= 0:
@@ -40,6 +81,37 @@ def _cohort_hit_ci(pairs: list[tuple[dict, dict]], samples: int = 1000,
             round(rates[int(.95 * len(rates)) - 1], 1)] if rates else None
 
 
+def _two_way_hit_ci(pairs: list[tuple[dict, dict]], samples: int = 1000,
+                    seed: int = 43) -> list[float] | None:
+    """Pigeonhole bootstrap across both entry cohorts and securities."""
+    rows = [(o, t) for o, t in pairs if t.get("status") in {"reached", "expired"}]
+    cohorts = sorted({o.get("decision_date") or o.get("entry_date") for o, _ in rows})
+    securities = sorted({o.get("security_id") or o.get("ticker") for o, _ in rows})
+    if len(cohorts) < 4 or len(securities) < 4:
+        return None
+    rng, rates = random.Random(seed), []
+    for _ in range(samples):
+        cohort_weights = {key: 0 for key in cohorts}
+        security_weights = {key: 0 for key in securities}
+        for _ in cohorts:
+            cohort_weights[rng.choice(cohorts)] += 1
+        for _ in securities:
+            security_weights[rng.choice(securities)] += 1
+        reached = total = 0
+        for observation, target in rows:
+            weight = (
+                cohort_weights.get(observation.get("decision_date") or observation.get("entry_date"), 0)
+                * security_weights.get(observation.get("security_id") or observation.get("ticker"), 0)
+            )
+            total += weight
+            reached += weight * (target.get("status") == "reached")
+        if total:
+            rates.append(reached / total * 100)
+    rates.sort()
+    return [round(rates[int(.05 * len(rates))], 1),
+            round(rates[int(.95 * len(rates)) - 1], 1)] if rates else None
+
+
 def _year_calibration(pairs: list[tuple[dict, dict]]) -> dict:
     out = {}
     for observation, target in pairs:
@@ -54,22 +126,23 @@ def _year_calibration(pairs: list[tuple[dict, dict]]) -> dict:
     return out
 
 
-def quality_for(metrics: dict) -> dict:
+def quality_for(metrics: dict, expected_fields: set[str] | None = None) -> dict:
     counts = {"point_in_time": 0, "reconstructed": 0, "approximated": 0, "current_proxy": 0, "missing": 0}
     fields = []
     for field_id, item in sorted(metrics.items()):
         source = (item.get("source") or "unknown") if isinstance(item, dict) else "unknown"
-        if source == "sec_hist": quality = "reconstructed"
-        elif source in {"seed_price", "seed_hist"} and field_id not in {"fwd_pe", "ps_ratio", "pb_ratio", "pfcf_ratio"}: quality = "point_in_time"
-        elif source in {"seed_price_scaled", "seed_hist"}: quality = "approximated"
-        elif source == "seed_const": quality = "current_proxy"
-        else: quality = "approximated"
+        quality = source_quality(source, field_id)
         counts[quality] += 1
         fields.append({"field": field_id, "value": item.get("value") if isinstance(item, dict) else item,
                        "source": source, "effective_at": item.get("fetched_at") if isinstance(item, dict) else None,
                        "quality": quality})
+    missing = sorted((expected_fields or set()) - set(metrics))
+    counts["missing"] = len(missing)
+    fields.extend({"field": field_id, "value": None, "source": None,
+                   "effective_at": None, "quality": "missing"}
+                  for field_id in missing)
     proxy = counts["current_proxy"]
-    grade = "strict" if proxy == 0 and counts["approximated"] == 0 else "mostly_point_in_time" if proxy <= max(2, len(fields) // 5) else "experimental"
+    grade = "strict" if proxy == 0 and counts["approximated"] == 0 and not missing else "mostly_point_in_time" if proxy <= max(2, len(fields) // 5) else "experimental"
     return {"grade": grade, "counts": counts, "fields": fields}
 
 
@@ -148,6 +221,7 @@ def summarize_targets(observations: list[dict], primary="fundamental") -> dict:
             "hit_rate_pct": round(len(reached) / len(evaluable) * 100, 1) if evaluable else None,
             "hit_rate_ci90": _wilson_ci(len(reached), len(evaluable)),
             "hit_rate_cohort_ci90": _cohort_hit_ci(pairs),
+            "hit_rate_two_way_ci90": _two_way_hit_ci(pairs),
             "unique_stocks": len(unique),
             "unique_cohorts": len({o.get("entry_date") for o, r in pairs if r.get("available")}),
             "per_entry_year": _year_calibration(pairs),
@@ -182,6 +256,7 @@ def summarize_methods(observations: list[dict]) -> dict:
                      "hit_rate_pct": round(len(reached) / len(completed) * 100, 1) if completed else None,
                      "hit_rate_ci90": _wilson_ci(len(reached), len(completed)),
                      "hit_rate_cohort_ci90": _cohort_hit_ci(eligible),
+                     "hit_rate_two_way_ci90": _two_way_hit_ci(eligible),
                      "unique_cohorts": len({o.get("entry_date") for o, _ in eligible}),
                      "per_entry_year": _year_calibration(eligible),
                      "median_days_to_target": round(statistics.median(days), 1) if days else None,

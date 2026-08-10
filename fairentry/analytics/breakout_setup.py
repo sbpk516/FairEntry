@@ -67,6 +67,47 @@ def _clamp(value, lo=0.0, hi=100.0):
     return max(lo, min(hi, value))
 
 
+def breakout_price_metric(close, resistance, *, failed=False):
+    if close is None or not resistance:
+        return None, None
+    above = round((close / resistance - 1) * 100, 2)
+    score = _clamp(40 + above * 20)
+    if close >= resistance * 1.02:
+        score = max(score, 85)
+    elif failed:
+        score = 0
+    return round(score), above
+
+
+def breakout_volume_metric(volume, prior_average):
+    if volume is None or not prior_average:
+        return None, None
+    ratio = round(volume / prior_average, 2)
+    score = _clamp(20 if ratio < .8 else 40 if ratio < 1.2 else
+                   60 if ratio < 1.5 else 85 if ratio < 2 else 100)
+    return round(score), ratio
+
+
+def relative_strength_metric(stock_return, sector_return, spy_return):
+    alphas = [stock_return - value for value in (sector_return, spy_return)
+              if stock_return is not None and value is not None]
+    alpha = round(sum(alphas) / len(alphas), 2) if alphas else None
+    return (None, None) if alpha is None else (round(_clamp(50 + alpha * 3)), alpha)
+
+
+def trend_regime_metric(close, ma50, ma200, prior50):
+    checks = []
+    if close is not None and ma50 is not None:
+        checks.append(close > ma50)
+    if close is not None and ma200 is not None:
+        checks.append(close > ma200)
+    if ma50 is not None and ma200 is not None:
+        checks.append(ma50 > ma200)
+    if ma50 is not None and prior50 is not None:
+        checks.append(ma50 > prior50)
+    return (round(sum(checks) / len(checks) * 100) if checks else None), checks
+
+
 def _status(score, *, contradicted=False):
     if score is None:
         return "unknown"
@@ -312,43 +353,27 @@ def _price_series(records: list[tuple[dict, dict]]) -> dict:
 def _market_factors(closes: list[float], volumes: list[float], sector_closes: list[float],
                     spy_closes: list[float], observed_at=None):
     sr = _support_resistance(closes)
-    if sr["resistance"] and closes:
-        above_resistance = round((closes[-1] / sr["resistance"] - 1) * 100, 2)
-        price_score = _clamp(40 + above_resistance * 20)
-        if sr["breakout"]:
-            price_score = max(price_score, 85)
-        elif sr["label"] == "failed":
-            price_score = 0
-    else:
-        above_resistance = None
-        price_score = None
+    price_score, above_resistance = breakout_price_metric(
+        closes[-1] if closes else None, sr["resistance"], failed=sr["label"] == "failed"
+    )
 
     avg50 = _avg(volumes, 50, exclude_latest=True)
-    volume_ratio = round(volumes[-1] / avg50, 2) if volumes and avg50 else None
-    volume_score = None if volume_ratio is None else _clamp(
-        20 if volume_ratio < .8 else 40 if volume_ratio < 1.2 else
-        60 if volume_ratio < 1.5 else 85 if volume_ratio < 2 else 100)
+    volume_score, volume_ratio = breakout_volume_metric(
+        volumes[-1] if volumes else None, avg50
+    )
 
     stock_ret = _ret(closes, _PERIODS["3m"])
     sector_ret = _ret(sector_closes, _PERIODS["3m"])
     spy_ret = _ret(spy_closes, _PERIODS["3m"])
-    alphas = [stock_ret - x for x in (sector_ret, spy_ret)
-              if stock_ret is not None and x is not None]
-    relative_alpha = round(sum(alphas) / len(alphas), 2) if alphas else None
-    relative_score = None if relative_alpha is None else _clamp(50 + relative_alpha * 3)
+    relative_score, relative_alpha = relative_strength_metric(
+        stock_ret, sector_ret, spy_ret
+    )
 
     ma50, ma200 = _ma(closes, 50), _ma(closes, 200)
     prior50 = (sum(closes[-70:-20]) / 50) if len(closes) >= 70 else None
-    trend_checks = []
-    if closes and ma50:
-        trend_checks.append(closes[-1] > ma50)
-    if closes and ma200:
-        trend_checks.append(closes[-1] > ma200)
-    if ma50 and ma200:
-        trend_checks.append(ma50 > ma200)
-    if ma50 and prior50:
-        trend_checks.append(ma50 > prior50)
-    trend_score = round(sum(trend_checks) / len(trend_checks) * 100) if trend_checks else None
+    trend_score, trend_checks = trend_regime_metric(
+        closes[-1] if closes else None, ma50, ma200, prior50
+    )
 
     factors = [
         _factor("price_breakout", "market_confirmation", "Price above resistance", price_score,

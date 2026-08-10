@@ -13,11 +13,16 @@ data/xbrl_cache/
 data/ten_k_cache/
 .fe_cache/
 data/mcp_state.json
+# Licensed Sharadar/Nasdaq snapshots and derived warehouse. Never publish.
+data/sharadar/
+data/sfa_backtest*.db
 
 # python
 __pycache__/
 *.pyc
 .pytest_cache/
+.pytest-*/
+.gh-backtest-artifact-*/
 .venv/
 venv/
 
@@ -27,5 +32,6 @@ Thumbs.db
 
 # regenerable UI data export (large; produced by build_all.py / CI)
 web/data/*.json
+!web/data/backtest-sfa.json
 web/data/charts/
 web/data/backtest-evidence/

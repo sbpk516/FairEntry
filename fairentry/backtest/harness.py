@@ -22,7 +22,8 @@ from ..scoring.engine import sector_medians, medians_from, score_ticker
 from ..screeners import REGISTRY as SCREENERS
 from .strategy import load_strategy
 from .targets import targets_for
-from .evidence import quality_for, price_series, evaluate_path, summarize_targets, summarize_methods
+from .evidence import (quality_for, price_series, evaluate_path, summarize_targets,
+                       summarize_methods, metrics_for_policy)
 
 
 def passes_screen(metrics: dict) -> bool:
@@ -51,14 +52,7 @@ def screen_evidence(metrics: dict) -> list[dict]:
 
 def _quality_metrics(metrics: dict, strategy) -> dict:
     """Apply the strategy's declared source policy before screening/scoring."""
-    if strategy.data_quality_mode == "experimental":
-        return metrics
-    excluded = set(strategy.strict_excluded_sources)
-    filtered = {k: v for k, v in metrics.items() if v.get("source") not in excluded}
-    if strategy.data_quality_mode == "strict":
-        allowed = {"sec_hist", "seed_price", "seed_hist", "computed", "FairEntry breakout_v2"}
-        filtered = {k: v for k, v in filtered.items() if v.get("source") in allowed}
-    return filtered
+    return metrics_for_policy(metrics, strategy)
 
 
 def _screen_memberships(metrics: dict) -> tuple[list[str], list[dict]]:

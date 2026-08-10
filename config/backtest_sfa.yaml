@@ -1,0 +1,36 @@
+version: 2
+name: fairentry_sfa_point_in_time_v2
+universe:
+  mode: sharadar_point_in_time
+  sectors: live_enabled
+  screened_only: true
+  top_n: 1000
+  market_cap_min_usd: 300000000
+  price_min_usd: 1
+  avg_dollar_volume_min_usd: 20000000
+execution:
+  entry: next_close
+  target_hit: close
+  slippage_bps: 10
+  transaction_cost_bps: 5
+  exit_slippage_bps: 10
+  exit_transaction_cost_bps: 5
+benchmark:
+  mode: spy_total_return
+horizons_days: [30, 60, 90, 180, 365, 548]
+target:
+  models: [practical, fundamental, technical, blended, fcf, book, peer_pe, peer_ps, lynch]
+  primary: practical
+  expiry_days: 365
+  minimum_upside_pct: 30
+  maximum_upside_pct: 100
+  practical_policy: fundamental_first
+data_quality:
+  mode: strict
+  minimum_coverage_pct: 50
+  strict_excluded_sources: [seed_const, current_proxy]
+tuning:
+  promotion: manual
+  challenger_holds_days: [20, 30, 60, 90, 180]
+portfolio:
+  max_positions: 20

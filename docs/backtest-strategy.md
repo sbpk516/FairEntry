@@ -17,6 +17,7 @@ change is made.
 | **Automated** | `.github/workflows/backtest.yml` — weekly (Sun 06:00 UTC), on demand, and whenever backtest code changes. Seeds real Yahoo prices → runs the rolling backtest → runs the regime-robust weight tuner → posts both tables to the run summary and uploads the data. Read-only (never deploys). |
 | **Local — validate the filter** | `python scripts/seed_backtest.py` then `python scripts/backtest.py --db data/backtest.db --rolling` |
 | **Local — tune weights (recommend only)** | `python scripts/tune_weights.py --db data/backtest.db --holds 20,30,60 --folds 4 --reg 0.4 --protect risk,survival` |
+| **Local — SFA point-in-time replay** | `python scripts/sfa_backtest.py --step 30 --hold 30` (private licensed warehouse; preferred historical evidence) |
 
 The tuner **never edits config** — it recommends. Weight changes are applied by
 hand and recorded in the Decision log below.
@@ -43,12 +44,40 @@ the *relative* ladder and the CI, not the absolute magnitude.
 - It is **no worse on the worst-case (fold × hold) slice** than the current weights.
 - The **defensive categories (`risk`, `survival`) stay near default** (guardrailed) — we do not cut downside protection on data that covers only one macro regime.
 
-α = a name's forward return minus its cohort's cross-sectional mean (stock
-selection, market direction removed).
+α = a name's forward return minus the run's declared benchmark. The preferred
+SFA replay uses SPY total return; the legacy seeded replay uses its cohort's
+cross-sectional mean.
 
 ---
 
 ## Current status
+
+### 2026-08-10 — Sharadar SFA point-in-time baseline
+
+The first full SFA replay used snapshot `20260810T132048Z`, 333 monthly entry
+cohorts from 1998-10-27 through 2026-07-29, historical active **and delisted**
+securities, as-reported fundamentals available on each decision date, next-close
+entries, configured costs, and SPY total return as the benchmark. It covered
+2,916 unique securities after screening and factor-coverage controls.
+
+```text
+Buy    n=244     -0.21% mean alpha   47.1% beat-benchmark rate
+Watch  n=58,932  -0.08% mean alpha   48.3% beat-benchmark rate
+Avoid  n=35,705  -0.24% mean alpha   47.6% beat-benchmark rate
+Buy - Avoid spread +0.03% · 90% cohort-block CI [-1.14%, +1.15%]
+Monotonic ladder: no
+```
+
+**Conclusion:** the current Backtest Recommended weights and Buy filter are
+**not validated by the SFA baseline**. This materially conflicts with the older
+survivor-seeded result below. The weights remain unchanged for now so that a
+single newly integrated dataset does not silently alter the live strategy; they
+must be redesigned and evaluated on separate development and held-out periods
+before another recommendation is adopted.
+
+The SFA result is the preferred historical reliability check. The older result
+below remains useful for implementation comparison, but not as the primary
+claim about expected performance.
 
 _Last reviewed: 2026-08-05 using the successful 2026-08-02 scheduled run
 (161 cohorts, 2022-08 through 2026-07)._
@@ -165,16 +194,16 @@ _(Weights unchanged since project start.)_
   unique-stock/cohort counts, cohort-block intervals and per-year results.
 
 **Residual — the honest ceiling:**
-- **Survivorship bias (biggest residual).** The seeded universe is *today's*
+- **Legacy replay survivorship bias.** The legacy seeded universe is *today's*
   Finviz survivors — names that delisted or went to zero are absent, so **absolute
   α is optimistic**, worst for the Avoid tail. No free point-in-time-universe
-  source exists in the stack to add delisted names. **The real fix is time:** the
-  *live* `metrics_history` keeps names after they leave the universe, so a
-  live-history run (`scripts/backtest.py --rolling` on `data/fairentry.db`) is
-  survivorship-clean **going forward**. Cross-check against it as history deepens.
-- **One macro regime.** All history (2023–26) is a recovery/bull market. Blocked
-  CV guards *sampling* overfit, not *macro-regime* overfit. **Revisit** the
-  defensive weights once a real drawdown is in the data.
+  source exists in the legacy stack to add delisted names. The SFA replay closes
+  this gap with a historical active-and-delisted universe. Continue using the
+  prospective `metrics_history` ledger as a true out-of-sample cross-check.
+- **Legacy replay has one macro regime.** Its 2023–26 history is predominantly a
+  recovery/bull market. The SFA replay now spans multiple regimes since 1998 and
+  reports regime slices, but strategy changes still require a chronologically
+  held-out period rather than tuning on the entire SFA history.
 - **Fundamentals still partial even with `--sec-history`.** Analyst targets and
   recommendations, short float, beta, news, and some insider/institutional
   signals remain current, omitted, or approximate; without `--sec-history` the

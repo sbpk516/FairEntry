@@ -74,7 +74,7 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
                  "upside_pct": fv["upside_pct"], "valuation_label": fv["valuation_label"]})
     categories, cat_scores = [], {}
     for cid, cat in cfg.categories.items():
-        items, num, den = [], 0.0, 0.0
+        items, num, den, observed_den = [], 0.0, 0.0, 0.0
         for it in cat["items"]:
             val = flat.get(it["metric"])
             score, how = apply_rule(it["rule"], val, med.get(it["metric"]))
@@ -90,6 +90,8 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
             if score is not None:
                 num += it["weight"] * score
                 den += it["weight"]
+                if val is not None:
+                    observed_den += it["weight"]
         cscore = round(num / den) if den else None
         configured_item_weight = sum(i["weight"] for i in cat["items"])
         for item in items:
@@ -97,8 +99,9 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
                                     if item["score"] is not None and den else None)
         cat_scores[cid] = cscore
         categories.append({"id": cid, "label": cat["label"], "weight": weights.get(cid, cat["weight"]),
-                           "score": cscore, "coverage": round(den / configured_item_weight * 100),
+                           "score": cscore, "coverage": round(observed_den / configured_item_weight * 100),
                            "available_item_weight": den,
+                           "observed_item_weight": observed_den,
                            "configured_item_weight": configured_item_weight,
                            "missing_item_weight": configured_item_weight - den,
                            "items": items})
@@ -176,5 +179,8 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
         "vetoes": vetoes, "soft_gates": gates,
         "coverage_pct": round(bden / sum(weights.get(cid, cfg.categories[cid]["weight"])
                                          for cid in cfg.categories) * 100) if bden else 0,
+        "factor_coverage_pct": round(
+            sum(c["weight"] * c["coverage"] for c in categories) /
+            sum(c["weight"] for c in categories), 1) if categories else 0,
         "decision_trace": decision_trace,
     }

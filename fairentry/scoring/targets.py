@@ -59,7 +59,7 @@ def _timeframe(upside):
 
 def build_target_plan(record: dict, metrics: dict, *, minimum_upside_pct=10.0,
                       maximum_upside_pct=100.0, expiry_days=365,
-                      historical=False) -> dict:
+                      historical=False, practical_policy="nearest_credible") -> dict:
     price = record.get("price")
     valuation = record.get("valuation") or {}
     if not isinstance(price, (int, float)) or price <= 0:
@@ -135,31 +135,52 @@ def build_target_plan(record: dict, metrics: dict, *, minimum_upside_pct=10.0,
     # configured minimum. The technical continuation target guarantees a target
     # for every valid price, while stronger fundamental agreement can win when
     # it is closer and still meaningful.
-    candidates = [t for t in targets.values() if t["applicable"] and not t["excluded"]
+    candidates = [t for key, t in targets.items() if t["applicable"] and not t["excluded"]
                   and t.get("relevance") != "low"
                   and t["upside_pct"] >= minimum_upside_pct - 0.01
-                  and t["upside_pct"] <= maximum_upside_pct]
+                  and t["upside_pct"] <= maximum_upside_pct
+                  and (practical_policy != "fundamental_first"
+                       or key not in {"technical", "blended"})]
     candidates.sort(key=lambda t: (1 if t["confidence"] == "low" else 0, t["upside_pct"]))
-    chosen = dict(candidates[0] if candidates else targets["technical"])
-    chosen.update({"method": "practical", "selected_method": chosen["method"],
-                   "label": "Practical recommended target", "role": "practical",
-                   "expiry_days": max(expiry_days, chosen["timeframe_days"]),
-                   "status": "pending"})
+    if candidates:
+        chosen = dict(candidates[0])
+        chosen.update({"method": "practical", "selected_method": chosen["method"],
+                       "label": "Practical recommended target", "role": "practical",
+                       "expiry_days": max(expiry_days, chosen["timeframe_days"]),
+                       "status": "pending", "selection_policy": practical_policy})
+    elif practical_policy == "fundamental_first":
+        chosen = {"method": "practical", "selected_method": None,
+                  "label": "Practical recommended target", "price": None,
+                  "upside_pct": None, "timeframe_days": expiry_days,
+                  "quality": "unavailable", "confidence": "unavailable",
+                  "available": False, "applicable": False, "excluded": False,
+                  "relevance": "high", "reason": "No stock-specific fundamental target cleared the configured upside range",
+                  "role": "practical", "basis": "Fundamental-first historical calibration",
+                  "expiry_days": expiry_days, "status": "unavailable",
+                  "selection_policy": practical_policy}
+    else:
+        chosen = dict(targets["technical"])
+        chosen.update({"method": "practical", "selected_method": "technical",
+                       "label": "Practical recommended target", "role": "practical",
+                       "expiry_days": max(expiry_days, chosen["timeframe_days"]),
+                       "status": "pending", "selection_policy": practical_policy})
     targets["practical"] = chosen
 
     for key, target in targets.items():
-        target.setdefault("expiry_days", max(expiry_days, target["timeframe_days"]))
+        target.setdefault("expiry_days", max(expiry_days, target.get("timeframe_days") or expiry_days))
         if key == "practical" or target["excluded"]:
             continue
         if target["price"] <= price:
             target["role"] = "reference"
-        elif target["price"] <= chosen["price"]:
+        elif isinstance(chosen.get("price"), (int, float)) and target["price"] <= chosen["price"]:
             target["role"] = "conservative"
         elif target["upside_pct"] <= 100:
             target["role"] = "growth"
         else:
             target["role"] = "bull"
 
-    return {"version": 2, "status": "target_available", "practical": chosen,
+    return {"version": 2, "status": "target_available" if chosen.get("available") else "no_credible_practical_target", "practical": chosen,
             "targets": targets,
-            "explanation": f"Minimum practical expectation: {chosen['selected_method']} target at ${chosen['price']:.2f}."}
+            "explanation": (f"Minimum practical expectation: {chosen['selected_method']} target at ${chosen['price']:.2f}."
+                            if isinstance(chosen.get("price"), (int, float))
+                            else chosen.get("reason"))}

@@ -315,3 +315,18 @@ cohorts**, not just one.
 
 The versioned target/outcome design and its trust boundaries are documented in
 [`BACKTEST_EVIDENCE_IMPLEMENTATION.md`](BACKTEST_EVIDENCE_IMPLEMENTATION.md).
+
+## SFA point-in-time replay
+
+The preferred historical backtest is now the private SFA warehouse replay. It
+includes active and delisted securities, as-reported filing dimensions, daily
+corporate-action-aware prices and SPY total-return benchmarking. See
+[`SFA_BACKTEST.md`](SFA_BACKTEST.md) for storage, commands, public-data
+boundaries and residual limitations. The seeded Yahoo/SEC runner remains as a
+legacy comparison and free fallback.
+
+The SFA contract additionally requires live-universe parity, observed-only
+coverage, identical stock/SPY execution dates, round-trip costs, terminal-event
+censoring, multi-horizon evidence through approximately 18 months, and separate
+chronological tuning for Deep Value and Quality Growth. Run the complete local
+validation with `./scripts/run_sfa_validation.ps1`.
