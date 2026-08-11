@@ -126,8 +126,8 @@ the middle 50% of successful hit times.
 
 ## Latest completed replay
 
-Run `sfa-e74aa4ea3d95` used snapshot `20260810T132048Z` and implementation
-commit `2627976`. It evaluated 333 monthly cohorts from October 1998 through
+Run `sfa-bfdabde939fa` used snapshot `20260810T132048Z` and implementation
+commit `0708270`. It evaluated 333 monthly cohorts from October 1998 through
 June 2026, comprising 41,896 issuer-deduplicated observations.
 
 - The 30-day Buy-minus-Avoid alpha spread was +1.17 percentage points. Its
@@ -145,3 +145,7 @@ June 2026, comprising 41,896 issuer-deduplicated observations.
   is therefore not an acceptance criterion.
 - Neither the Deep Value nor Quality Growth challenger passed both validation
   and untouched-test gates. No weight promotion is recommended.
+- Consecutive Buy recommendations collapsed from 335 signals to 227 investment
+  episodes. Among mature episodes, 123 of 224 (54.9%) reached a net +25% within
+  one year; 148 of 222 (66.7%) reached it within two years. Median time among
+  successful episodes was 111 and 143 days respectively.
