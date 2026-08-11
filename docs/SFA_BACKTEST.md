@@ -105,3 +105,25 @@ deletion obligations may differ from the Nasdaq snapshot.
   replay, chronological tuner and test sequence.
 - Do not tune weights on every run. Require improvement across blocked time
   folds and an untouched final holdout before manual promotion.
+
+## Latest completed replay
+
+Run `sfa-e74aa4ea3d95` used snapshot `20260810T132048Z` and implementation
+commit `2627976`. It evaluated 333 monthly cohorts from October 1998 through
+June 2026, comprising 41,896 issuer-deduplicated observations.
+
+- The 30-day Buy-minus-Avoid alpha spread was +1.17 percentage points. Its
+  cohort-block 90% interval was +0.03 to +2.25, while the more conservative
+  cohort-and-issuer interval was -0.45 to +2.93. Treat the short-horizon edge
+  as promising, not yet robustly proven.
+- The 365-day and 548-day spreads were -2.27 and -3.66 percentage points, with
+  intervals crossing zero. The strategy does not demonstrate a reliable
+  long-horizon selection edge in this replay.
+- The Practical target hit rate was 40.9% (108 of 264 evaluable Buys). The FCF
+  hit rate was 31.6%; 29 FCF values were already below entry and are disclosed
+  separately rather than counted as post-entry hits.
+- The constrained Buy portfolio compounded +526.21%, but experienced a -64.44%
+  maximum drawdown and an approximate 0.40 Sharpe ratio. Absolute return alone
+  is therefore not an acceptance criterion.
+- Neither the Deep Value nor Quality Growth challenger passed both validation
+  and untouched-test gates. No weight promotion is recommended.
