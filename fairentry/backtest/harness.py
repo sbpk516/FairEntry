@@ -24,6 +24,7 @@ from .strategy import load_strategy
 from .targets import targets_for
 from .evidence import (quality_for, price_series, evaluate_path, summarize_targets,
                        summarize_methods, metrics_for_policy)
+from .universe import deduplicate_issuers, issuer_key
 
 
 def passes_screen(metrics: dict) -> bool:
@@ -346,6 +347,21 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
             if screened_only and not memberships:
                 continue
             asof[sec["ticker"]] = (sec, m, memberships, screening)
+        issuer_items, _ = deduplicate_issuers([
+            {
+                "sec": sec,
+                "metrics": metrics,
+                "memberships": memberships,
+                "screening": screening,
+            }
+            for sec, metrics, memberships, screening in asof.values()
+        ])
+        asof = {
+            item["sec"]["ticker"]: (
+                item["sec"], item["metrics"], item["memberships"], item["screening"]
+            )
+            for item in issuer_items
+        }
         # point-in-time sector medians from those names' AS-OF metrics (no look-ahead)
         med = medians_from(cfg, [(sec["sector"], m) for sec, m, _, _ in asof.values()])
         rows = []
@@ -376,6 +392,7 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
                 q = quality_for(m)
                 cohort_observations.append({
                     "observation_id": f"{entry}:{tkr}", "ticker": tkr,
+                    "issuer_key": issuer_key(sec.get("company"), tkr),
                     "company": sec.get("company"), "sector": sec.get("sector"),
                     "strategy_key": primary_strategy, "strategy_memberships": memberships,
                     "preset_name": preset_name,
@@ -473,6 +490,11 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
                 "prospective_signal_events": _signal_count(store),
                 "status": "maturing" if _signal_count(store) else "not_started_in_this_store",
             },
+            "issuer_deduplication": {
+                "enabled": True,
+                "policy": "primary_class_then_liquidity",
+                "count_basis": "one_representative_security_per_issuer_per_cohort",
+            },
             "hold_days": hold_days, "step_days": step_days,
             "execution": {"slippage_bps": strategy.slippage_bps,
                           "transaction_cost_bps": strategy.transaction_cost_bps,
@@ -483,6 +505,7 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
             "by_strategy": by_strategy,
             "spread_ci90": list(ci) if ci else None, "significant": significant,
             "monotonic": monotonic, "per_cohort": cohorts,
+            "unique_issuers": len({row["issuer_key"] for row in observations}),
             "target_summary": summarize_targets(observations, strategy.primary_target) if include_evidence else {},
             "target_method_summary": summarize_methods(observations) if include_evidence else {},
             "observations": observations if include_evidence else []}

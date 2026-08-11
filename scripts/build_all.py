@@ -15,6 +15,7 @@ from fairentry.store import Store
 from fairentry.catalog.refresh import refresh
 from fairentry.pipeline.export import build_board, write_board
 from fairentry.screeners import REGISTRY as SCREENERS
+from fairentry.backtest.universe import deduplicate_issuers
 
 
 def _candidates(cfg, store, cap):
@@ -29,6 +30,11 @@ def _candidates(cfg, store, cap):
     def capval(t):
         v = store.metrics_for(t).get("market_cap", {}).get("value")
         return v if isinstance(v, (int, float)) else 0
+    representatives, _ = deduplicate_issuers([
+        {"sec": security, "metrics": store.metrics_for(security["ticker"])}
+        for security in store.securities() if security["ticker"] in cand
+    ])
+    cand = [item["sec"]["ticker"] for item in representatives]
     return sorted(cand, key=capval, reverse=True)[:cap] if cap else sorted(cand)
 
 

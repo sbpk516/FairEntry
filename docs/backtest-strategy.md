@@ -162,6 +162,8 @@ _(Weights unchanged since project start.)_
 - Tuner wants to cut a defensive category hard → guardrail is doing its job; do
   not remove it without drawdown data.
 - Seeded count collapses → data problem, not a model problem.
+- Multiple share classes for one issuer appear as independent recommendations
+  → universe deduplication failed; retain only the primary/liquid class.
 
 ---
 

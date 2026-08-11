@@ -16,6 +16,7 @@ from ..alerts import wma_alerts
 from ..scoring.engine import sector_medians, score_ticker
 from ..scoring.targets import build_target_plan
 from ..screeners import REGISTRY as SCREENERS
+from ..backtest.universe import deduplicate_issuers
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 OUT = ROOT / "web" / "data" / "board.json"
@@ -571,6 +572,16 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
                 store.set_screen_result(t, sid, True, {})
     store.commit()
 
+    issuer_candidates = [
+        {"sec": secs[t], "metrics": store.metrics_for(t)} for t in quals
+    ]
+    issuer_representatives, excluded_share_classes = deduplicate_issuers(
+        issuer_candidates
+    )
+    kept_tickers = {item["sec"]["ticker"] for item in issuer_representatives}
+    quals = {ticker: strategies for ticker, strategies in quals.items()
+             if ticker in kept_tickers}
+
     # Calculate one breakout evidence trace before scoring. Its individual
     # quantitative metrics feed existing categories; the trace itself powers the
     # existing breakout label and progressive-disclosure panel (no second score).
@@ -654,6 +665,11 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
     return {"meta": {"generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                      "sectors": [s["id"] for s in cfg.enabled_sectors],
                      "config_version": cfg.scoring.get("version"), "count": len(stocks),
+                     "issuer_deduplication": {
+                         "enabled": True,
+                         "policy": "primary_class_then_liquidity",
+                         "excluded_share_classes": excluded_share_classes,
+                     },
                      "reasoning": reasoning_summary,
                      "ai_review": ai_review,
                      "wma_alerts": proximity_alerts,

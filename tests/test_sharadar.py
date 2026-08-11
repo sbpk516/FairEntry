@@ -5,6 +5,7 @@ from dataclasses import replace
 from fairentry.backtest.evidence import metrics_for_policy, quality_for
 from fairentry.backtest.sfa_replay import SFAReplay, _implementation_fingerprint, _row_metrics
 from fairentry.backtest.sfa_tune import tune_sfa_observations
+from fairentry.backtest.universe import deduplicate_issuers
 from fairentry.analytics.breakout_setup import (breakout_price_metric,
     breakout_volume_metric, relative_strength_metric, trend_regime_metric)
 from fairentry.config import load_config
@@ -58,12 +59,12 @@ def test_snapshot_applies_live_universe_floors_before_top_n():
     con = duckdb.connect(":memory:")
     con.execute("""CREATE TABLE canonical_securities(
         security_id VARCHAR,ticker VARCHAR,company VARCHAR,sector VARCHAR,industry VARCHAR,
-        country VARCHAR,isdelisted VARCHAR,firstpricedate DATE,lastpricedate DATE)""")
-    con.executemany("INSERT INTO canonical_securities VALUES (?,?,?,?,?,?,?,?,?)", [
-        ("1", "GOOD", "Good", "Technology", "Software", "US", "N", "2020-01-01", "2030-01-01"),
-        ("2", "WRONG", "Wrong sector", "Healthcare", "Biotech", "US", "N", "2020-01-01", "2030-01-01"),
-        ("3", "PENNY", "Penny", "Technology", "Software", "US", "N", "2020-01-01", "2030-01-01"),
-        ("4", "ILLIQ", "Illiquid", "Technology", "Software", "US", "N", "2020-01-01", "2030-01-01"),
+        country VARCHAR,category VARCHAR,isdelisted VARCHAR,firstpricedate DATE,lastpricedate DATE)""")
+    con.executemany("INSERT INTO canonical_securities VALUES (?,?,?,?,?,?,?,?,?,?)", [
+        ("1", "GOOD", "Good", "Technology", "Software", "US", "Domestic Common Stock", "N", "2020-01-01", "2030-01-01"),
+        ("2", "WRONG", "Wrong sector", "Healthcare", "Biotech", "US", "Domestic Common Stock", "N", "2020-01-01", "2030-01-01"),
+        ("3", "PENNY", "Penny", "Technology", "Software", "US", "Domestic Common Stock", "N", "2020-01-01", "2030-01-01"),
+        ("4", "ILLIQ", "Illiquid", "Technology", "Software", "US", "Domestic Common Stock", "N", "2020-01-01", "2030-01-01"),
     ])
     con.execute("""CREATE TABLE sfa_price_features(
         ticker VARCHAR,date DATE,close DOUBLE,closeadj DOUBLE,closeunadj DOUBLE,high DOUBLE,low DOUBLE,
@@ -244,3 +245,24 @@ def test_sfa_tuner_uses_disjoint_chronological_partitions_per_strategy():
         split = result["split"]
         assert split["development"]["last"] < split["validation"]["first"]
         assert split["validation"]["last"] < split["test"]["first"]
+
+
+def test_issuer_deduplication_prefers_primary_share_class():
+    items = [
+        {"sec": {"ticker": "GOOG", "company": "ALPHABET INC",
+                 "category": "Domestic Common Stock Secondary Class"},
+         "metrics": {"market_cap": {"value": 2_000_000_000_000}}},
+        {"sec": {"ticker": "GOOGL", "company": "ALPHABET INC",
+                 "category": "Domestic Common Stock Primary Class"},
+         "metrics": {"market_cap": {"value": 2_000_000_000_000}}},
+    ]
+    kept, removed = deduplicate_issuers(items)
+    assert [row["sec"]["ticker"] for row in kept] == ["GOOGL"]
+    assert removed == [{
+        "issuer_key": "ALPHABETINC",
+        "company": "ALPHABET INC",
+        "ticker": "GOOG",
+        "kept_ticker": "GOOGL",
+        "reason": "duplicate_issuer_share_class",
+    }]
+    assert kept[0]["excluded_share_classes"] == ["GOOG"]

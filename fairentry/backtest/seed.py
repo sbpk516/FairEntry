@@ -35,6 +35,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from ..store import Store
+from .universe import deduplicate_issuers
 
 # ratios that move linearly with price (denominator held constant)
 _PRICE_SCALED = ("fwd_pe", "ps_ratio", "pb_ratio", "pfcf_ratio")
@@ -382,6 +383,11 @@ def seed(src_db: Path | str, dst_db: Path | str = None, tickers=None,
         if tickers:
             want = {t.upper() for t in tickers}
             secs = [s for s in secs if s["ticker"].upper() in want]
+        representatives, _ = deduplicate_issuers([
+            {"sec": security, "metrics": src.metrics_for(security["ticker"])}
+            for security in secs
+        ])
+        secs = [item["sec"] for item in representatives]
         if limit:
             # prefer the largest names (most liquid history) when capping
             def cap(s):

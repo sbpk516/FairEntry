@@ -46,6 +46,9 @@ loads SFA by default and offers a link to the legacy seeded replay.
 - The historical universe applies the same enabled sectors, $300M market-cap,
   $1 price and $20M average-dollar-volume floors as the live board before the
   top-N limit. Sector medians use that full eligible pre-screen population.
+- Multiple listed share classes are grouped at issuer level before screening.
+  The primary common-stock class is preferred, then liquidity and market cap;
+  GOOG and GOOGL therefore count as one Alphabet idea rather than two trades.
 - Financial statements use as-reported `ART` and `ARQ` dimensions and only rows
   whose `datekey` was available by the decision date.
 - Unit contracts are normalized explicitly; for example, DAILY market

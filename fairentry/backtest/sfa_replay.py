@@ -31,6 +31,7 @@ from .harness import (
 )
 from .strategy import load_strategy
 from .targets import targets_for
+from .universe import deduplicate_issuers, issuer_key
 
 
 def _implementation_fingerprint() -> str:
@@ -42,6 +43,7 @@ def _implementation_fingerprint() -> str:
         Path(__file__).with_name("harness.py"),
         Path(__file__).with_name("strategy.py"),
         Path(__file__).with_name("targets.py"),
+        Path(__file__).with_name("universe.py"),
         repo / "config" / "catalog.yaml",
         repo / "config" / "defaults.yaml",
         repo / "config" / "scoring.yaml",
@@ -50,7 +52,10 @@ def _implementation_fingerprint() -> str:
         repo / "requirements.txt",
         repo / "fairentry" / "analytics" / "breakout_setup.py",
         repo / "fairentry" / "analytics" / "demand_momentum.py",
+        repo / "fairentry" / "pipeline" / "export.py",
+        repo / "fairentry" / "backtest" / "seed.py",
         repo / "fairentry" / "sharadar" / "warehouse.py",
+        repo / "scripts" / "build_all.py",
         repo / "scripts" / "build_sfa_features.py",
         repo / "scripts" / "sfa_backtest.py",
         *sorted((repo / "fairentry" / "scoring").glob("*.py")),
@@ -393,20 +398,8 @@ class SFAReplay:
         WITH u AS (
           SELECT * FROM canonical_securities
           WHERE firstpricedate<=? AND lastpricedate>=? AND sector IS NOT NULL{sector_clause}
-        ), p AS (
-          SELECT * FROM sfa_price_features WHERE date<=?
-          QUALIFY row_number() OVER (PARTITION BY ticker ORDER BY date DESC)=1
-        ), art AS (
-          SELECT * FROM sfa_art_features WHERE datekey<=?
-          QUALIFY row_number() OVER (PARTITION BY ticker ORDER BY datekey DESC, reportperiod DESC)=1
-        ), arq AS (
-          SELECT * FROM sfa_arq_features WHERE datekey<=?
-          QUALIFY row_number() OVER (PARTITION BY ticker ORDER BY datekey DESC, reportperiod DESC)=1
-        ), d AS (
-          SELECT * FROM sfa_daily WHERE date<=?
-          QUALIFY row_number() OVER (PARTITION BY ticker ORDER BY date DESC)=1
         )
-        SELECT u.security_id,u.ticker,u.company,u.sector,u.industry,u.country,u.isdelisted,u.lastpricedate,
+        SELECT u.security_id,u.ticker,u.company,u.sector,u.industry,u.country,u.category,u.isdelisted,u.lastpricedate,
                p.date price_date,p.close,p.closeadj,p.closeunadj,p.high,p.low,p.volume,
                p.history_sessions,p.sma50,p.sma200,p.wma200_proxy,p.avgvol50,p.resistance50,p.support126,p.close_3m,p.close_1y,p.sma50_1m_ago,
                art.datekey,art.reportperiod,art.grossmargin,art.ros,art.opinc,art.revenue,
@@ -416,8 +409,27 @@ class SFAReplay:
                arq.opinc_prev_q,arq.sharesbas sharesbas_q,
                arq.shares_prev_y,arq.grossmargin grossmargin_q,arq.grossmargin_prev_q,
                d.marketcap marketcap_daily,d.pe pe_daily,d.ps ps_daily,d.pb pb_daily
-        FROM u JOIN p USING(ticker) LEFT JOIN art USING(ticker)
-        LEFT JOIN arq USING(ticker) LEFT JOIN d USING(ticker)
+        FROM u
+        JOIN LATERAL (
+          SELECT * FROM sfa_price_features p0
+          WHERE p0.ticker=u.ticker AND p0.date<=?
+          ORDER BY p0.date DESC LIMIT 1
+        ) p ON true
+        LEFT JOIN LATERAL (
+          SELECT * FROM sfa_art_features art0
+          WHERE art0.ticker=u.ticker AND art0.datekey<=?
+          ORDER BY art0.datekey DESC,art0.reportperiod DESC LIMIT 1
+        ) art ON true
+        LEFT JOIN LATERAL (
+          SELECT * FROM sfa_arq_features arq0
+          WHERE arq0.ticker=u.ticker AND arq0.datekey<=?
+          ORDER BY arq0.datekey DESC,arq0.reportperiod DESC LIMIT 1
+        ) arq ON true
+        LEFT JOIN LATERAL (
+          SELECT * FROM sfa_daily d0
+          WHERE d0.ticker=u.ticker AND d0.date<=?
+          ORDER BY d0.date DESC LIMIT 1
+        ) d ON true
          WHERE coalesce(d.marketcap * 1000000,art.marketcap)>=?
            AND p.close>=?
            AND p.close * coalesce(p.avgvol50,0)>=?
@@ -441,6 +453,7 @@ class SFAReplay:
                         "sector": row["sector"],
                         "industry": row["industry"],
                         "country": row["country"],
+                        "category": row["category"],
                         "security_id": row["security_id"],
                         "isdelisted": str(row["isdelisted"]).lower() in {"y", "true", "1"},
                         "lastpricedate": str(row["lastpricedate"]),
@@ -451,6 +464,7 @@ class SFAReplay:
                     "raw": row,
                 }
             )
+        out, _ = deduplicate_issuers(out)
         candidates = out[:strategy.universe_top_n]
         self._enrich_point_in_time(candidates, asof)
         return candidates, out
@@ -702,13 +716,17 @@ def run_sfa_rolling(
     strategy_raw: dict = {}
     rejected_coverage = 0
     benchmark_cache: dict[tuple[str, str], float | None] = {}
-    universe_audit = {"eligible": 0, "top_n": 0, "screened": 0}
+    universe_audit = {
+        "eligible_issuers": 0,
+        "top_n_issuers": 0,
+        "screened_issuers": 0,
+    }
     for entry in entries:
         decision = date.fromisoformat(entry)
         nominal_exit = (decision + timedelta(days=hold_days)).isoformat()
         snapshot, median_universe = replay.snapshot(entry, strategy, cfg)
-        universe_audit["eligible"] += len(median_universe)
-        universe_audit["top_n"] += len(snapshot)
+        universe_audit["eligible_issuers"] += len(median_universe)
+        universe_audit["top_n_issuers"] += len(snapshot)
         for item in median_universe:
             item["metrics"] = metrics_for_policy(item["metrics"], strategy)
         filtered = []
@@ -719,7 +737,7 @@ def run_sfa_rolling(
                 continue
             item.update({"memberships": memberships, "screening": screening})
             filtered.append(item)
-        universe_audit["screened"] += len(filtered)
+        universe_audit["screened_issuers"] += len(filtered)
         medians = medians_from(
             cfg, [(x["sec"]["sector"], x["metrics"]) for x in median_universe]
         )
@@ -860,6 +878,10 @@ def run_sfa_rolling(
                 "observation_id": f"{entry}:{sec['security_id']}",
                 "ticker": sec["ticker"],
                 "security_id": sec["security_id"],
+                "issuer_key": item.get("issuer_key") or issuer_key(
+                    sec.get("company"), sec.get("ticker")
+                ),
+                "excluded_share_classes": item.get("excluded_share_classes", []),
                 "company": sec["company"],
                 "sector": sec["sector"],
                 "strategy_key": primary,
@@ -1245,6 +1267,11 @@ def run_sfa_rolling(
             "seeded_universe_biased": False,
             "status": "historical active/delisted SFA universe",
         },
+        "issuer_deduplication": {
+            "enabled": True,
+            "policy": "primary_class_then_liquidity",
+            "count_basis": "one_representative_security_per_issuer_per_cohort",
+        },
         "hold_days": hold_days,
         "step_days": step_days,
         "warmup_days": warmup_days,
@@ -1277,6 +1304,7 @@ def run_sfa_rolling(
         "regime_summary": regime_summary,
         "portfolio_summary": portfolio_summary,
         "unique_stocks": len({o["security_id"] for o in observations}),
+        "unique_issuers": len({o["issuer_key"] for o in observations}),
         "target_summary": summarize_targets(observations, strategy.primary_target)
         if include_evidence
         else {},
