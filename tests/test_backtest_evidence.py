@@ -2,7 +2,14 @@ import tempfile
 import pytest
 from datetime import date, timedelta
 
-from fairentry.backtest.evidence import evaluate_path, quality_for, summarize_methods, summarize_targets
+from fairentry.backtest.evidence import (
+    evaluate_path,
+    fixed_return_milestones,
+    quality_for,
+    summarize_buy_return_achievement,
+    summarize_methods,
+    summarize_targets,
+)
 from fairentry.backtest.strategy import BacktestStrategy, load_strategy
 from fairentry.backtest.targets import targets_for
 from fairentry.scoring.targets import build_target_plan
@@ -154,6 +161,81 @@ def test_active_is_not_counted_as_failure():
     assert s["evaluable"] == 1
     assert s["hit_rate_pct"] == 100
     assert s["active_or_unavailable"] == 1
+
+
+def test_fixed_return_milestones_use_adjusted_closes_and_execution_costs():
+    milestones = fixed_return_milestones(
+        [
+            {"date": "2024-01-02", "closeadj": 100},
+            {"date": "2024-04-01", "closeadj": 126},
+            {"date": "2024-07-01", "closeadj": 132},
+        ],
+        100,
+        "2024-01-02",
+        entry_cost_bps=15,
+        exit_cost_bps=15,
+        thresholds=(25, 30),
+    )
+    assert milestones["first_hit_days"]["25"] == 90
+    assert milestones["first_hit_days"]["30"] == 181
+    assert milestones["return_basis"] == "dividend_adjusted_close_with_entry_and_exit_costs"
+
+
+def test_return_attainment_collapses_consecutive_buys_and_censors_active_rows():
+    def row(day, verdict, first_hit, observed, issuer="ISSUER-A"):
+        return {
+            "entry_date": day,
+            "ticker": "AAA",
+            "issuer_key": issuer,
+            "verdict": verdict,
+            "return_milestones": {
+                "first_hit_days": {"25": first_hit},
+                "last_observed_days": observed,
+                "terminal_days": None,
+            },
+        }
+
+    observations = [
+        row("2023-01-01", "Buy", 80, 730),
+        row("2023-01-31", "Buy", 40, 730),  # same episode; do not double-count
+        row("2023-03-02", "Watch", None, 730),
+        row("2023-04-01", "Buy", None, 730),  # new episode and mature failure
+        row("2026-01-01", "Buy", None, 40, "ISSUER-B"),  # active, not failure
+    ]
+    summary = summarize_buy_return_achievement(
+        observations, 30, thresholds=(25,), horizons=(90, 365)
+    )
+    episodes = summary["views"]["episodes"]
+    signals = summary["views"]["signals"]
+    assert episodes["observations"] == 3
+    assert signals["observations"] == 4
+    cell = episodes["matrix"]["25"]["90"]
+    assert cell["reached"] == 1
+    assert cell["expired"] == 1
+    assert cell["active"] == 1
+    assert cell["evaluable"] == 2
+    assert cell["hit_rate_pct"] == 50.0
+    assert cell["median_days_to_hit"] == 80
+
+
+def test_terminal_event_makes_fixed_return_horizon_evaluable():
+    observations = [{
+        "entry_date": "2024-01-01",
+        "ticker": "DELIST",
+        "issuer_key": "DELIST",
+        "verdict": "Buy",
+        "return_milestones": {
+            "first_hit_days": {"25": None},
+            "last_observed_days": 60,
+            "terminal_days": 75,
+        },
+    }]
+    cell = summarize_buy_return_achievement(
+        observations, 30, thresholds=(25,), horizons=(365,)
+    )["views"]["episodes"]["matrix"]["25"]["365"]
+    assert cell["evaluable"] == 1
+    assert cell["expired"] == 1
+    assert cell["active"] == 0
 
 
 def test_quality_exposes_current_proxy():

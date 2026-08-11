@@ -20,8 +20,15 @@ from ..analytics.demand_momentum import _SECTOR_ETF
 from ..analytics.breakout_setup import (breakout_price_metric,
     breakout_volume_metric, relative_strength_metric, trend_regime_metric)
 from ..scoring.engine import medians_from, score_ticker
-from .evidence import (evaluate_path, metrics_for_policy, quality_for,
-                       summarize_methods, summarize_targets)
+from .evidence import (
+    evaluate_path,
+    fixed_return_milestones,
+    metrics_for_policy,
+    quality_for,
+    summarize_buy_return_achievement,
+    summarize_methods,
+    summarize_targets,
+)
 from .harness import (
     _compact_categories,
     _compact_valuation,
@@ -963,6 +970,14 @@ def run_sfa_rolling(
                 )
                 target_outcome.pop("path", None)
                 target_outcome["horizons"] = observation["horizons"]
+                observation["return_milestones"] = fixed_return_milestones(
+                    buy_paths.get(observation["ticker"], []),
+                    observation["_entry_closeadj"],
+                    entry_date,
+                    entry_cost_bps=(strategy.slippage_bps + strategy.transaction_cost_bps),
+                    exit_cost_bps=(strategy.exit_slippage_bps + strategy.exit_transaction_cost_bps),
+                    terminal_date=terminal.get("date") if terminal else None,
+                )
                 if terminal:
                     for target in target_outcome.get("targets", {}).values():
                         target_expiry = (
@@ -1311,5 +1326,8 @@ def run_sfa_rolling(
         "target_method_summary": summarize_methods(observations)
         if include_evidence
         else {},
+        "buy_return_achievement": summarize_buy_return_achievement(
+            observations, step_days
+        ) if include_evidence else {},
         "observations": observations,
     }

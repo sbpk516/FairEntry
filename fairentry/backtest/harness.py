@@ -22,8 +22,16 @@ from ..scoring.engine import sector_medians, medians_from, score_ticker
 from ..screeners import REGISTRY as SCREENERS
 from .strategy import load_strategy
 from .targets import targets_for
-from .evidence import (quality_for, price_series, evaluate_path, summarize_targets,
-                       summarize_methods, metrics_for_policy)
+from .evidence import (
+    evaluate_path,
+    fixed_return_milestones,
+    metrics_for_policy,
+    price_series,
+    quality_for,
+    summarize_buy_return_achievement,
+    summarize_methods,
+    summarize_targets,
+)
 from .universe import deduplicate_issuers, issuer_key
 
 
@@ -386,6 +394,9 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
                                       for t in targets.values()), default=strategy.target_expiry_days)
                 path = price_series(store, tkr, entry, max(strategy.horizons_days + (longest_target,)))
                 outcome = evaluate_path(path, adjusted_entry, targets, strategy.horizons_days, entry)
+                return_milestones = fixed_return_milestones(
+                    path, adjusted_entry, entry
+                )
                 practical = outcome.get("targets", {}).get("practical")
                 if not practical or not practical.get("price") or not practical.get("status"):
                     raise RuntimeError(f"target completeness invariant failed for {tkr} on {entry}")
@@ -406,6 +417,7 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
                     "valuation": _compact_valuation(rec["valuation"]), "targets": targets,
                     "practical_target": practical,
                     "data_quality": q, "outcome": outcome,
+                    "return_milestones": return_milestones,
                 })
         if len(rows) < min_names:
             continue
@@ -508,4 +520,7 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
             "unique_issuers": len({row["issuer_key"] for row in observations}),
             "target_summary": summarize_targets(observations, strategy.primary_target) if include_evidence else {},
             "target_method_summary": summarize_methods(observations) if include_evidence else {},
+            "buy_return_achievement": summarize_buy_return_achievement(
+                observations, step_days
+            ) if include_evidence else {},
             "observations": observations if include_evidence else []}

@@ -106,6 +106,24 @@ deletion obligations may differ from the Nasdaq snapshot.
 - Do not tune weights on every run. Require improvement across blocked time
   folds and an untouched final holdout before manual promotion.
 
+## Fixed-return achievement after a Buy
+
+The backtest separately reports whether Buy recommendations reached fixed net
+returns of 10%, 15%, 20%, 25%, 30% and 50% within 90, 180, 270, 365 and 730
+calendar days. Attainment uses the first dividend-adjusted daily close that
+clears the threshold after configured entry and exit costs.
+
+The primary view counts Buy episodes, not every repeated recommendation. A
+consecutive run of Buy observations for one issuer starts at its first Buy and
+remains one episode until a non-Buy observation or a gap longer than 1.5 cohort
+intervals. The raw-signal view remains available for auditability.
+
+Recent observations are not failures merely because their horizon has not
+elapsed. A row is evaluable when it reaches the threshold early, the complete
+horizon is observed, or the security reaches a terminal event. The UI displays
+reached, evaluable and active counts, Wilson uncertainty, median time to hit and
+the middle 50% of successful hit times.
+
 ## Latest completed replay
 
 Run `sfa-e74aa4ea3d95` used snapshot `20260810T132048Z` and implementation

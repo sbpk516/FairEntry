@@ -7,6 +7,10 @@ import random
 from datetime import date, timedelta
 
 
+RETURN_THRESHOLDS_PCT = (10, 15, 20, 25, 30, 50)
+RETURN_HORIZONS_DAYS = (90, 180, 270, 365, 730)
+
+
 def source_quality(source: str | None, field_id: str | None = None) -> str:
     """Classify provenance once so policy enforcement and UI labels agree."""
     source = source or "unknown"
@@ -204,6 +208,179 @@ def evaluate_path(series: list[dict], entry_price: float, targets: dict, horizon
             "max_drawdown_pct": round((min(closes) / entry_price - 1) * 100, 2),
             "last_date": series[-1]["date"], "last_price": round(series[-1]["close"], 2),
             "path": [[p["date"], round(p["close"], 2)] for p in series]}
+
+
+def fixed_return_milestones(
+    series: list[dict],
+    entry_closeadj: float,
+    entry: str,
+    *,
+    entry_cost_bps: float = 0,
+    exit_cost_bps: float = 0,
+    terminal_date: str | None = None,
+    thresholds: tuple[int, ...] = RETURN_THRESHOLDS_PCT,
+) -> dict:
+    """Record first daily-close attainment for fixed investment returns.
+
+    The calculation uses dividend-adjusted closes and both sides of configured
+    execution costs. It stores only derived milestone days, never the vendor
+    price path, so the aggregate can be published safely.
+    """
+    if not entry_closeadj or entry_closeadj <= 0:
+        return {"status": "data_unavailable", "first_hit_days": {}}
+    start = date.fromisoformat(entry)
+    entry_basis = entry_closeadj * (1 + entry_cost_bps / 10000)
+    rows = []
+    for point in series:
+        observed = point.get("date")
+        closeadj = point.get("closeadj", point.get("close"))
+        if not observed or not isinstance(closeadj, (int, float)) or closeadj < 0:
+            continue
+        elapsed = (date.fromisoformat(str(observed)) - start).days
+        if elapsed < 0:
+            continue
+        net_return = (
+            (float(closeadj) * (1 - exit_cost_bps / 10000)) / entry_basis - 1
+        ) * 100
+        rows.append((elapsed, net_return, str(observed)))
+    rows.sort()
+    first_hits = {}
+    for threshold in thresholds:
+        first = next((elapsed for elapsed, value, _ in rows if value >= threshold), None)
+        first_hits[str(threshold)] = first
+    terminal_days = None
+    if terminal_date:
+        terminal_days = max(0, (date.fromisoformat(terminal_date) - start).days)
+    return {
+        "status": "observed" if rows else "data_unavailable",
+        "return_basis": "dividend_adjusted_close_with_entry_and_exit_costs",
+        "first_hit_days": first_hits,
+        "last_observed_days": rows[-1][0] if rows else None,
+        "last_observed_date": rows[-1][2] if rows else None,
+        "terminal_days": terminal_days,
+        "max_return_pct": round(max((value for _, value, _ in rows), default=0), 2),
+    }
+
+
+def _percentile(values: list[int], fraction: float) -> float | None:
+    if not values:
+        return None
+    ordered = sorted(values)
+    if len(ordered) == 1:
+        return float(ordered[0])
+    position = (len(ordered) - 1) * fraction
+    lower = int(math.floor(position))
+    upper = int(math.ceil(position))
+    if lower == upper:
+        return float(ordered[lower])
+    return ordered[lower] + (ordered[upper] - ordered[lower]) * (position - lower)
+
+
+def _buy_episode_roots(observations: list[dict], max_gap_days: int) -> list[dict]:
+    """Collapse a contiguous run of Buy recommendations into one entry episode."""
+    grouped: dict[str, list[dict]] = {}
+    for observation in observations:
+        key = (observation.get("issuer_key") or observation.get("security_id")
+               or observation.get("ticker"))
+        if key and observation.get("entry_date"):
+            grouped.setdefault(str(key), []).append(observation)
+    episodes = []
+    for rows in grouped.values():
+        active = False
+        previous_date = None
+        for observation in sorted(rows, key=lambda row: row["entry_date"]):
+            current = date.fromisoformat(observation["entry_date"])
+            if previous_date is not None and (current - previous_date).days > max_gap_days:
+                active = False
+            if observation.get("verdict") == "Buy":
+                if not active and observation.get("return_milestones"):
+                    episodes.append(observation)
+                active = True
+            else:
+                active = False
+            previous_date = current
+    return sorted(episodes, key=lambda row: (row["entry_date"], row.get("ticker", "")))
+
+
+def _return_attainment_view(
+    rows: list[dict], thresholds: tuple[int, ...], horizons: tuple[int, ...]
+) -> dict:
+    matrix = {}
+    for threshold in thresholds:
+        horizon_rows = {}
+        for horizon in horizons:
+            completed, reached, days = [], [], []
+            for row in rows:
+                milestone = row.get("return_milestones") or {}
+                first = (milestone.get("first_hit_days") or {}).get(str(threshold))
+                observed_days = milestone.get("last_observed_days")
+                terminal_days = milestone.get("terminal_days")
+                hit = isinstance(first, (int, float)) and first <= horizon
+                mature = (
+                    isinstance(observed_days, (int, float)) and observed_days >= horizon
+                ) or (
+                    isinstance(terminal_days, (int, float)) and terminal_days <= horizon
+                )
+                if hit or mature:
+                    completed.append(row)
+                    if hit:
+                        reached.append(row)
+                        days.append(int(first))
+            total = len(completed)
+            hits = len(reached)
+            horizon_rows[str(horizon)] = {
+                "threshold_pct": threshold,
+                "horizon_days": horizon,
+                "reached": hits,
+                "evaluable": total,
+                "expired": total - hits,
+                "active": len(rows) - total,
+                "hit_rate_pct": round(hits / total * 100, 1) if total else None,
+                "hit_rate_ci90": _wilson_ci(hits, total),
+                "median_days_to_hit": round(statistics.median(days), 1) if days else None,
+                "p25_days_to_hit": round(_percentile(days, .25), 1) if days else None,
+                "p75_days_to_hit": round(_percentile(days, .75), 1) if days else None,
+                "unique_issuers": len({
+                    row.get("issuer_key") or row.get("security_id") or row.get("ticker")
+                    for row in completed
+                }),
+            }
+        matrix[str(threshold)] = horizon_rows
+    return {"observations": len(rows), "matrix": matrix}
+
+
+def summarize_buy_return_achievement(
+    observations: list[dict],
+    step_days: int,
+    *,
+    thresholds: tuple[int, ...] = RETURN_THRESHOLDS_PCT,
+    horizons: tuple[int, ...] = RETURN_HORIZONS_DAYS,
+) -> dict:
+    """Summarize fixed-return attainment for raw signals and Buy episodes."""
+    buys = [row for row in observations
+            if row.get("verdict") == "Buy" and row.get("return_milestones")]
+    max_gap_days = max(step_days + 1, int(math.ceil(step_days * 1.5)))
+    episodes = _buy_episode_roots(observations, max_gap_days)
+    return {
+        "version": 1,
+        "thresholds_pct": list(thresholds),
+        "horizons_days": list(horizons),
+        "return_basis": "dividend_adjusted_close_with_entry_and_exit_costs",
+        "hit_rule": "first daily adjusted close at or above fixed net return",
+        "episode_definition": (
+            "Consecutive Buy recommendations for one issuer are one episode; "
+            "a non-Buy observation or a gap longer than 1.5 cohort intervals starts a new episode."
+        ),
+        "episode_max_gap_days": max_gap_days,
+        "active_policy": (
+            "Reached observations are immediately evaluable; otherwise the full horizon "
+            "or a terminal security event must be observed. Incomplete recent observations are active."
+        ),
+        "views": {
+            "episodes": _return_attainment_view(episodes, thresholds, horizons),
+            "signals": _return_attainment_view(buys, thresholds, horizons),
+        },
+    }
 
 
 def summarize_targets(observations: list[dict], primary="fundamental") -> dict:
