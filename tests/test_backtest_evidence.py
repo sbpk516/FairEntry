@@ -238,6 +238,16 @@ def test_terminal_event_makes_fixed_return_horizon_evaluable():
     assert cell["active"] == 0
 
 
+def test_fixed_return_milestones_accept_terminal_timestamp():
+    milestones = fixed_return_milestones(
+        [{"date": "2024-01-01", "closeadj": 100}],
+        100,
+        "2024-01-01",
+        terminal_date="2024-03-01 00:00:00",
+    )
+    assert milestones["terminal_days"] == 60
+
+
 def test_quality_exposes_current_proxy():
     q = quality_for({"price": {"value": 10, "source": "seed_hist", "fetched_at": "2024-01-01"},
                      "target_price": {"value": 20, "source": "seed_const", "fetched_at": "2024-01-01"}})

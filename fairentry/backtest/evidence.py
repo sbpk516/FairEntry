@@ -250,7 +250,8 @@ def fixed_return_milestones(
         first_hits[str(threshold)] = first
     terminal_days = None
     if terminal_date:
-        terminal_days = max(0, (date.fromisoformat(terminal_date) - start).days)
+        terminal_day = date.fromisoformat(str(terminal_date)[:10])
+        terminal_days = max(0, (terminal_day - start).days)
     return {
         "status": "observed" if rows else "data_unavailable",
         "return_basis": "dividend_adjusted_close_with_entry_and_exit_costs",
