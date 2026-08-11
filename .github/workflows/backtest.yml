@@ -72,7 +72,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install deps
-        run: pip install -r requirements.txt
+        run: pip install -r requirements.txt pytest
       - name: Verify SFA contract and synthetic parity fixtures
         run: python -m pytest -q tests/test_sharadar.py tests/test_backtest_evidence.py
       # Reuse the live store (current metrics) the refresh workflow persists.
