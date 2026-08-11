@@ -10,6 +10,27 @@ the price path, the comparison benchmark, and the quality of every input.
 The existing 30/60-day tests remain. Target attainment, 90/180/365-day outcomes,
 drawdown, provenance, and stock-level drill-down are additive.
 
+## Family-facing evidence design rule
+
+The backtest is a decision record, not a scorecard. Its user interface follows
+these permanent rules:
+
+- begin with a short answer in plain English;
+- explain every unfamiliar label beside the number with an information icon;
+- let the reader open the exact rule, dates, data, calculation, and stock-level
+  evidence without leaving the page;
+- keep technical reproduction IDs behind an optional details panel;
+- use charts, comparison cards, timelines, and year maps when they make a result
+  easier to understand;
+- never hide incomplete cases, repeated recommendations, Day 0 value references,
+  different target time limits, or licensed-data sampling;
+- keep thresholds, holding periods, counting choices, and filters selectable;
+- prefer one reusable evidence calculation over page-specific calculations.
+
+The Practical valuation goal starts at 30% by default. The fixed-return explorer
+is a separate question and currently supports 10%, 15%, 20%, 25%, 30%, 40%,
+50%, 75%, 100%, 150%, and 200% gains over 3, 6, 9, 12, and 24 months.
+
 ## Review findings
 
 The original rolling harness correctly reconstructs metrics as of each cohort,
