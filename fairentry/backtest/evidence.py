@@ -7,7 +7,7 @@ import random
 from datetime import date, timedelta
 
 
-RETURN_THRESHOLDS_PCT = (10, 15, 20, 25, 30, 50)
+RETURN_THRESHOLDS_PCT = (10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200)
 RETURN_HORIZONS_DAYS = (90, 180, 270, 365, 730)
 
 

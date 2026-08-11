@@ -3,6 +3,7 @@ import pytest
 from datetime import date, timedelta
 
 from fairentry.backtest.evidence import (
+    RETURN_THRESHOLDS_PCT,
     evaluate_path,
     fixed_return_milestones,
     quality_for,
@@ -21,6 +22,10 @@ def test_strategy_has_stable_version_id():
     assert a.strategy_id == b.strategy_id
     assert a.tuning_promotion == "manual"
     assert (30, 60, 90, 180, 365) == a.horizons_days
+
+
+def test_return_explorer_covers_large_gains():
+    assert RETURN_THRESHOLDS_PCT == (10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200)
 
 
 def test_strategy_rejects_descriptive_only_contract_values():
