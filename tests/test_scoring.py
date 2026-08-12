@@ -96,6 +96,21 @@ def test_reproducible():
     assert r1["base_score"] > 0
 
 
+def test_sfa_percent_weights_preserve_the_previous_display_scale_decision():
+    """Changing only the display scale must not change any live decision."""
+    cfg = load_config()
+    current = cfg.scoring["presets"]["backtest_recommended"]
+    previous = cfg.scoring["presets"]["pre_sfa_display_scale"]
+    current_result = score_ticker(
+        cfg, _SEC, _strong_metrics(), _MED, {**_SETTINGS, "weights": current}
+    )
+    previous_result = score_ticker(
+        cfg, _SEC, _strong_metrics(), _MED, {**_SETTINGS, "weights": previous}
+    )
+    assert current_result["base_score"] == previous_result["base_score"]
+    assert current_result["verdict"] == previous_result["verdict"]
+
+
 def test_decision_trace_reproduces_score_and_explains_every_effect():
     cfg = load_config()
     r = score_ticker(cfg, _SEC, _strong_metrics(), _MED, _SETTINGS)

@@ -175,6 +175,13 @@ observation. This lets a challenger fairly turn a historical Watch into a Buy
 without publishing or duplicating the licensed daily price rows. Repeated
 weekly Buys for one issuer remain one episode.
 
+The exact effective weights used by run `sfa-927c352ce0b3` were Growth 33.75%,
+Business Quality 22.50%, Valuation 18.75%, Market Confirmation 18.75%, and
+Financial Survival 6.25%. These are displayed directly on both the SFA
+evidence page and the live board. The former `18, 5, 27, 15, 15` display scale
+is preserved as the named `pre_sfa_display_scale` profile; it has identical
+proportions and therefore produces the same tested score.
+
 Decision dates are chronological: 60% development, 20% validation and 20%
 untouched final test. The tuner chooses weights using development only. It then
 requires later-period improvement, sample-size checks and stability across

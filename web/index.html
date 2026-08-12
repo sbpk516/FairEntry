@@ -79,6 +79,14 @@
   .seg button{ border:none; background:transparent; color:var(--ink-soft); font-size:12.5px; font-weight:600; padding:6px 11px; border-radius:7px; }
   .seg button.on{ background:var(--panel); color:var(--ink); }
   .count{ font-size:12.5px; color:var(--ink-faint); font-family:var(--mono); margin-left:auto; }
+  .active-weights{ margin:10px 20px 0; padding:12px 14px; border:1px solid var(--line); border-radius:11px; background:var(--panel); }
+  .active-weights-top{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .active-weights-title{ font-weight:850; font-size:13px; }
+  .active-weights-name{ color:var(--accent-ink); font-size:12px; font-weight:750; }
+  .active-weight-list{ display:flex; gap:7px; flex-wrap:wrap; margin-top:9px; }
+  .active-weight{ padding:6px 9px; border-radius:8px; background:var(--accent-soft); color:var(--ink-soft); font-size:11px; }
+  .active-weight b{ color:var(--ink); font-family:var(--mono); font-size:12px; }
+  .active-weights-note{ margin-top:8px; color:var(--ink-faint); font-size:11px; line-height:1.45; }
 
   /* board */
   .board{ display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:14px; padding:14px 20px 60px; }
@@ -423,6 +431,8 @@
     <span class="count" id="count"></span>
   </div>
 
+  <div class="active-weights" id="active-weights"></div>
+
   <div class="wma-alerts" id="wma-alerts"></div>
   <div class="board" id="board"></div>
   <div class="note-banner">For personal research only, not investment advice. Scores are generated from the latest exported data and should be verified before acting.</div>
@@ -462,17 +472,28 @@ var esc=function(s){return cleanText(s).replace(/[&<>"']/g,function(c){return{'&
 var safeUrl=function(u){ u=String(u==null?'':u).trim(); return /^https?:\/\//i.test(u)?u:''; };
 
 /* ---------- default settings (user-editable) ---------- */
-var DEFAULTS={ weights:{quality:18,survival:5,growth:27,valuation:15,confirmation:15,catalysts:15,risk:5},
+var DEFAULTS={ weights:{quality:22.5,survival:6.25,growth:33.75,valuation:18.75,confirmation:18.75,catalysts:0,risk:0},
   buyBand:72, watchBand:50, mos:15, target:30, activePreset:'backtest_recommended' };
 var S=JSON.parse(JSON.stringify(DEFAULTS));
 var PRESETS={};                       // filled from board.json meta
 var PRESET_PROFILES={};               // readable labels, risk and purpose
+var WEIGHT_PROFILES_BUILTIN={
+  backtest_recommended:{quality:22.5,survival:6.25,growth:33.75,valuation:18.75,confirmation:18.75,catalysts:0,risk:0},
+  pre_sfa_display_scale:{quality:18,survival:5,growth:27,valuation:15,confirmation:15,catalysts:15,risk:5}
+};
+var WEIGHT_PROFILE_INFO_BUILTIN={
+  backtest_recommended:{label:'SFA-tested current weights',risk:'Moderate-high',horizon:'1-5 years',description:'Exact effective percentages used by the completed SFA replay and today\'s board.'},
+  pre_sfa_display_scale:{label:'Previous displayed weights (same proportions)',risk:'Moderate-high',horizon:'1-5 years',description:'Preserves 18, 5, 27, 15, 15. Its tested proportions and decisions are identical to the SFA-tested current weights.'}
+};
 var SKEY='fairentry_settings_v2';
 var PORTKEY='fairentry_dummy_portfolio_v1';
 function saveS(){ try{ localStorage.setItem(SKEY, JSON.stringify(S)); }catch(e){} }
 function restoreS(){ try{ var raw=localStorage.getItem(SKEY); if(raw){ var o=JSON.parse(raw);
   if(o&&o.weights){ S=Object.assign(JSON.parse(JSON.stringify(DEFAULTS)), o);
-    S.weights=Object.assign({}, DEFAULTS.weights, o.weights); } } }catch(e){} }
+    S.weights=Object.assign({}, DEFAULTS.weights, o.weights);
+    var old=o.weights, preserved=old.quality===18&&old.survival===5&&old.growth===27&&old.valuation===15&&old.confirmation===15;
+    if(preserved){ S.activePreset='pre_sfa_display_scale'; S.userTuned=true; }
+  } } }catch(e){} }
 var MODE='all';
 var WMA_ONLY=false;
 var META={};                                   // board.json meta (filled on load)
@@ -505,7 +526,26 @@ var CATS=[['quality','Business Quality'],['survival','Financial Strength & Survi
  ['valuation','Valuation & Margin of Safety'],['confirmation','Market Confirmation'],['catalysts','Catalysts & Narrative'],['risk','Risk & Red Flags']];
 var CATLBL={}; CATS.forEach(function(c){CATLBL[c[0]]=c[1];});
 function tunableCats(){ var tested={}; (META.factor_contract||[]).forEach(function(f){if(f.decision_status==='tested')tested[f.category]=true;});
-  return Object.keys(tested).length?CATS.filter(function(c){return tested[c[0]];}):CATS.filter(function(c){return c[0]!=='catalysts';}); }
+  return Object.keys(tested).length?CATS.filter(function(c){return tested[c[0]];}):CATS.filter(function(c){return c[0]!=='catalysts'&&c[0]!=='risk';}); }
+function effectiveWeights(weights){
+  var cats=tunableCats(), total=cats.reduce(function(sum,c){return sum+(Number(weights[c[0]])||0);},0);
+  return cats.map(function(c){return {id:c[0],label:c[1],input:Number(weights[c[0]])||0,effective:total?((Number(weights[c[0]])||0)/total*100):0};});
+}
+function activeWeightProfileName(){
+  if(S.weights.quality===18&&S.weights.survival===5&&S.weights.growth===27&&S.weights.valuation===15&&S.weights.confirmation===15) return 'Previous displayed weights (same proportions)';
+  if(S.userTuned && !S.activePreset) return 'Custom weights selected in this browser';
+  var key=S.activePreset;
+  if(!key && MODE!=='all') key=(META.strategy_presets||{})[MODE_STRATEGY[MODE]];
+  if(!key) key='backtest_recommended';
+  return (PRESET_PROFILES[key]||{}).label||key.replace(/_/g,' ');
+}
+function renderActiveWeights(){
+  var box=$('#active-weights'); if(!box)return;
+  var rows=effectiveWeights(S.weights), differs=rows.some(function(x){return Math.abs(x.input-x.effective)>.005;});
+  box.innerHTML='<div class="active-weights-top"><span class="active-weights-title">Weights used for today\'s live decisions</span><span class="active-weights-name">'+esc(activeWeightProfileName())+'</span></div>'+
+    '<div class="active-weight-list">'+rows.map(function(x){return '<span class="active-weight">'+esc(x.label)+' <b>'+x.effective.toFixed(2)+'%</b>'+(differs?' <small>(saved '+x.input+')</small>':'')+'</span>';}).join('')+'</div>'+
+    '<div class="active-weights-note">These are each area\'s actual share of the tested score. News, catalysts and risk notes have 0% verdict weight. If one tested area has no usable data for a stock, that area is excluded and the remaining percentages are recalculated for that stock.</div>';
+}
 var HUE=function(sc){ return sc>=67?'var(--buy)':sc>=45?'var(--watch)':'var(--avoid)'; };       // fills (bars/stripes)
 var HUET=function(sc){ return sc>=67?'var(--buy-text)':sc>=45?'var(--watch-text)':'var(--avoid-text)'; }; // readable text
 
@@ -784,6 +824,7 @@ function currentList(){
   return list;
 }
 function renderBoard(){ var list=currentList();
+  renderActiveWeights();
   $('#board').innerHTML=list.map(function(o){return tileHTML(o.s);}).join('')||'<div style="color:var(--ink-faint);padding:30px">No stocks match.</div>';
   var byv={Buy:0,Watch:0,Avoid:0}; list.forEach(function(o){byv[o.c.verdict]++;});
   $('#count').textContent=list.length+' shown'+(WMA_ONLY?' near 200 WMA':'')+' - '+byv.Buy+' Buy - '+byv.Watch+' Watch - '+byv.Avoid+' Avoid';
@@ -1269,9 +1310,9 @@ function openChart(tk){
 }
 
 /* ---------- settings ---------- */
-function slider(key,label,min,max,val,def,impact){ return '<div class="setgrp"><div class="slabel"><span class="nm">'+label+
+function slider(key,label,min,max,val,def,impact,step){ return '<div class="setgrp"><div class="slabel"><span class="nm">'+label+
   '</span><span class="def">def '+def+'</span><span class="cur tnum" id="cur-'+key+'">'+val+'</span></div>'+
-  '<input type="range" min="'+min+'" max="'+max+'" value="'+val+'" data-set="'+key+'"><div class="impact">'+impact+'</div></div>'; }
+  '<input type="range" min="'+min+'" max="'+max+'" step="'+(step||1)+'" value="'+val+'" data-set="'+key+'"><div class="impact">'+impact+'</div></div>'; }
 function renderSettings(){
   var body='<div class="changed" id="changed-note"></div>';
   body+='<div class="sub-h">Analyst profile</div>';
@@ -1284,7 +1325,7 @@ function renderSettings(){
   }
   var bl=baseline();   // the mode's recommended model (backend preset + bands)
   body+='<div class="sub-h">Category weights</div>';
-  tunableCats().forEach(function(c){ body+=slider('w.'+c[0], c[1], 0, 30, S.weights[c[0]], bl.weights[c[0]], 'How much '+c[1]+' moves the tested score.'); });
+  tunableCats().forEach(function(c){ body+=slider('w.'+c[0], c[1], 0, 50, S.weights[c[0]], bl.weights[c[0]], 'How much '+c[1]+' moves the tested score.', .25); });
   body+='<div class="impact" style="margin:8px 0 14px">News and other information-only categories are not tunable because they cannot affect the verdict.</div>';
   body+='<div class="sub-h">Verdict & entry</div>';
   body+=slider('buyBand','Buy band (score )',50,90,S.buyBand,bl.buyBand,'Preliminary score needed for Buy.');
@@ -1396,7 +1437,9 @@ restoreS();          // restore the user's saved weights/thresholds
 renderSettings();
 fetch('data/board.json', {cache:'no-store'}).then(function(r){ return r.json(); }).then(function(b){
   STOCKS = (b.stocks || []).map(function(s){ if(s.categories){ s.cats=s.categories; } return s; });
-  var m=b.meta||{}; META=m; PRESETS=m.presets||{}; PRESET_PROFILES=m.preset_profiles||{};
+  var m=b.meta||{}; META=m;
+  PRESETS=Object.assign({},m.presets||{},WEIGHT_PROFILES_BUILTIN);
+  PRESET_PROFILES=Object.assign({},m.preset_profiles||{},WEIGHT_PROFILE_INFO_BUILTIN);
   syncModelToMode();          // apply the mode's backend preset weights + bands
   renderSettings();           // now includes preset options
   var secs=Array.from(new Set(STOCKS.map(function(s){return s.sector;}))).sort();

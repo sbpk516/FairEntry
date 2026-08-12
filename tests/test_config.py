@@ -20,11 +20,14 @@ def test_analyst_profiles_have_labels_and_normalized_weights():
     presets = c.scoring["presets"]
     profiles = c.scoring["preset_profiles"]
     assert set(presets) == set(profiles)
-    assert len(presets) == 4
+    assert len(presets) == 5
+    assert "pre_sfa_display_scale" in presets
     for key, weights in presets.items():
         assert abs(sum(weights.values()) - 100) < 0.001, key
         assert profiles[key]["label"]
         assert profiles[key]["description"]
+
+
 def test_bad_weights_rejected():
     bad = {"categories": {"a": {"weight": 50, "items": [
         {"id": "x", "weight": 1, "metric": "price", "rule": {"type": "passthrough"}}]}},

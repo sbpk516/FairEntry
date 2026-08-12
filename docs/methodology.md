@@ -8,7 +8,7 @@ Only factors marked **tested** may affect the verdict.
 
 ## Categories and factors
 
-### Business Quality - configured weight 18
+### Business Quality - configured weight 22.5
 
 | Factor | Decision use | Weight | Metric | Expected | Rule |
 |---|---|--:|---|---|---|
@@ -16,7 +16,7 @@ Only factors marked **tested** may affect the verdict.
 | ROIC vs sector | tested | 35 | `roic` | ≥ sector median | `sector_rel` |
 | Operating margin | tested | 35 | `oper_margin` | positive & healthy | `higher_better` |
 
-### Financial Strength & Survival - configured weight 5
+### Financial Strength & Survival - configured weight 6.25
 
 | Factor | Decision use | Weight | Metric | Expected | Rule |
 |---|---|--:|---|---|---|
@@ -26,7 +26,7 @@ Only factors marked **tested** may affect the verdict.
 | Current ratio | tested | 15 | `current_ratio` | > 1.5 | `higher_better` |
 | Share-count trend | tested | 10 | `share_count_yoy` | ≤ 0 (no dilution) | `lower_better` |
 
-### Growth & Operating Momentum - configured weight 27
+### Growth & Operating Momentum - configured weight 33.75
 
 | Factor | Decision use | Weight | Metric | Expected | Rule |
 |---|---|--:|---|---|---|
@@ -34,7 +34,7 @@ Only factors marked **tested** may affect the verdict.
 | Expected EPS growth next year | information_only | 30 | `eps_growth_next_y` | ≥ 15% | `higher_better` |
 | Margin direction | testing | 35 | `margin_trend_score` | stable or improving | `passthrough` |
 
-### Valuation & Margin of Safety - configured weight 15
+### Valuation & Margin of Safety - configured weight 18.75
 
 | Factor | Decision use | Weight | Metric | Expected | Rule |
 |---|---|--:|---|---|---|
@@ -42,7 +42,7 @@ Only factors marked **tested** may affect the verdict.
 | P/Free Cash Flow | tested | 30 | `pfcf_ratio` | < 15 cheap | `lower_better` |
 | P/S vs sector | tested | 30 | `ps_ratio` | ≤ sector median | `sector_rel` |
 
-### Market Confirmation - configured weight 15
+### Market Confirmation - configured weight 18.75
 
 | Factor | Decision use | Weight | Metric | Expected | Rule |
 |---|---|--:|---|---|---|
@@ -54,7 +54,7 @@ Only factors marked **tested** may affect the verdict.
 | Smart-money SEC 13F | information_only | 5 | `thirteenf_score` | owned / added by respected tracked funds | `passthrough` |
 | Insider buying | information_only | 10 | `insider_score` | fresh / cluster / top-exec buys | `passthrough` |
 
-### Catalysts & Narrative - configured weight 15
+### Catalysts & Narrative - configured weight 0
 
 | Factor | Decision use | Weight | Metric | Expected | Rule |
 |---|---|--:|---|---|---|
@@ -63,7 +63,7 @@ Only factors marked **tested** may affect the verdict.
 | Analyst target revisions | information_only | 20 | `estimate_revision_score` | mean analyst price target rising | `passthrough` |
 | Short interest context | information_only | 15 | `short_float` | elevated but not extreme | `band` |
 
-### Risk, Red Flags & Fragility - configured weight 5
+### Risk, Red Flags & Fragility - configured weight 0
 
 | Factor | Decision use | Weight | Metric | Expected | Rule |
 |---|---|--:|---|---|---|
