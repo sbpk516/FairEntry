@@ -51,6 +51,11 @@ def test_context_is_present_but_does_not_change_the_verdict():
     board = build_board(cfg, store, reason=False)
     stock = board["stocks"][0]
 
+    assert stock["card_summary"]["strategy"] in {"Deep Value", "Quality Growth"}
+    assert 1 <= len(stock["card_summary"]["strongest_reasons"]) <= 3
+    assert all("scored on the numbers only" not in reason.lower()
+               for reason in stock["card_summary"]["strongest_reasons"])
+
     # context is exported...
     assert stock["context"]["demand"]["label"] in ("strong", "steady", "soft", "n/a")
     assert stock["context"]["momentum"]["label"] in ("rotating in", "neutral", "out of favor", "n/a")

@@ -1,5 +1,17 @@
 # SFA point-in-time backtest
 
+## Decision-factor rule
+
+Only a factor reproduced from information available on each historical decision
+date may affect Buy / Watch / Avoid. The UI labels every factor as:
+
+- **Tested** - used in the verdict.
+- **Being tested** - replayed and displayed, but has no verdict effect yet.
+- **Information only** - displayed as context and has no verdict effect.
+
+AI/news review, current analyst forecasts, and current-only warning panels are
+information only. Long-term debt burden change is currently being tested.
+
 FairEntry keeps the licensed Nasdaq Data Link / Sharadar SFA snapshot private
 and publishes only non-reconstructable derived evidence. Raw files, the DuckDB
 warehouse, private evidence and API credentials are gitignored.
@@ -109,9 +121,10 @@ deletion obligations may differ from the Nasdaq snapshot.
 ## Fixed-return achievement after a Buy
 
 The backtest separately reports whether Buy recommendations reached fixed net
-returns of 10%, 15%, 20%, 25%, 30% and 50% within 90, 180, 270, 365 and 730
-calendar days. Attainment uses the first dividend-adjusted daily close that
-clears the threshold after configured entry and exit costs.
+returns of 10%, 15%, 20%, 25%, 30%, 40%, 50%, 75%, 100%, 150% and 200% within
+90, 180, 270, 365, 730, 1,095 and 1,825 calendar days. Attainment uses the first
+dividend-adjusted daily close that clears the threshold after configured entry
+and exit costs.
 
 The primary view counts Buy episodes, not every repeated recommendation. A
 consecutive run of Buy observations for one issuer starts at its first Buy and
@@ -126,26 +139,44 @@ the middle 50% of successful hit times.
 
 ## Latest completed replay
 
-Run `sfa-bfdabde939fa` used snapshot `20260810T132048Z` and implementation
-commit `0708270`. It evaluated 333 monthly cohorts from October 1998 through
-June 2026, comprising 41,896 issuer-deduplicated observations.
+Run `sfa-927c352ce0b3` used snapshot `20260810T132048Z`. It evaluated 333
+monthly decision dates from October 1998 through June 2026, comprising 73,843
+issuer-deduplicated observations under the new testable-factor contract.
 
-- The 30-day Buy-minus-Avoid alpha spread was +1.17 percentage points. Its
-  cohort-block 90% interval was +0.03 to +2.25, while the more conservative
-  cohort-and-issuer interval was -0.45 to +2.93. Treat the short-horizon edge
-  as promising, not yet robustly proven.
-- The 365-day and 548-day spreads were -2.27 and -3.66 percentage points, with
-  intervals crossing zero. The strategy does not demonstrate a reliable
-  long-horizon selection edge in this replay.
-- The Practical target hit rate was 40.9% (108 of 264 evaluable Buys). The FCF
-  hit rate was 31.6%; 29 FCF values were already below entry and are disclosed
-  separately rather than counted as post-entry hits.
-- The constrained Buy portfolio compounded +526.21%, but experienced a -64.44%
-  maximum drawdown and an approximate 0.40 Sharpe ratio. Absolute return alone
-  is therefore not an acceptance criterion.
-- Neither the Deep Value nor Quality Growth challenger passed both validation
-  and untouched-test gates. No weight promotion is recommended.
-- Consecutive Buy recommendations collapsed from 335 signals to 227 investment
-  episodes. Among mature episodes, 123 of 224 (54.9%) reached a net +25% within
-  one year; 148 of 222 (66.7%) reached it within two years. Median time among
-  successful episodes was 111 and 143 days respectively.
+- The 30-day Buy-minus-Avoid extra-return difference was +0.45 percentage
+  points. Its date-block likely range was -0.33 to +1.30, so this is not a
+  proven short-term advantage.
+- Among 644 completed current-weight Buy episodes, 312 (48.4%) touched a net
+  +25% within one year. The 90% likely range was 45.2% to 51.7%, and successful
+  episodes typically took 110.5 days. A net +30% was reached by 278 (43.2%).
+- The Practical value hit rate was 32.7%: 256 of 783 completed Buy goals.
+- The constrained Buy portfolio compounded +103.69%, but experienced an
+  -84.47% maximum drawdown and an approximate 0.24 Sharpe ratio. This confirms
+  that absolute return alone is not an acceptance criterion.
+- The older-period winner increased Growth, Quality, Survival and Market
+  Confirmation while reducing Valuation. It improved +25% attainment from
+  48.4% to 51.4% on development and from 50.8% to 53.3% on validation.
+- It failed promotion: validation one-year extra return versus SPY was -4.04%,
+  compared with -3.24% for the current weights. The untouched final-period
+  +25% rate was 46.9% versus 47.0% for the current weights. The lower end of
+  its likely range was also slightly worse.
+  The live default therefore remains unchanged.
+
+## One-year weight challenger
+
+The SFA tuner now uses the investor goal directly. It searches one shared set
+of effective weights for Business Quality, Financial Survival, Growth,
+Valuation and Market Confirmation. Information-only groups have zero tuning
+weight. The primary goal is a Buy episode touching +25% within 365 days; +30%,
+large losses, maximum decline and one-year return versus SPY are guardrails.
+
+The replay stores a small derived one-year outcome for every screened
+observation. This lets a challenger fairly turn a historical Watch into a Buy
+without publishing or duplicating the licensed daily price rows. Repeated
+weekly Buys for one issuer remain one episode.
+
+Decision dates are chronological: 60% development, 20% validation and 20%
+untouched final test. The tuner chooses weights using development only. It then
+requires later-period improvement, sample-size checks and stability across
+years and sectors. `promotion: manual` is operational: the report can say
+"Ready for manual review," but it never edits the live preset.

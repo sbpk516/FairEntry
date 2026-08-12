@@ -135,9 +135,10 @@ not separately validated strategies.
 The YAML contract is the reusable laboratory interface; CLI overrides create a
 new strategy/run rather than editing production settings. Tuning remains a
 challenger workflow. Scheduled jobs may calculate and publish candidates, but
-`promotion: manual` prevents silent production changes. Future tuning should add
-target calibration, time-to-target and drawdown to alpha only after strict
-point-in-time data is sufficiently deep.
+`promotion: manual` prevents silent production changes. The SFA challenger now
+uses fixed-return calibration, time-to-target, large-loss, drawdown and SPY
+guardrails from strict point-in-time history. Factor-level tuning remains a
+separate later step so the first search does not overfit too many choices.
 
 ## Trust boundaries
 
@@ -177,6 +178,7 @@ against simple baselines.
 
 ## Promotion policy
 
-The tuner runs automatically and publishes an `ADOPT`, `KEEP DEFAULT`, or
-`NO GAIN` recommendation. It never edits scoring configuration, commits code,
-or deploys weights. Promotion remains an explicit, audited version change.
+The tuner runs as part of the full replay and publishes a plain-English
+comparison and a keep-or-review decision. It never edits scoring configuration,
+commits code, or deploys weights. Promotion remains a manual, audited version
+change.

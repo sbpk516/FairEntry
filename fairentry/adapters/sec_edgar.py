@@ -61,6 +61,34 @@ def _dilution(cik) -> float | None:
     return None
 
 
+def debt_direction_from_facts(facts: dict) -> dict:
+    """Year-over-year long-term-debt burden from filed annual statements.
+
+    Using debt/assets instead of raw debt avoids calling normal expansion
+    "worsening" when assets grew at least as quickly. The output is a candidate
+    research factor only; the scoring config marks it as ``testing``.
+    """
+    debts = rf.get_metric(facts, "lt_debt")
+    assets = rf.get_metric(facts, "assets")
+    if len(debts) < 2 or len(assets) < 2:
+        return {}
+    debt_by_end = {row.get("end"): row.get("val") for row in debts}
+    assets_by_end = {row.get("end"): row.get("val") for row in assets}
+    periods = sorted(set(debt_by_end) & set(assets_by_end), reverse=True)
+    if len(periods) < 2:
+        return {}
+    now, prior = periods[:2]
+    if not assets_by_end[now] or not assets_by_end[prior]:
+        return {}
+    current = debt_by_end[now] / assets_by_end[now] * 100
+    previous = debt_by_end[prior] / assets_by_end[prior] * 100
+    return {
+        "debt_to_assets_pct": round(current, 2),
+        "debt_to_assets_yago_pct": round(previous, 2),
+        "debt_to_assets_change_yoy_pp": round(current - previous, 2),
+    }
+
+
 def _panel_to_fields(panel: dict) -> dict:
     sc = panel.get("scores", {})
     crit = panel.get("critical_count", 0)
@@ -80,11 +108,12 @@ def fetch(cfg, field_ids, tickers=None, market_caps=None):
     out = {}
     for t in (tickers or []):
         t = t.upper()
-        cached = cache_get("sec_panel", t, ttl_days=7)
+        cache_key = f"{t}_debt_direction_v1"
+        cached = cache_get("sec_panel", cache_key, ttl_days=7)
         if cached is None:
             cik = cikm.get(t)
             if not cik:
-                cache_put("sec_panel", t, {})   # negative-cache unknown CIK
+                cache_put("sec_panel", cache_key, {})   # negative-cache unknown CIK
                 continue
             try:
                 panel = rf.generate_red_flags(t, cik, caps.get(t, 0.0) or 0.0)
@@ -92,9 +121,12 @@ def fetch(cfg, field_ids, tickers=None, market_caps=None):
                 d = _dilution(cik)
                 if d is not None:
                     cached["share_count_yoy"] = d
+                facts = rf.fetch_company_facts(str(cik))
+                if facts:
+                    cached.update(debt_direction_from_facts(facts))
             except Exception:
                 cached = {}
-            cache_put("sec_panel", t, cached)
+            cache_put("sec_panel", cache_key, cached)
         if cached:
             out[t] = {k: v for k, v in cached.items() if k in field_ids and v is not None}
     return out

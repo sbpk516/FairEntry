@@ -108,6 +108,18 @@
   .track i{ display:block; height:100%; border-radius:5px; }
   .kv{ display:flex; gap:5px 14px; flex-wrap:wrap; font-size:12px; color:var(--ink-soft); margin-bottom:11px; }
   .kv b{ color:var(--ink); font-family:var(--mono); font-weight:700; }
+  .card-facts{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; margin:13px 0; }
+  .card-fact{ background:var(--panel-2); border:1px solid var(--line-soft); border-radius:8px; padding:8px 9px; min-width:0; }
+  .card-fact .k{ display:block; color:var(--ink-faint); font-size:10px; font-weight:750; text-transform:uppercase; letter-spacing:.04em; }
+  .card-fact .v{ display:block; color:var(--ink); font-size:12px; font-weight:750; margin-top:3px; overflow-wrap:anywhere; }
+  .card-evidence{ display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:8px; }
+  .card-evidence-box{ border:1px solid var(--line-soft); border-radius:9px; padding:9px 10px; }
+  .card-evidence-box h4{ margin:0 0 6px; font-size:11px; color:var(--ink-soft); }
+  .card-evidence-box ul{ margin:0; padding-left:17px; }
+  .card-evidence-box li{ color:var(--ink-soft); font-size:11.5px; line-height:1.35; margin:4px 0; }
+  .card-evidence-box.good{ background:var(--buy-bg); }
+  .card-evidence-box.bad{ background:var(--avoid-bg); }
+  @media (max-width:520px){ .card-facts,.card-evidence{ grid-template-columns:1fr; } }
   .labels{ display:flex; flex-wrap:wrap; gap:5px; }
   .lab{ font-size:11px; padding:3px 8px; border-radius:6px; background:var(--panel-2); border:1px solid var(--line-soft); color:var(--ink-soft); font-weight:600; }
   .lab.good{ color:var(--buy-text); background:var(--buy-bg); border-color:transparent; }
@@ -450,7 +462,7 @@ var esc=function(s){return cleanText(s).replace(/[&<>"']/g,function(c){return{'&
 var safeUrl=function(u){ u=String(u==null?'':u).trim(); return /^https?:\/\//i.test(u)?u:''; };
 
 /* ---------- default settings (user-editable) ---------- */
-var DEFAULTS={ weights:{quality:16.99,survival:17.07,growth:11.20,valuation:16.99,confirmation:14.21,catalysts:10.45,risk:13.09},
+var DEFAULTS={ weights:{quality:18,survival:5,growth:27,valuation:15,confirmation:15,catalysts:15,risk:5},
   buyBand:72, watchBand:50, mos:15, target:30, activePreset:'backtest_recommended' };
 var S=JSON.parse(JSON.stringify(DEFAULTS));
 var PRESETS={};                       // filled from board.json meta
@@ -492,6 +504,8 @@ function baseline(){ return { weights: presetForMode(),
 var CATS=[['quality','Business Quality'],['survival','Financial Strength & Survival'],['growth','Growth & Momentum'],
  ['valuation','Valuation & Margin of Safety'],['confirmation','Market Confirmation'],['catalysts','Catalysts & Narrative'],['risk','Risk & Red Flags']];
 var CATLBL={}; CATS.forEach(function(c){CATLBL[c[0]]=c[1];});
+function tunableCats(){ var tested={}; (META.factor_contract||[]).forEach(function(f){if(f.decision_status==='tested')tested[f.category]=true;});
+  return Object.keys(tested).length?CATS.filter(function(c){return tested[c[0]];}):CATS.filter(function(c){return c[0]!=='catalysts';}); }
 var HUE=function(sc){ return sc>=67?'var(--buy)':sc>=45?'var(--watch)':'var(--avoid)'; };       // fills (bars/stripes)
 var HUET=function(sc){ return sc>=67?'var(--buy-text)':sc>=45?'var(--watch-text)':'var(--avoid-text)'; }; // readable text
 
@@ -586,11 +600,9 @@ var STOCKS=[
 ];
 
 /* ---------- verdict engine (mirrors the scoring-model formula) ---------- */
-function baseScore(s){ var num=0,den=0; s.cats.forEach(function(c){ var w=S.weights[c.id]; num+=w*c.score; den+=w; }); return num/den; }
-function thesisMod(s){ var t=s.thesis.score, b=META.thesis_modifier;
-  if(b&&b.length){ var mod=0; b.slice().sort(function(x,y){return y.min-x.min;}).some(function(band){
-    if(t>=band.min){ mod=band.mod; return true; } return false; }); return mod; }
-  return t>=80?6:t>=65?3:t>=50?0:t>=35?-5:-10; }
+function baseScore(s){ var num=0,den=0; s.cats.forEach(function(c){
+  if(c.score==null||!isFinite(Number(c.score)))return; var w=S.weights[c.id]; num+=w*c.score; den+=w; }); return den?num/den:0; }
+function thesisMod(){ return 0; }
 // Mirror the backend soft-gates (engine.score_ticker): expensive, survival<30,
 // no-confirmation<35, upside<target - INCLUDING the backend's "missing data"
 // behaviour, where a category with no scored items (absent from s.cats because
@@ -598,8 +610,9 @@ function thesisMod(s){ var t=s.thesis.score, b=META.thesis_modifier;
 function softGates(s){ var g=[];
   if(s.valuation&&s.valuation.label==='expensive') g.push('Valuation is expensive');
   var surv=s.cats.find(function(c){return c.id==='survival';});
-  if(!surv) g.push('Survival score below floor (missing data)');
-  else if(surv.score<30) g.push('Survival score below floor');
+  if(!surv) g.push('Financial condition is extremely weak (missing data)');
+  else if(surv.score<20) g.push('Financial condition is extremely weak');
+  if(!s.growth_qualification||s.growth_qualification.qualified!==true) g.push('Business direction is not yet stable or meaningfully improving');
   var conf=s.cats.find(function(c){return c.id==='confirmation';});
   if(!conf) g.push('No market confirmation (missing data)');
   else if(conf.score<35) g.push('No market confirmation');
@@ -744,22 +757,19 @@ function contextChips(s){ var c=s.context||{};
   return '<div class="ctx-row" title="Demand chips are context-only. Breakout factors are traceable inputs to the existing score.">'+parts.join('')+'</div>';
 }
 function tileHTML(s){ var c=compute(s), shown=c.displayVerdict||c.verdict, vk=c.verdict.toLowerCase();
-  var pt=s.target_plan&&s.target_plan.practical;
-  var kv='<div class="kv"><span>Price <b>$'+esc(s.price)+'</b></span>'+
-    '<span>Practical target <b>$'+esc(pt?pt.price:s.valuation.base)+'</b></span>'+
-    '<span>Target upside <b>'+((pt?pt.upside_pct:s.valuation.upside)>=0?'+':'')+esc(pt?pt.upside_pct:s.valuation.upside)+'%</b></span>'+
-    '<span>Fair gap <b>'+s.valuation.label+'</b></span>'+
-    '<span>AI read <b>'+esc(thesisPlain(s))+'</b></span></div>';
-  var labs=s.labels.slice(0,4).map(function(l){
-    var label=String(l[0]).replace(/^Upside(?=\s|$)/,'Valuation upside');
-    return '<span class="lab '+l[1]+'">'+esc(label)+'</span>';
-  }).join('');
+  var cs=s.card_summary||{}, deep=(s.strategy||[]).indexOf('deepvalue')>=0,
+    strategy=cs.strategy||(deep?'Deep Value':'Quality Growth'),
+    hold=cs.holding_period||(deep?'1–3 years':'2–5 years'),
+    low=s.valuation&&s.valuation.low, high=s.valuation&&s.valuation.high,
+    reasons=(cs.strongest_reasons||[]).slice(0,3), risks=(cs.largest_risks||[]).slice(0,3);
+  function evidenceList(items,empty){return items.length?'<ul>'+items.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>':'<div class="meta">'+esc(empty)+'</div>';}
   var nuance=actionNuance(c);
-  return '<div class="tile" data-t="'+esc(s.ticker)+'" role="button" tabindex="0" aria-label="'+esc(s.ticker+' '+s.company+' - '+shown+', score '+Math.round(c.prelim))+'"><div class="vstripe st-'+vk+'"></div><div class="tile-in">'+
+  return '<div class="tile" data-t="'+esc(s.ticker)+'" role="button" tabindex="0" aria-label="'+esc(s.ticker+' '+s.company+' - '+shown)+'"><div class="vstripe st-'+vk+'"></div><div class="tile-in">'+
     '<div class="tile-top"><div class="tile-main"><div class="tick">'+esc(s.ticker)+'</div><div class="co">'+esc(s.company)+' - '+esc(s.sector)+'</div></div>'+
     '<div class="verdict"><span class="vpill bg-'+vk+' v-'+vk+'">'+shown+'</span>'+(nuance?'<div class="action-lbl">'+esc(nuance)+'</div>':'')+'</div></div>'+
-    '<div class="scorebar-wrap"><span class="scoreval tnum" style="color:'+HUET(c.prelim)+'">'+Math.round(c.prelim)+'<span>/100</span></span>'+bar(Math.round(c.prelim))+'</div>'+
-    kv+aspectStrip(s)+'<div class="labels">'+labs+'</div>'+contextChips(s)+'<div class="tile-actions"><button class="chartbtn" data-chart="'+esc(s.ticker)+'" type="button">Launch Chart</button><button class="addbtn" data-add="'+esc(s.ticker)+'" type="button">Add 100</button></div></div></div>'; }
+    '<div class="card-facts"><div class="card-fact"><span class="k">Strategy</span><span class="v">'+esc(strategy)+'</span></div><div class="card-fact"><span class="k">Current price</span><span class="v">$'+esc(s.price)+'</span></div><div class="card-fact"><span class="k">Reasonable value range</span><span class="v">'+(low==null||high==null?'Not available':'$'+esc(low)+'–$'+esc(high))+'</span></div><div class="card-fact"><span class="k">Expected holding period</span><span class="v">'+esc(hold)+'</span></div></div>'+
+    '<div class="card-evidence"><div class="card-evidence-box good"><h4>Three strongest reasons</h4>'+evidenceList(reasons,'Open details to inspect the available evidence.')+'</div><div class="card-evidence-box bad"><h4>Three largest risks</h4>'+evidenceList(risks,'No specific major risk was identified in the available data.')+'</div></div>'+
+    '<div class="tile-actions"><button class="chartbtn" data-chart="'+esc(s.ticker)+'" type="button">Launch Chart</button><button class="addbtn" data-add="'+esc(s.ticker)+'" type="button">Add 100</button></div></div></div>'; }
 
 function currentList(){
   var q=$('#search').value.trim().toLowerCase(), sec=$('#sector').value, vf=$('#vfilter .on').dataset.v, sort=$('#sort').value;
@@ -810,9 +820,12 @@ function addToPortfolio(ticker){
 
 /* ---------- detail drill-down ---------- */
 function pctbar(sc){ return sc==null?'<span class="mini"></span>':'<span class="mini"><i style="width:'+sc+'%;background:'+HUE(sc)+'"></i></span>'; }
+function decisionLabel(x){ var s=(x&&x.decision_status)||'tested';
+  return s==='tested'?['Used in verdict','good']:s==='testing'?['Being tested - no verdict effect','warn']:['Information only - no verdict effect','info']; }
 // leaf metric: expected vs actual, the rule that maps them, and the resulting score
-function metricHTML(it){ var missing=it.score==null, shown=missing?'n/a':it.score;
+function metricHTML(it){ var missing=it.score==null, shown=missing?'n/a':it.score, dl=decisionLabel(it);
   return '<div class="metricbox"><div class="ea">'+
+  '<span class="k">Decision use</span><span class="v"><span class="lab '+dl[1]+'">'+esc(dl[0])+'</span></span>'+
   (it.definition?'<span class="k">What it means</span><span class="v">'+esc(it.definition)+'</span>':'')+
   '<span class="k">Expected</span><span class="v exp">'+esc(it.expected)+'</span>'+
   '<span class="k">Actual</span><span class="v act">'+esc(it.raw_actual||it.actual)+'</span>'+
@@ -822,17 +835,17 @@ function metricHTML(it){ var missing=it.score==null, shown=missing?'n/a':it.scor
   '<div class="scoreline"><span class="big" style="color:'+(missing?'var(--ink-faint)':HUET(it.score))+'">'+shown+(missing?'':'<span style="font-size:11px;color:var(--ink-faint);font-weight:600">/100</span>')+'</span>'+
   pctbar(it.score)+'<span class="why">weight '+it.weight+(it.contribution==null?'':' - contribution '+it.contribution.toFixed(2))+' - source '+esc(it.source)+(it.observed_at?' - observed '+esc(it.observed_at):'')+' - fetched '+esc(it.fetched_at||'unknown')+(it.calculation_version?' - '+esc(it.calculation_version):'')+'</span></div>'+
   (missing?'<div class="why" style="margin-top:8px">Missing data is excluded; available item weights are normalized. The stock is not assigned an invented neutral value.</div>':'')+'</div>'; }
-function itemHTML(it){ return '<div class="item" data-exp><button class="row"><span class="chev"></span><span class="rname">'+esc(it.label)+
-  '</span><span class="rmeta"><span class="wchip tnum">w '+it.weight+'</span>'+pctbar(it.score)+'<span class="rscore tnum" style="color:'+(it.score==null?'var(--ink-faint)':HUET(it.score))+'">'+(it.score==null?'n/a':it.score)+'</span></span></button>'+
+function itemHTML(it){ var dl=decisionLabel(it); return '<div class="item" data-exp><button class="row"><span class="chev"></span><span class="rname">'+esc(it.label)+' <span class="lab '+dl[1]+'">'+esc(dl[0])+'</span>'+
+  '</span><span class="rmeta">'+(it.decision_status==='tested'||!it.decision_status?'<span class="wchip tnum">w '+it.weight+'</span>':'')+pctbar(it.score)+'<span class="rscore tnum" style="color:'+(it.score==null?'var(--ink-faint)':HUET(it.score))+'">'+(it.score==null?'n/a':it.score)+'</span></span></button>'+
   '<div class="detail"><div class="detail-in">'+metricHTML(it)+'</div></div></div>'; }
 // category: shows the weighted-average arithmetic, then each item
 function catHTML(c){
-  var scored=c.items.filter(function(i){return i.score!=null;});
+  var scored=c.items.filter(function(i){return i.score!=null&&(i.decision_status||'tested')==='tested';});
   var terms=scored.map(function(i){return i.weight+'x'+i.score;}).join(' + ')||'no available items';
   var wsum=scored.reduce(function(a,i){return a+i.weight;},0);
   var num=scored.reduce(function(a,i){return a+i.weight*i.score;},0);
   var math='<div class="mathbox" style="margin:12px 14px"><div class="mformula"><b>'+(c.score==null?'n/a':c.score)+'</b> = ('+terms+') / '+wsum+
-    (wsum?' = '+(num/wsum).toFixed(1):'')+'  <span style="color:var(--ink-faint)">" '+scored.length+' scored, '+(c.items.length-scored.length)+' missing - available weights normalized - click each for raw evidence</span></div></div>';
+    (wsum?' = '+(num/wsum).toFixed(1):'')+'  <span style="color:var(--ink-faint)"> - '+scored.length+' tested factor(s) used; testing and information-only factors are excluded</span></div></div>';
   return '<div class="cat" data-exp><button class="row"><span class="chev"></span><span class="rname">'+esc(c.label)+
     '</span><span class="rmeta"><span class="wchip tnum">weight '+S.weights[c.id]+'</span>'+pctbar(c.score)+'<span class="rscore tnum" style="color:'+(c.score==null?'var(--ink-faint)':HUET(c.score))+'">'+(c.score==null?'n/a':c.score)+'</span></span></button>'+
     '<div class="detail"><div class="detail-in">'+math+c.items.map(itemHTML).join('')+'</div></div></div>'; }
@@ -842,14 +855,14 @@ function scoreMathHTML(s,c){
     var brows=cats.filter(function(x){return x.score!=null;}).map(function(cat){return '<tr><td>'+esc(cat.label)+'</td><td class="n">'+cat.weight+'</td><td class="n">'+cat.score+'</td><td class="n contrib">'+Number(cat.contribution||0).toFixed(2)+'</td></tr>';}).join('');
     var effects=(d.vetoes||[]).concat(d.soft_gates||[]).map(function(x){return '<div style="margin-top:6px"><b>'+esc(x.effect)+':</b> '+esc(x.reason)+' <span style="color:var(--ink-faint)">('+esc(x.condition)+')</span></div>';}).join('');
     return '<div class="mathbox"><table class="mtable"><thead><tr><th>Category</th><th class="n">Weight</th><th class="n">Score</th><th class="n">Score contribution</th></tr></thead><tbody>'+brows+'</tbody></table>'+
-      '<div class="mformula">Base = '+d.base_numerator+' / '+d.available_category_weight+' = <b>'+Number(d.base_score).toFixed(1)+'</b> &nbsp;-&nbsp; existing thesis modifier <b>'+(d.thesis_modifier>=0?'+':'')+d.thesis_modifier+'</b> &nbsp;-&nbsp; final score <b>'+d.final_score+'</b> &nbsp;-&nbsp; score band <b>'+esc(d.score_band_verdict)+'</b> &nbsp;-&nbsp; final verdict <b>'+esc(d.final_verdict)+'</b>'+effects+'</div></div>'; }
+      '<div class="mformula">Tested score = '+d.base_numerator+' / '+d.available_category_weight+' = <b>'+Number(d.base_score).toFixed(1)+'</b> &nbsp;-&nbsp; AI/news effect <b>0</b> &nbsp;-&nbsp; final score <b>'+d.final_score+'</b> &nbsp;-&nbsp; score band <b>'+esc(d.score_band_verdict)+'</b> &nbsp;-&nbsp; final verdict <b>'+esc(d.final_verdict)+'</b>'+effects+'</div></div>'; }
   var rows=s.cats.map(function(cat){ var w=S.weights[cat.id]; return '<tr><td>'+esc(cat.label)+'</td><td class="n">'+w+'</td><td class="n">'+cat.score+'</td><td class="n contrib">'+(w*cat.score)+'</td></tr>'; }).join('');
-  var wsum=CATS.reduce(function(a,k){return a+S.weights[k[0]];},0);
+  var wsum=s.cats.reduce(function(a,cat){return a+S.weights[cat.id];},0);
   var num=s.cats.reduce(function(a,cat){return a+S.weights[cat.id]*cat.score;},0);
   var band=c.prelim>=S.buyBand?'Buy (>= '+S.buyBand+')':c.prelim>=S.watchBand?'Watch (>= '+S.watchBand+')':'Avoid (<'+S.watchBand+')';
   return '<div class="mathbox"><table class="mtable"><thead><tr><th>Category</th><th class="n">Weight</th><th class="n">Score</th><th class="n">Weight x Score</th></tr></thead>'+
     '<tbody>'+rows+'</tbody><tfoot><tr><td>Totals</td><td class="n">'+wsum+'</td><td></td><td class="n">'+num+'</td></tr></tfoot></table>'+
-    '<div class="mformula">Base = '+num+' / '+wsum+' = <b>'+c.base.toFixed(1)+'</b> &nbsp;-&nbsp; thesis modifier <b>'+(c.mod>=0?'+':'')+c.mod+'</b> (recovery/growth '+s.thesis.score+'/100) &nbsp;-&nbsp; preliminary <b>'+c.prelim.toFixed(1)+'</b> &nbsp;-&nbsp; <b>'+band+'</b></div></div>'; }
+    '<div class="mformula">Tested score = '+num+' / '+wsum+' = <b>'+c.base.toFixed(1)+'</b> &nbsp;-&nbsp; AI/news effect <b>0</b> &nbsp;-&nbsp; final score <b>'+c.prelim.toFixed(1)+'</b> &nbsp;-&nbsp; <b>'+band+'</b></div></div>'; }
 
 function businessModel(s){
   var name=(s.company||s.ticker||'This company'), txt=(s.ticker+' '+name+' '+(s.sector||'')).toLowerCase();
@@ -912,6 +925,16 @@ function businessHTML(s){
     '<div class="bizbox"><div class="biztop"><div class="bizplain">'+esc(b.plain)+'</div><div class="bizexample"><b>Example:</b> '+esc(b.example)+'</div></div>'+
     '<div class="bizgrid">'+src+'</div></div>';
 }
+
+function growthQualificationHTML(s){ var g=s.growth_qualification;if(!g)return '';
+  var passed=g.qualified===true, title=passed?(g.path==='stable_and_deeply_undervalued'?'Stable business at a deep discount':'Business numbers are meaningfully improving'):'Business direction is not ready yet';
+  var evidence=(g.stable_signals||[]).concat(g.improvement_signals||[]);
+  return '<div class="sub-h">Why the business direction '+(passed?'passes':'does not pass')+'</div><div class="bizbox"><div class="biztop"><div class="bizplain"><b>'+esc(title)+'</b></div><div class="bizexample">'+esc(g.explanation||'')+(evidence.length?'<br><span class="meta">Numbers used: '+esc(evidence.join(' · '))+'</span>':'')+'</div></div></div>'; }
+
+function debtDirectionHTML(s){ var d=s.debt_direction||{}, ch=d.change_pp;
+  var known=ch!=null&&isFinite(Number(ch)), label=!known?'Waiting for two comparable annual filings':Number(ch)<=-1?'Improving':Number(ch)>=1?'Worsening':'Stable';
+  var tone=!known?'info':Number(ch)<=-1?'good':Number(ch)>=1?'bad':'warn';
+  return '<div class="sub-h">Debt direction <span class="lab warn">Being tested - no verdict effect</span></div><div class="bizbox"><div class="biztop"><div class="bizplain"><b>'+esc(label)+'</b></div><div class="bizexample">Long-term debt as a share of assets: <b>'+(d.one_year_ago_pct==null?'n/a':esc(d.one_year_ago_pct)+'%')+'</b> one year ago → <b>'+(d.current_pct==null?'n/a':esc(d.current_pct)+'%')+'</b> now. <span class="lab '+tone+'">Change '+(known?(Number(ch)>=0?'+':'')+esc(ch)+' percentage points':'n/a')+'</span><br><span class="meta">This is replayed historically and displayed now. It will affect Buy only after validation shows a reliable improvement.</span></div></div></div>'; }
 
 function situationHTML(s){ if(!s.thesis.situation||!s.thesis.situation.length) return '';
   var rows=s.thesis.situation.map(function(r){ return '<div class="sit-row"><div class="sit-q">'+esc(r[0])+'</div>'+
@@ -1045,7 +1068,7 @@ var VAL_WHY={
   peer_ps:{what:'The same peer-relative idea using price-to-sales instead of earnings.',
     why:'Revenue is far more stable than earnings, so P/S is useful when profits are temporarily depressed or swinging - it re-rates the stock to the sector-median sales multiple.',
     watch:'Ignores profitability entirely - cheap on sales can still be a bad business if margins are thin.'},
-  fcf:{what:'Values the business on the actual free cash flow it generates, at a fair price-to-FCF multiple (base ~18 - , lifted for growth).',
+  fcf:{what:'Values the business on the actual free cash flow it generates, using a fixed fair price-to-FCF multiple of 18.',
     why:'Cash flow is much harder to manipulate than accounting earnings, so this is a robustness check on the earnings-based methods.',
     watch:'FCF can be lumpy (big capex years distort it); one year\'s figure may not represent normalized cash generation.'},
   book:{what:'A floor-style value based on net assets (book value) at a fair price-to-book multiple.',
@@ -1082,12 +1105,14 @@ function valHTML(s){ var v=s.valuation, price=s.price;
   var explain='<div class="vg-explain">You pay <b>$'+price+'</b> for something worth about <b>$'+v.base+'</b> - '+
     (upside>=0?'<b>'+upside+'% upside</b> to fair value':'<b>'+Math.abs(upside)+'% above</b> fair value')+
     '. At your '+S.mos+'% margin of safety you\'d buy below <b>$'+buyBelow+'</b>, so today it is <b>'+zoneWord+'</b>.</div>';
+  var testedMethods=(v.methods||[]).filter(function(m){return (m.decision_status||'tested')==='tested';});
   var methods = (v.methods&&v.methods.length)?
-    '<div style="margin-top:18px"><div class="vmeth-head">Fair value - '+v.methods.length+' methods  median $'+v.base+
+    '<div style="margin-top:18px"><div class="vmeth-head">Fair value - '+testedMethods.length+' tested method(s) set the median $'+v.base+
       ' <span class="hint">click a method for its formula &amp; why it works</span></div>'+
       v.methods.map(function(m){ var mh=HUET(m.upside>=30?80:m.upside>=12?55:30); var w=VAL_WHY[m.key]||{};
+        var dl=decisionLabel(m);
         return '<div class="cat" data-exp><button class="row"><span class="chev"></span>'+
-          '<span class="rname">'+esc(m.name)+'</span>'+
+          '<span class="rname">'+esc(m.name)+' <span class="lab '+dl[1]+'">'+esc(dl[0])+'</span></span>'+
           '<span class="rmeta"><span class="rscore tnum" style="min-width:72px;text-align:right;color:var(--ink)">$'+m.fair+'</span>'+
             '<span class="tnum" style="min-width:64px;text-align:right;color:'+mh+';font-weight:700">'+(m.upside>=0?'+':'')+m.upside+'%</span></span></button>'+
           '<div class="detail"><div class="detail-in"><div class="vmeth-box">'+
@@ -1096,8 +1121,7 @@ function valHTML(s){ var v=s.valuation, price=s.price;
             (w.why?'<div class="vmeth-why"><b>Why it works:</b> '+esc(w.why)+'</div>':'')+
             (w.watch?'<div class="vmeth-watch"><b>Watch out:</b> '+esc(w.watch)+'</div>':'')+
           '</div></div></div></div>'; }).join('')+
-      '<div class="vmeth-median"><b>Base fair value</b> = the <b>median</b> of these '+v.methods.length+' methods = <b>$'+v.base+'</b>. '+
-        'The median (not the average) is used so one extreme estimate can\'t skew the number. The spread '+
+      '<div class="vmeth-median"><b>Base fair value</b> = the <b>median</b> of the '+testedMethods.length+' historically replayable method(s) = <b>$'+v.base+'</b>. Information-only methods are shown but excluded. The spread '+
         '<b>$'+v.low+'"$'+v.high+'</b> shows how much the methods agree - a tight spread means higher confidence.</div>'+
     '</div>' : '';
   return '<div class="sub-h">Valuation &amp; entry</div><div class="vgauge">'+nums+line+legend+explain+methods+'</div>'; }
@@ -1106,17 +1130,18 @@ function openDetail(tk){ var s=STOCKS.find(function(x){return x.ticker===tk;}); 
   $('#d-title').innerHTML=esc(s.ticker)+' <span style="font-size:13px;color:var(--ink-faint);font-weight:500">'+esc(s.company)+'</span>';
   var vetoHTML=c.vetoed?'<div style="margin-top:10px"><span class="lab bad">VETO</span> '+s.vetoes.map(esc).join(' - ')+'</div>':'';
   var gateHTML=(c.gates&&c.gates.length)?'<div style="margin-top:8px;font-size:12px;color:var(--watch)">Soft gate'+(c.capped?' (capped Buy -> Watch)':'')+': '+c.gates.map(esc).join(' - ')+'</div>':'';
+  var warnings=(s.context_warnings||[]); var warningHTML=warnings.length?'<div style="margin-top:8px"><span class="lab info">Information-only warning</span> '+warnings.map(function(w){return esc(w.reason||w);}).join(' - ')+' <span class="meta">Does not change the tested verdict.</span></div>':'';
   var hero='<div class="verdict-hero bg-'+vk+'" style="border-color:var(--'+vk+'-line)"><div class="vh-top">'+
     '<span class="vh-pill bg-'+vk+' v-'+vk+'">'+c.verdict+'</span>'+(actionNuance(c)?'<span class="lab '+(c.vetoed?'bad':'warn')+'">'+esc(actionNuance(c))+'</span>':'')+
     '<span class="vh-score tnum" style="color:var(--'+vk+'-text)">'+Math.round(c.prelim)+'<span>/100</span></span></div>'+
-    '<div class="vh-why">'+esc(s.thesis.summary)+'</div>'+
-    vetoHTML+gateHTML+'</div>';
+    '<div class="vh-why"><span class="lab info">AI/news note - information only</span> '+esc(s.thesis.summary)+'</div>'+
+    vetoHTML+gateHTML+warningHTML+'</div>';
   var action='<div class="sub-h">Action plan</div><div class="action-grid">'+
     [['Action',verdictAction(c)],['Position size',s.action.size],['Add trigger',s.action.add],['Invalidation / stop',s.action.stop],['Entry logic',s.action.entry],['Review',s.action.review]]
     .map(function(a){return '<div class="acard"><div class="l">'+a[0]+'</div><div class="v">'+esc(a[1])+'</div></div>';}).join('')+'</div>';
   var mathSec='<div class="sub-h">How the '+Math.round(c.prelim)+' was computed</div>'+scoreMathHTML(s,c);
   var scorecard='<div class="sub-h">Scorecard - click a category for its arithmetic, then any item for expected vs actual, formula, source and date</div>'+(s.categories||s.cats).map(catHTML).join('');
-  $('#d-body').innerHTML=hero+businessHTML(s)+mathSec+scorecard+demandMomentumHTML(s)+setupHTML(s)+targetPlanHTML(s)+valHTML(s)+growthEntryHTML(s)+contextHTML(s)+situationHTML(s)+newsHTML(s)+watchHTML(s)+action;
+  $('#d-body').innerHTML=hero+businessHTML(s)+growthQualificationHTML(s)+debtDirectionHTML(s)+mathSec+scorecard+demandMomentumHTML(s)+setupHTML(s)+targetPlanHTML(s)+valHTML(s)+growthEntryHTML(s)+contextHTML(s)+situationHTML(s)+newsHTML(s)+watchHTML(s)+action;
   openDrawer('#detail');
 }
 
@@ -1259,7 +1284,8 @@ function renderSettings(){
   }
   var bl=baseline();   // the mode's recommended model (backend preset + bands)
   body+='<div class="sub-h">Category weights</div>';
-  CATS.forEach(function(c){ body+=slider('w.'+c[0], c[1], 0, 30, S.weights[c[0]], bl.weights[c[0]], 'How much '+c[1]+' moves the base score.'); });
+  tunableCats().forEach(function(c){ body+=slider('w.'+c[0], c[1], 0, 30, S.weights[c[0]], bl.weights[c[0]], 'How much '+c[1]+' moves the tested score.'); });
+  body+='<div class="impact" style="margin:8px 0 14px">News and other information-only categories are not tunable because they cannot affect the verdict.</div>';
   body+='<div class="sub-h">Verdict & entry</div>';
   body+=slider('buyBand','Buy band (score )',50,90,S.buyBand,bl.buyBand,'Preliminary score needed for Buy.');
   body+=slider('watchBand','Watch band (score )',30,70,S.watchBand,bl.watchBand,'Below this = Avoid.');
@@ -1269,7 +1295,7 @@ function renderSettings(){
   $('#s-body').innerHTML=body; updateChanged();
 }
 function updateChanged(){ var bl=baseline(), n=0;
-  CATS.forEach(function(c){ if(S.weights[c[0]]!==bl.weights[c[0]])n++; });
+  tunableCats().forEach(function(c){ if(S.weights[c[0]]!==bl.weights[c[0]])n++; });
   if(S.buyBand!==bl.buyBand)n++; if(S.watchBand!==bl.watchBand)n++;
   ['mos','target'].forEach(function(k){ if(S[k]!==DEFAULTS[k])n++; });
   var note=$('#changed-note'); if(!note)return;

@@ -1,5 +1,11 @@
 # FairEntry — Implementation Plan
 
+> **Current decision boundary (2026-08-11):** This older planning document contains
+> references to an AI thesis score modifier. That modifier has been retired. Only
+> factors marked `tested` in `config/scoring.yaml` may affect Buy / Watch / Avoid.
+> AI, news, analyst forecasts, and other unreplayed information are notes only.
+> `docs/methodology.md` is the generated source of truth for the active model.
+
 Date: 2026-07-12
 Status: **Draft for your confirmation.** On approval, this drives an end-to-end build.
 Companion to: `baghunter-v2-requirements-revised.md`, `baghunter-v2-scoring-model-revised.md`, and the working UX prototype in `FairEntry/prototype/`.

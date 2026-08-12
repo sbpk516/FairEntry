@@ -17,7 +17,7 @@ execution:
   exit_transaction_cost_bps: 5
 benchmark:
   mode: spy_total_return
-horizons_days: [30, 60, 90, 180, 365, 548]
+horizons_days: [30, 60, 90, 180, 365, 548, 730, 1095, 1825]
 target:
   models: [practical, fundamental, technical, blended, fcf, book, peer_pe, peer_ps, lynch]
   primary: practical
@@ -32,5 +32,22 @@ data_quality:
 tuning:
   promotion: manual
   challenger_holds_days: [20, 30, 60, 90, 180]
+  objective: one_year_buy_episode_targets
+  primary_gain_pct: 25
+  secondary_gain_pct: 30
+  horizon_days: 365
+  large_loss_pct: -20
+  severe_drawdown_pct: -30
+  minimum_completed_episodes: 50
+  minimum_unique_issuers: 30
+  minimum_split_episodes: 10
+  candidate_count: 1000
+  # These are effective verdict weights. Information-only groups stay at zero.
+  weight_ranges:
+    quality: [15, 30]
+    survival: [3, 10]
+    growth: [25, 45]
+    valuation: [12, 30]
+    confirmation: [10, 25]
 portfolio:
   max_positions: 20

@@ -4,7 +4,9 @@ from dataclasses import replace
 
 from fairentry.backtest.evidence import metrics_for_policy, quality_for
 from fairentry.backtest.sfa_replay import SFAReplay, _implementation_fingerprint, _row_metrics
-from fairentry.backtest.sfa_tune import tune_sfa_observations
+from fairentry.backtest.sfa_tune import (
+    _episode_roots, _normalize, _tested_categories, tune_sfa_observations,
+)
 from fairentry.backtest.universe import deduplicate_issuers
 from fairentry.analytics.breakout_setup import (breakout_price_metric,
     breakout_volume_metric, relative_strength_metric, trend_regime_metric)
@@ -81,8 +83,9 @@ def test_snapshot_applies_live_universe_floors_before_top_n():
         netmargin DOUBLE,roe DOUBLE,roic DOUBLE,de DOUBLE,currentratio DOUBLE,fcf DOUBLE,assets DOUBLE,
         liabilities DOUBLE,workingcapital DOUBLE,retearn DOUBLE,ebit DOUBLE,marketcap DOUBLE)""")
     con.execute("""CREATE TABLE sfa_arq_features(
-        ticker VARCHAR,datekey DATE,reportperiod DATE,revenue DOUBLE,revenue_prev_q DOUBLE,opinc DOUBLE,
-        opinc_prev_q DOUBLE,sharesbas DOUBLE,shares_prev_y DOUBLE,grossmargin DOUBLE,grossmargin_prev_q DOUBLE)""")
+        ticker VARCHAR,datekey DATE,reportperiod DATE,revenue DOUBLE,revenue_prev_q DOUBLE,revenue_prev_y DOUBLE,opinc DOUBLE,
+        opinc_prev_q DOUBLE,sharesbas DOUBLE,shares_prev_y DOUBLE,grossmargin DOUBLE,grossmargin_prev_q DOUBLE,
+        debtnc DOUBLE,assets DOUBLE,debt_long_prev_y DOUBLE,assets_prev_y DOUBLE)""")
     con.execute("CREATE TABLE sfa_daily(ticker VARCHAR,date DATE,marketcap DOUBLE,pe DOUBLE,ps DOUBLE,pb DOUBLE)")
     for ticker, cap, price in (("GOOD", 2000, 50), ("WRONG", 3000, 60),
                                ("PENNY", 4000, .5), ("ILLIQ", 5000, 100)):
@@ -204,6 +207,7 @@ def test_public_artifact_redacts_reconstructable_vendor_values():
         "observations": [
             {
                 "raw_close": 10,
+                "_tuning_outcome": {"first_hit_primary_days": 30},
                 "security_id": "vendor-permanent-id",
                 "categories": [{"items": [{"actual": 42}]}],
                 "data_quality": {"grade": "point_in_time", "fields": [{"value": 42}]},
@@ -215,6 +219,7 @@ def test_public_artifact_redacts_reconstructable_vendor_values():
     row = clean["observations"][0]
     assert "raw_close" not in row
     assert "security_id" not in row
+    assert "_tuning_outcome" not in row
     assert "path" not in row["outcome"]
     assert "items" not in row["categories"][0]
     assert row["data_quality"]["fields"] == []
@@ -222,29 +227,72 @@ def test_public_artifact_redacts_reconstructable_vendor_values():
     assert clean["public_data_boundary"]["raw_vendor_rows_exposed"] is False
 
 
-def test_sfa_tuner_uses_disjoint_chronological_partitions_per_strategy():
+def test_sfa_tuner_uses_disjoint_chronological_partitions_and_never_promotes_automatically():
     cfg = load_config()
     observations = []
-    for strategy_key in ("deep_value", "quality_growth"):
-        for month in range(1, 21):
-            decision = f"2024-{month:02d}-01" if month <= 9 else f"2025-{month-9:02d}-01"
-            for verdict, alpha in (("Buy", 2.0), ("Avoid", -1.0)):
-                observations.append({
-                    "decision_date": decision,
-                    "strategy_key": strategy_key,
-                    "verdict": verdict,
-                    "categories": [{"id": key, "score": 90 if verdict == "Buy" else 20}
-                                   for key in cfg.categories],
-                    "vetoes": [], "soft_gates": [],
-                    "horizons": {str(h): {"alpha_pct": alpha}
-                                 for h in (30, 90, 180, 365, 548)},
-                })
-    report = tune_sfa_observations(observations, cfg, candidates=2)
-    for result in report["strategies"].values():
-        assert result["ok"]
-        split = result["split"]
-        assert split["development"]["last"] < split["validation"]["first"]
-        assert split["validation"]["last"] < split["test"]["first"]
+    for month in range(1, 21):
+        decision = f"2024-{month:02d}-01" if month <= 9 else f"2025-{month-9:02d}-01"
+        for verdict, alpha in (("Buy", 2.0), ("Avoid", -1.0)):
+            winner = verdict == "Buy"
+            observations.append({
+                "decision_date": decision,
+                "entry_date": decision,
+                "issuer_key": f"{month}:{verdict}",
+                "ticker": f"T{month}{verdict[0]}",
+                "sector": "Technology" if month % 2 else "Consumer Cyclical",
+                "strategy_key": "quality_growth" if month % 2 else "deep_value",
+                "verdict": verdict,
+                "categories": [{"id": key, "score": 90 if winner else 20}
+                               for key in cfg.categories],
+                "vetoes": [], "soft_gates": [],
+                "_tuning_outcome": {
+                    "last_observed_days": 400,
+                    "terminal_days": None,
+                    "first_hit_primary_days": 120 if winner else None,
+                    "first_hit_secondary_days": 180 if winner else None,
+                    "return_pct": 35 if winner else -25,
+                    "alpha_pct": alpha,
+                    "max_drawdown_pct": -8 if winner else -35,
+                },
+            })
+    report = tune_sfa_observations(
+        observations, cfg, candidates=2,
+        policy={"minimum_completed_episodes": 1, "minimum_unique_issuers": 1,
+                "minimum_split_episodes": 1},
+    )
+    assert report["ok"]
+    split = report["split"]
+    assert split["development"]["last"] < split["validation"]["first"]
+    assert split["validation"]["last"] < split["test"]["first"]
+    assert report["default_changed"] is False
+    assert report["promotion"] == "manual"
+    assert set(report["active_categories"]) == {
+        "quality", "survival", "growth", "valuation", "confirmation"
+    }
+
+
+def test_weight_tuner_groups_repeated_weekly_buys_into_one_episode():
+    cfg = load_config()
+    active = _tested_categories(cfg)
+    weights = _normalize(cfg.scoring["presets"]["backtest_recommended"], active)
+    observations = []
+    for index, (entry, score) in enumerate((
+        ("2024-01-01", 90), ("2024-01-31", 90), ("2024-03-01", 40)
+    )):
+        observations.append({
+            "decision_date": entry,
+            "entry_date": entry,
+            "issuer_key": "ONE-COMPANY",
+            "ticker": "ONE",
+            "categories": [{"id": key, "score": score} for key in active],
+            "vetoes": [], "soft_gates": [],
+            "_tuning_outcome": {"last_observed_days": 400},
+        })
+    episodes = _episode_roots(observations, weights, cfg.verdict_bands, 45)
+    assert len(episodes) == 1
+    assert episodes[0]["_episode"] == {
+        "started": "2024-01-01", "last_buy": "2024-01-31", "buy_signals": 2
+    }
 
 
 def test_issuer_deduplication_prefers_primary_share_class():

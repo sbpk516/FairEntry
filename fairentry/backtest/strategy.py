@@ -40,6 +40,23 @@ class BacktestStrategy:
     strict_excluded_sources: tuple[str, ...] = ("seed_const",)
     tuning_promotion: str = "manual"
     challenger_holds_days: tuple[int, ...] = (20, 30, 60, 90, 180)
+    tuning_objective: str = "one_year_buy_episode_targets"
+    tuning_primary_gain_pct: float = 25
+    tuning_secondary_gain_pct: float = 30
+    tuning_horizon_days: int = 365
+    tuning_large_loss_pct: float = -20
+    tuning_severe_drawdown_pct: float = -30
+    tuning_minimum_completed_episodes: int = 50
+    tuning_minimum_unique_issuers: int = 30
+    tuning_minimum_split_episodes: int = 10
+    tuning_candidate_count: int = 1000
+    tuning_weight_ranges: dict = field(default_factory=lambda: {
+        "quality": (15, 30),
+        "survival": (3, 10),
+        "growth": (25, 45),
+        "valuation": (12, 30),
+        "confirmation": (10, 25),
+    })
     portfolio_max_positions: int = 20
     metadata: dict = field(default_factory=dict)
 
@@ -74,6 +91,22 @@ class BacktestStrategy:
             raise ValueError("backtest universe floors must be non-negative")
         if self.portfolio_max_positions <= 0:
             raise ValueError("backtest portfolio_max_positions must be positive")
+        if self.tuning_objective != "one_year_buy_episode_targets":
+            raise ValueError(f"unsupported tuning objective={self.tuning_objective!r}")
+        if not (0 < self.tuning_primary_gain_pct <= self.tuning_secondary_gain_pct):
+            raise ValueError("tuning gain targets must be positive and ordered")
+        if self.tuning_horizon_days <= 0 or min(
+            self.tuning_minimum_completed_episodes,
+            self.tuning_minimum_unique_issuers,
+            self.tuning_minimum_split_episodes,
+            self.tuning_candidate_count,
+        ) <= 0:
+            raise ValueError("tuning horizon, sample minimums and candidate count must be positive")
+        if not self.tuning_weight_ranges:
+            raise ValueError("tuning weight ranges must not be empty")
+        for category, bounds in self.tuning_weight_ranges.items():
+            if len(bounds) != 2 or bounds[0] < 0 or bounds[0] > bounds[1]:
+                raise ValueError(f"invalid tuning weight range for {category}")
 
     @property
     def strategy_id(self) -> str:
@@ -121,6 +154,23 @@ def load_strategy(path: str | Path | None = None) -> BacktestStrategy:
         strict_excluded_sources=tuple(raw.get("data_quality", {}).get("strict_excluded_sources", ["seed_const"])),
         tuning_promotion=raw.get("tuning", {}).get("promotion", "manual"),
         challenger_holds_days=tuple(raw.get("tuning", {}).get("challenger_holds_days", [20, 30, 60])),
+        tuning_objective=raw.get("tuning", {}).get("objective", "one_year_buy_episode_targets"),
+        tuning_primary_gain_pct=float(raw.get("tuning", {}).get("primary_gain_pct", 25)),
+        tuning_secondary_gain_pct=float(raw.get("tuning", {}).get("secondary_gain_pct", 30)),
+        tuning_horizon_days=int(raw.get("tuning", {}).get("horizon_days", 365)),
+        tuning_large_loss_pct=float(raw.get("tuning", {}).get("large_loss_pct", -20)),
+        tuning_severe_drawdown_pct=float(raw.get("tuning", {}).get("severe_drawdown_pct", -30)),
+        tuning_minimum_completed_episodes=int(raw.get("tuning", {}).get("minimum_completed_episodes", 50)),
+        tuning_minimum_unique_issuers=int(raw.get("tuning", {}).get("minimum_unique_issuers", 30)),
+        tuning_minimum_split_episodes=int(raw.get("tuning", {}).get("minimum_split_episodes", 10)),
+        tuning_candidate_count=int(raw.get("tuning", {}).get("candidate_count", 1000)),
+        tuning_weight_ranges={
+            key: tuple(value)
+            for key, value in raw.get("tuning", {}).get("weight_ranges", {
+                "quality": [15, 30], "survival": [3, 10], "growth": [25, 45],
+                "valuation": [12, 30], "confirmation": [10, 25],
+            }).items()
+        },
         portfolio_max_positions=int(raw.get("portfolio", {}).get("max_positions", 20)),
         metadata={"source": str(path)},
     )

@@ -187,9 +187,10 @@ def test_fixed_return_milestones_use_adjusted_closes_and_execution_costs():
 
 
 def test_return_attainment_collapses_consecutive_buys_and_censors_active_rows():
-    def row(day, verdict, first_hit, observed, issuer="ISSUER-A"):
+    def row(day, verdict, first_hit, observed, issuer="ISSUER-A", entry_price=100):
         return {
             "entry_date": day,
+            "entry_price": entry_price,
             "ticker": "AAA",
             "issuer_key": issuer,
             "verdict": verdict,
@@ -197,12 +198,13 @@ def test_return_attainment_collapses_consecutive_buys_and_censors_active_rows():
                 "first_hit_days": {"25": first_hit},
                 "last_observed_days": observed,
                 "terminal_days": None,
+                "max_return_pct_by_horizon": {"365": 31.0},
             },
         }
 
     observations = [
         row("2023-01-01", "Buy", 80, 730),
-        row("2023-01-31", "Buy", 40, 730),  # same episode; do not double-count
+        row("2023-01-31", "Buy", 40, 730, entry_price=137),  # same episode
         row("2023-03-02", "Watch", None, 730),
         row("2023-04-01", "Buy", None, 730),  # new episode and mature failure
         row("2026-01-01", "Buy", None, 40, "ISSUER-B"),  # active, not failure
@@ -221,6 +223,14 @@ def test_return_attainment_collapses_consecutive_buys_and_censors_active_rows():
     assert cell["evaluable"] == 2
     assert cell["hit_rate_pct"] == 50.0
     assert cell["median_days_to_hit"] == 80
+    first = summary["episode_details"][0]
+    assert first["started"] == "2023-01-01"
+    assert first["last_buy"] == "2023-01-31"
+    assert first["buy_signals"] == 2
+    assert first["entry_price_low"] == 100
+    assert first["entry_price_high"] == 137
+    assert first["highest_gain_within_one_year_pct"] == 31.0
+    assert first["days_to_25_pct"] == 80
 
 
 def test_terminal_event_makes_fixed_return_horizon_evaluable():

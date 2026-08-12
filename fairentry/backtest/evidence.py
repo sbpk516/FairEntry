@@ -8,7 +8,7 @@ from datetime import date, timedelta
 
 
 RETURN_THRESHOLDS_PCT = (10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200)
-RETURN_HORIZONS_DAYS = (90, 180, 270, 365, 730)
+RETURN_HORIZONS_DAYS = (90, 180, 270, 365, 730, 1095, 1825)
 
 
 def source_quality(source: str | None, field_id: str | None = None) -> str:
@@ -260,6 +260,13 @@ def fixed_return_milestones(
         "last_observed_date": rows[-1][2] if rows else None,
         "terminal_days": terminal_days,
         "max_return_pct": round(max((value for _, value, _ in rows), default=0), 2),
+        "max_return_pct_by_horizon": {
+            str(horizon): round(
+                max((value for elapsed, value, _ in rows if elapsed <= horizon), default=0),
+                2,
+            )
+            for horizon in RETURN_HORIZONS_DAYS
+        },
     }
 
 
@@ -278,7 +285,12 @@ def _percentile(values: list[int], fraction: float) -> float | None:
 
 
 def _buy_episode_roots(observations: list[dict], max_gap_days: int) -> list[dict]:
-    """Collapse a contiguous run of Buy recommendations into one entry episode."""
+    """Collapse a contiguous run of Buy recommendations into one entry episode.
+
+    The first Buy remains the investment entry used for outcome calculations.
+    A small derived summary retains the later Buy dates so the UI can explain
+    the complete recommendation story without counting them as new investments.
+    """
     grouped: dict[str, list[dict]] = {}
     for observation in observations:
         key = (observation.get("issuer_key") or observation.get("security_id")
@@ -286,20 +298,50 @@ def _buy_episode_roots(observations: list[dict], max_gap_days: int) -> list[dict
         if key and observation.get("entry_date"):
             grouped.setdefault(str(key), []).append(observation)
     episodes = []
+
+    def finish(rows: list[dict]):
+        if not rows:
+            return
+        root = dict(rows[0])
+        prices = [float(row["entry_price"]) for row in rows
+                  if isinstance(row.get("entry_price"), (int, float))]
+        milestone = root.get("return_milestones") or {}
+        days_to_25 = (milestone.get("first_hit_days") or {}).get("25")
+        if not isinstance(days_to_25, (int, float)) or days_to_25 > 365:
+            days_to_25 = None
+        root["episode"] = {
+            "issuer_key": root.get("issuer_key"),
+            "ticker": root.get("ticker"),
+            "company": root.get("company"),
+            "strategy": root.get("strategy_key") or root.get("primary_strategy"),
+            "started": rows[0]["entry_date"],
+            "last_buy": rows[-1]["entry_date"],
+            "buy_signals": len(rows),
+            "entry_price_low": round(min(prices), 2) if prices else None,
+            "entry_price_high": round(max(prices), 2) if prices else None,
+            "highest_gain_within_one_year_pct": (
+                milestone.get("max_return_pct_by_horizon", {}).get("365")
+            ),
+            "days_to_25_pct": int(days_to_25) if days_to_25 is not None else None,
+        }
+        episodes.append(root)
+
     for rows in grouped.values():
-        active = False
+        current_episode = []
         previous_date = None
         for observation in sorted(rows, key=lambda row: row["entry_date"]):
             current = date.fromisoformat(observation["entry_date"])
             if previous_date is not None and (current - previous_date).days > max_gap_days:
-                active = False
+                finish(current_episode)
+                current_episode = []
             if observation.get("verdict") == "Buy":
-                if not active and observation.get("return_milestones"):
-                    episodes.append(observation)
-                active = True
+                if observation.get("return_milestones"):
+                    current_episode.append(observation)
             else:
-                active = False
+                finish(current_episode)
+                current_episode = []
             previous_date = current
+        finish(current_episode)
     return sorted(episodes, key=lambda row: (row["entry_date"], row.get("ticker", "")))
 
 
@@ -381,6 +423,7 @@ def summarize_buy_return_achievement(
             "episodes": _return_attainment_view(episodes, thresholds, horizons),
             "signals": _return_attainment_view(buys, thresholds, horizons),
         },
+        "episode_details": [row["episode"] for row in episodes],
     }
 
 

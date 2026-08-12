@@ -127,6 +127,72 @@ def _action(rec):
             else "Not yet actionable."), "add": "—", "stop": "—", "review": "—"}
 
 
+def _card_summary(rec, thesis, strategy_key):
+    """Small, plain-English board summary; full evidence remains in the drawer."""
+    reasons, risks = [], []
+
+    def add(target, text):
+        text = str(text or "").strip().rstrip(".")
+        if text and text.lower() not in {value.lower() for value in target}:
+            target.append(text + ".")
+
+    growth_check = rec.get("growth_qualification") or {}
+    if growth_check.get("qualified"):
+        add(reasons, growth_check.get("explanation"))
+
+    priority = {
+        "growth": 0, "catalysts": 1, "valuation": 2, "confirmation": 3,
+        "quality": 4, "survival": 5, "risk": 6,
+    }
+    evidence = []
+    for category in rec.get("categories", []):
+        for item in category.get("items", []):
+            score = item.get("score")
+            if (item.get("decision_status", "tested") == "tested"
+                    and isinstance(score, (int, float))):
+                evidence.append((priority.get(category["id"], 9), score, item))
+
+    def item_text(item):
+        actual = item.get("actual")
+        if isinstance(actual, (int, float)):
+            if item.get("metric") in {
+                "rev_growth_qoq", "eps_growth_next_y", "gross_margin", "oper_margin",
+                "roic", "share_count_yoy", "intrinsic_gap_pct", "inst_trans",
+                "short_float",
+            }:
+                actual = f"{actual:+.1f}%"
+            elif item.get("metric") == "debt_eq":
+                actual = f"{actual:.1f} times equity"
+        return f"{item['label']}: {actual}" if actual is not None else item["label"]
+
+    used_reason_categories = set()
+    for category_rank, score, item in sorted(evidence, key=lambda row: (row[0], -row[1])):
+        if score < 55 or len(reasons) >= 3:
+            continue
+        if category_rank in used_reason_categories:
+            continue
+        add(reasons, item_text(item))
+        used_reason_categories.add(category_rank)
+
+    for veto in rec.get("vetoes", []):
+        add(risks, veto.get("reason"))
+    for warning in rec.get("context_warnings", []):
+        add(risks, "Current warning (information only): " + warning.get("reason", ""))
+    for gate in rec.get("soft_gates", []):
+        add(risks, gate.get("reason"))
+    for _, score, item in sorted(evidence, key=lambda row: (row[1], row[0])):
+        if score >= 45 or len(risks) >= 3:
+            continue
+        add(risks, item_text(item))
+
+    return {
+        "strategy": "Deep Value" if strategy_key == "deep_value" else "Quality Growth",
+        "holding_period": "1–3 years" if strategy_key == "deep_value" else "2–5 years",
+        "strongest_reasons": reasons[:3],
+        "largest_risks": risks[:3],
+    }
+
+
 def _export_categories(rec, breakout):
     """Export the backend arithmetic plus the raw breakout evidence behind any
     computed factor. The UI renders this object; it never recreates provenance."""
@@ -142,7 +208,9 @@ def _export_categories(rec, breakout):
             items.append({
                 "id": item["id"], "metric": item["metric"], "label": item["label"],
                 "weight": item["weight"], "score": item["score"],
-                "status": item.get("status"), "contribution": item.get("contribution"),
+                "status": item.get("status"),
+                "decision_status": item.get("decision_status", "tested"),
+                "contribution": item.get("contribution"),
                 "actual": "n/a" if item["actual"] is None else str(item["actual"]),
                 "raw_actual": evidence.get("actual"),
                 "expected": evidence.get("expected") or item["expected"],
@@ -158,6 +226,7 @@ def _export_categories(rec, breakout):
         categories.append({
             "id": category["id"], "label": category["label"],
             "score": category["score"], "weight": category["weight"],
+            "decision_status": category.get("decision_status", "tested"),
             "coverage": category.get("coverage"),
             "contribution": category.get("contribution"),
             "available_item_weight": category.get("available_item_weight"),
@@ -282,15 +351,33 @@ def _map(rec, strategies, strategy_key):
              "specific, dated evidence that management delivered against guidance or a stated recovery/growth plan"),
             ("catalyst_visibility", "Catalyst Visibility", "catalyst",
              "a specific, dated catalyst with a credible path to affect business results or market expectations"),
+            ("policy_impact", "Government Policy Impact", "catalyst",
+             "a specific government action from a named source with a direct path to affect this company or sector"),
+            ("investment_expansion", "Investment and Expansion", "management",
+             "a dated expansion, contract, capacity investment, or acquisition with a measurable path to future revenue or profit"),
         )
 
+        reserved_ids = {row[0] for row in standard_qualitative}
+
         def matching_evidence(factor_id, subgroup):
+            # Preserve the four named transparency rows even if the provider
+            # returns them in a different order.
             for index, evidence in enumerate(raw_qualitative):
                 if index in used:
                     continue
-                if evidence.get("id") == factor_id or evidence.get("group") == subgroup:
+                if evidence.get("id") == factor_id:
                     used.add(index)
                     return evidence
+            # Older cached reviews may contain only generic management or
+            # catalyst rows. Let those populate the two generic rows, but never
+            # relabel a named policy/expansion row as something else.
+            if factor_id in {"management_execution", "catalyst_visibility"}:
+                for index, evidence in enumerate(raw_qualitative):
+                    if index in used or evidence.get("id") in reserved_ids:
+                        continue
+                    if evidence.get("group") == subgroup:
+                        used.add(index)
+                        return evidence
             return {}
 
         ordered_evidence = []
@@ -320,12 +407,12 @@ def _map(rec, strategies, strategy_key):
                 "actual": ev.get("evidence") or "n/a",
                 "expected": expected,
                 "score_metric": None,
-                "formula": "Existing thesis modifier only; not double-counted in the base score",
+                "formula": "Information only; excluded from the tested score and verdict",
                 "evidence": ev.get("evidence") or "No specific evidence was supplied; status remains Unknown.",
                 "source": ev.get("source") or (th.get("_provider", "-") if th else "AI review pending"),
                 "observed_at": ev.get("date", ""),
-                "calculation_version": "thesis_v5",
-                "modifier_effect": f"Included collectively in the existing thesis modifier {rec['thesis_modifier']:+g}",
+                "calculation_version": "thesis_v6",
+                "modifier_effect": "Decision effect: none",
             })
         breakout["factors"] = (breakout.get("factors") or []) + qualitative
         statuses = ("satisfied", "partial", "failed", "contradicted", "unknown")
@@ -333,8 +420,8 @@ def _map(rec, strategies, strategy_key):
                               for k in statuses}
         breakout["counts"]["total"] = len(breakout["factors"])
         breakout["qualitative_note"] = (
-            "Qualitative and human evidence affects only the existing thesis modifier; "
-            "the breakout label remains a deterministic rule outcome."
+            "Qualitative and human evidence is information only. It does not change "
+            "the tested score, verdict, or deterministic breakout label."
         )
     display_verdict = ("Quant Buy" if rec["verdict"] == "Buy" and not th else rec["verdict"])
     rec["display_verdict"] = display_verdict
@@ -383,6 +470,7 @@ def _map(rec, strategies, strategy_key):
     labels = (_labels(rec) + extra)[:6]
 
     action = _action(rec)
+    card_summary = _card_summary(rec, thesis, strategy_key)
     return {
         "ticker": rec["ticker"], "company": rec["company"], "sector": rec["sector"],
         "country": rec.get("country"), "strategy": strategies, "price": rec["price"],
@@ -394,6 +482,14 @@ def _map(rec, strategies, strategy_key):
         "coverage_confidence": rec.get("coverage_confidence"),
         "decision_trace": dict(rec.get("decision_trace") or {},
                                thesis_evidence=qualitative if breakout else []),
+        "growth_qualification": rec.get("growth_qualification"),
+        "debt_direction": {
+            "current_pct": (rec.get("research_metrics") or {}).get("debt_to_assets_pct"),
+            "one_year_ago_pct": (rec.get("research_metrics") or {}).get("debt_to_assets_yago_pct"),
+            "change_pp": (rec.get("research_metrics") or {}).get("debt_to_assets_change_yoy_pp"),
+            "decision_status": "testing",
+            "decision_effect": "None until historical validation passes",
+        },
         "cats": [{"id": c["id"], "label": c["label"], "score": c["score"] or 0,
                   "items": [{"label": i["label"], "weight": i["weight"], "score": i["score"] or 0,
                              "actual": (rec.get("_sm_flow") if i.get("id") == "smart_money" and rec.get("_sm_flow")
@@ -416,39 +512,30 @@ def _map(rec, strategies, strategy_key):
         "demand_momentum": rec.get("_demand_momentum"),
         "breakout_setup": breakout,
         "vetoes": [v["reason"] for v in rec["vetoes"]],
+        "context_warnings": rec.get("context_warnings", []),
         "soft": [g["reason"] for g in rec["soft_gates"]],
         "soft_gates": [g["reason"] for g in rec["soft_gates"]],
         "labels": labels, "action": action, "action_plan": action,
+        "card_summary": card_summary,
         # informational only — see demand_momentum(); NOT used in the score/verdict
         "context": rec.get("_context"),
     }
 
 
 def _rescore_with_thesis(cfg, secs, store, rec, th, settings, med):
-    """Re-score one rec with its thesis modifier + preset weights, carrying the
-    thesis (and rec-attached extras) onto the new record. Shared by the live-LLM
-    path and the stored-thesis re-attach path so they behave identically."""
-    from ..reasoning.thesis import modifier_for
-    primary = rec["_primary"]
-    mod = modifier_for(th.get("thesis_score", 50), cfg.scoring.get("thesis_modifier", []))
-    s = dict(settings); s["thesis_modifier"] = mod
-    pw = _preset_weights(cfg, primary)
-    if pw:
-        s["weights"] = pw
-    r2 = score_ticker(cfg, secs[rec["ticker"]], store.metrics_for(rec["ticker"]), med, s)
-    r2["_primary"] = primary; r2["_strategies"] = rec["_strategies"]; r2["_thesis"] = th
-    r2["_sm_flow"] = rec.get("_sm_flow")   # preserve rec-attached extras across re-score
-    r2["_context"] = rec.get("_context")   # informational only
-    r2["_breakout_setup"] = rec.get("_breakout_setup")
-    return r2, mod
+    """Attach an AI review without changing the deterministic verdict."""
+    r2 = dict(rec)
+    r2["_thesis"] = th
+    r2["thesis_modifier"] = 0
+    if r2.get("decision_trace"):
+        r2["decision_trace"] = dict(r2["decision_trace"], thesis_modifier=0)
+    return r2, 0
 
 
 def _apply_reasoning(cfg, secs, store, recs, settings, med, cap=30):
     """Run the reasoning layer (a real LLM call) on the names most worth an AI
-    read: every Buy / near-Buy candidate — preliminary at or above the Watch line
-    (minus a small margin so borderline names the modifier could tip are included
-    too), highest score first, capped. Covers clear Buys, which the old
-    borderline-only window (<= buy_b + 4) excluded.
+    read: every Buy / Watch candidate, highest tested score first, capped. The
+    resulting review is information only and cannot change the verdict.
 
     Each successful thesis is persisted to the store (thesis_results) so later
     deterministic builds can re-attach it. Circuit-breaks if the provider is
@@ -459,7 +546,7 @@ def _apply_reasoning(cfg, secs, store, recs, settings, med, cap=30):
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     watch_b = cfg.verdict_bands["watch"]
     shortlist = sorted(
-        [r for r in recs if r["preliminary"] >= watch_b - 3 and not r["vetoes"]],
+        [r for r in recs if r["preliminary"] >= watch_b and not r["vetoes"]],
         key=lambda r: -r["preliminary"])[:cap]
     provider_down = False
     used = 0
@@ -677,11 +764,18 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
                      "preset_profiles": cfg.scoring.get("preset_profiles", {}),
                      "presets": cfg.scoring.get("presets", {}),
                      "default_weights": {cid: c["weight"] for cid, c in cfg.categories.items()},
-                     # everything the UI needs to reproduce the backend verdict
-                     # exactly (per-strategy preset weights, bands, thesis modifier)
+                     # everything the UI needs to reproduce the tested verdict;
+                     # AI/news has no score modifier.
                      "strategy_presets": cfg.defaults.get("strategy_presets", {}),
                      "verdict_bands": cfg.verdict_bands,
-                     "thesis_modifier": cfg.scoring.get("thesis_modifier", [])},
+                     "thesis_modifier": [],
+                     "factor_contract": [
+                         {"category": cid, "category_label": category["label"],
+                          "id": item["id"], "label": item["label"],
+                          "decision_status": item.get("decision_status", "tested")}
+                         for cid, category in cfg.categories.items()
+                         for item in category["items"]
+                     ]},
             "stocks": stocks}
 
 

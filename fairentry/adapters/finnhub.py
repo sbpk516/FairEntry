@@ -38,6 +38,12 @@ _CATALYST_PATTERNS = [
     (re.compile(r"\b(lawsuit|probe|investigat|sec |fraud|recall|breach|settle)\b"), "legal"),
     (re.compile(r"\b(buyback|dividend|split|repurchase)\b"), "capital"),
     (re.compile(r"\b(ceo|cfo|resign|appoints?|steps? down|layoff|restructur)\b"), "management"),
+    (re.compile(r"\b(government|regulat|legislat|tariff|subsid|tax credit|executive order|"
+                r"department of|ministry|federal policy|state aid|sanction|export control)\b"),
+     "policy"),
+    (re.compile(r"\b(contract|award|order book|backlog|tender|procurement)\b"), "contract"),
+    (re.compile(r"\b(expan|capacity|plant|factory|facility|capital investment|capex|new market)\b"),
+     "expansion"),
 ]
 
 

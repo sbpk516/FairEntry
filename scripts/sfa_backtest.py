@@ -13,7 +13,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from fairentry.backtest.sfa_replay import run_sfa_rolling
-from fairentry.backtest.sfa_tune import tune_sfa_observations
+from fairentry.backtest.sfa_tune import policy_from_strategy, tune_sfa_observations
 from fairentry.backtest.strategy import load_strategy
 from fairentry.config import load_config
 from fairentry.sharadar import SharadarWarehouse
@@ -127,7 +127,9 @@ def main():
     ap.add_argument("--top-n", type=int)
     ap.add_argument("--no-evidence", action="store_true")
     ap.add_argument("--tune", action="store_true",
-                    help="evaluate per-strategy weights on chronological development/validation/test partitions")
+                    help="evaluate one shared target-based challenger on chronological partitions")
+    ap.add_argument("--tune-candidates", type=int,
+                    help="override the configured number of weight combinations")
     ap.add_argument("--json-out", default="web/data/backtest-sfa.json")
     ap.add_argument(
         "--publish-private",
@@ -173,7 +175,11 @@ def main():
     }
     if args.tune and result.get("ok"):
         result["weight_validation"] = tune_sfa_observations(
-            result.get("observations", []), load_config()
+            result.get("observations", []), load_config(),
+            step_days=result.get("step_days", args.step),
+            candidates=args.tune_candidates,
+            policy=policy_from_strategy(strategy),
+            progress=lambda row: print(json.dumps({"tuning_progress": row}), flush=True),
         )
     private_path = Path(args.private_json_out)
     private_path.parent.mkdir(parents=True, exist_ok=True)

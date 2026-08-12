@@ -14,86 +14,85 @@
 version: 1
 
 verdict_bands: {buy: 72, watch: 50}      # >=72 Buy, 50-71 Watch, <50 Avoid
-thesis_modifier:                          # recovery/growth score -> +/- to base (scoring model B4)
-  - {min: 80, mod: 6}
-  - {min: 65, mod: 3}
-  - {min: 50, mod: 0}
-  - {min: 35, mod: -5}
-  - {min: 0,  mod: -10}
+# AI/news review is information-only until a timestamped historical news source
+# is replayed and validated. It must never change Buy / Watch / Avoid.
+thesis_modifier: []
 
 categories:
   quality:
     label: Business Quality
-    weight: 16.99
+    weight: 18
     items:
       - {id: gross_margin_vs_sector, label: "Gross margin vs sector", weight: 30, metric: gross_margin, expected: "≥ sector median", rule: {type: sector_rel, full_delta: 5, floor_delta: -15}}
       - {id: roic_quality,           label: "ROIC vs sector",        weight: 35, metric: roic,        expected: "≥ sector median", rule: {type: sector_rel, full_delta: 4, floor_delta: -8}}
       - {id: profitability,          label: "Operating margin",      weight: 35, metric: oper_margin, expected: "positive & healthy", rule: {type: higher_better, full_at: 20, floor_at: -5}}
   survival:
     label: Financial Strength & Survival
-    weight: 17.07
+    weight: 5
     items:
-      - {id: altman_z,       label: "Altman-Z",         weight: 35, metric: altman_z,     expected: "> 2.6 = safe", rule: {type: band, bands: [{min: 2.6, score: 90}, {min: 1.8, score: 55}, {min: 0, score: 20}]}}
+      - {id: altman_z,       label: "Altman-Z",         weight: 30, metric: altman_z,     expected: "> 2.6 = safe", rule: {type: band, bands: [{min: 2.6, score: 90}, {min: 1.8, score: 55}, {min: 0, score: 20}]}}
       - {id: leverage,       label: "Debt / equity",    weight: 25, metric: debt_eq,      expected: "< 0.7 comfortable", rule: {type: lower_better, full_at: 0.3, floor_at: 2.0}}
-      - {id: liquidity,      label: "Current ratio",    weight: 20, metric: current_ratio, expected: "> 1.5", rule: {type: higher_better, full_at: 1.8, floor_at: 0.8}}
-      - {id: dilution,       label: "Share-count trend", weight: 20, metric: share_count_yoy, expected: "≤ 0 (no dilution)", rule: {type: lower_better, full_at: -1, floor_at: 10}}
+      - {id: debt_direction, label: "Long-term debt burden: change from one year ago", weight: 20, metric: debt_to_assets_change_yoy_pp, expected: "negative means improving", definition: "Long-term debt divided by total assets today, minus the same ratio four quarters earlier. This is displayed and replayed but does not affect the verdict until its thresholds pass validation.", decision_status: testing, rule: {type: lower_better, full_at: -5, floor_at: 8}}
+      - {id: liquidity,      label: "Current ratio",    weight: 15, metric: current_ratio, expected: "> 1.5", rule: {type: higher_better, full_at: 1.8, floor_at: 0.8}}
+      - {id: dilution,       label: "Share-count trend", weight: 10, metric: share_count_yoy, expected: "≤ 0 (no dilution)", rule: {type: lower_better, full_at: -1, floor_at: 10}}
   growth:
     label: Growth & Operating Momentum
-    weight: 11.20
+    weight: 27
     items:
       - {id: revenue_growth, label: "Revenue growth vs sector", weight: 35, metric: rev_growth_qoq, expected: "≥ sector median", rule: {type: sector_rel, full_delta: 10, floor_delta: -10}}
-      - {id: eps_growth,     label: "EPS growth (next yr)",     weight: 30, metric: eps_growth_next_y, expected: "≥ 15%", rule: {type: higher_better, full_at: 30, floor_at: -10}}
-      - {id: margin_trend,   label: "Margin direction",         weight: 35, metric: margin_trend_score, expected: "stable or improving", rule: {type: passthrough, drop_if_missing: true}}
+      - {id: eps_growth,     label: "Expected EPS growth next year", weight: 30, metric: eps_growth_next_y, expected: "≥ 15%", decision_status: information_only, definition: "A current analyst forecast. It is shown as context because the SFA replay does not contain the same historical forecast series.", rule: {type: higher_better, full_at: 30, floor_at: -10}}
+      - {id: margin_trend,   label: "Margin direction", weight: 35, metric: margin_trend_score, expected: "stable or improving", decision_status: testing, definition: "The historical calculation is available, but the live board does not yet use the identical filing-period calculation. It has no verdict effect until both sides match.", rule: {type: passthrough, drop_if_missing: true}}
   valuation:
     label: Valuation & Margin of Safety
-    weight: 16.99
+    weight: 15
     items:
       - {id: intrinsic_gap,  label: "Intrinsic-value gap",  weight: 40, metric: intrinsic_gap_pct, expected: "≥ 12% below fair", rule: {type: higher_better, full_at: 30, floor_at: -10}}
       - {id: fcf_value,      label: "P/Free Cash Flow",     weight: 30, metric: pfcf_ratio, expected: "< 15 cheap", rule: {type: lower_better, full_at: 12, floor_at: 40}}
       - {id: sales_value,    label: "P/S vs sector",        weight: 30, metric: ps_ratio, expected: "≤ sector median", rule: {type: sector_rel, full_delta: -1, floor_delta: 4, lower_better: true}}
   confirmation:
     label: Market Confirmation
-    weight: 14.21
+    weight: 15
     items:
       - {id: price_breakout, label: "Price above resistance", weight: 25, metric: breakout_price_score, expected: "close ≥2% above resistance", rule: {type: passthrough, drop_if_missing: true}}
       - {id: breakout_volume,label: "Breakout volume",        weight: 20, metric: breakout_volume_score, expected: "≥1.5× prior 50-day average", rule: {type: passthrough, drop_if_missing: true}}
       - {id: relative_strength,label: "Relative strength",    weight: 15, metric: relative_strength_score, expected: "outperform sector and SPY", definition: "Three-month stock return compared with both its sector ETF and SPY; positive means the stock is attracting capital faster than its benchmarks.", rule: {type: passthrough, drop_if_missing: true}}
       - {id: trend_regime,   label: "Trend regime",           weight: 15, metric: trend_regime_score, expected: "supportive moving-average trend", definition: "Percentage of four checks passing: price above 50DMA, price above 200DMA, 50DMA above 200DMA, and a rising 50DMA.", rule: {type: passthrough, drop_if_missing: true}}
-      - {id: inst_flow,      label: "Institutional ownership change", weight: 10, metric: inst_trans, expected: "positive change in reported institutional ownership", definition: "Finviz Institutional Transactions: percentage change in aggregate institutional ownership over its reported recent period. This is a broad ownership-change field, not FairEntry's curated SEC 13F calculation.", formula: "score = clamp((institutional ownership change + 3) / 5 × 100, 0, 100)", rule: {type: higher_better, full_at: 2, floor_at: -3}}
-      - {id: smart_money,    label: "Smart-money SEC 13F",    weight: 5, metric: thirteenf_score, expected: "owned / added by respected tracked funds", definition: "A separate FairEntry signal built from two successive SEC 13F-HR filings for the curated managers in config/managers.yaml; it measures ownership breadth, new positions, additions, trims, exits, and aggregate share change.", rule: {type: passthrough, drop_if_missing: true}}
-      - {id: insider_buying, label: "Insider buying",         weight: 10, metric: insider_score, expected: "fresh / cluster / top-exec buys", rule: {type: passthrough, drop_if_missing: true}}
+      - {id: inst_flow,      label: "Institutional ownership change", weight: 10, metric: inst_trans, expected: "positive change in reported institutional ownership", decision_status: information_only, definition: "Finviz Institutional Transactions reports a current aggregate ownership change. It is not FairEntry's curated SEC 13F history. The replay does not reproduce this exact series, so it cannot affect the verdict.", formula: "score = clamp((institutional ownership change + 3) / 5 × 100, 0, 100)", rule: {type: higher_better, full_at: 2, floor_at: -3}}
+      - {id: smart_money,    label: "Smart-money SEC 13F",    weight: 5, metric: thirteenf_score, expected: "owned / added by respected tracked funds", decision_status: information_only, definition: "Current filing context. It remains outside the verdict until the same manager history is replayed point in time.", rule: {type: passthrough, drop_if_missing: true}}
+      - {id: insider_buying, label: "Insider buying",         weight: 10, metric: insider_score, expected: "fresh / cluster / top-exec buys", decision_status: information_only, definition: "Current event context. It remains outside the verdict until historical Form 4 events are replayed.", rule: {type: passthrough, drop_if_missing: true}}
   catalysts:
     label: Catalysts & Narrative
-    weight: 10.45
+    weight: 15
     items:
-      - {id: news_sentiment, label: "News sentiment",   weight: 40, metric: news_sentiment_score, expected: "positive stance", rule: {type: passthrough}}
-      - {id: analyst,        label: "Analyst consensus", weight: 25, metric: analyst_recom, expected: "≤ 2 (Buy)", rule: {type: lower_better, full_at: 1.5, floor_at: 3.5}}
-      - {id: est_revisions,  label: "Analyst target revisions", weight: 20, metric: estimate_revision_score, expected: "mean analyst price target rising", rule: {type: passthrough, drop_if_missing: true}}
-      - {id: sqz_context,    label: "Short-squeeze fuel", weight: 15, metric: short_float, expected: "elevated but not extreme", rule: {type: band, bands: [{min: 15, max: 30, score: 70}, {min: 5, max: 15, score: 55}, {min: 0, max: 5, score: 45}]}}
+      - {id: news_sentiment, label: "News review", weight: 40, metric: news_sentiment_score, expected: "specific sourced event", decision_status: information_only, definition: "Recent news is displayed as a sourced note. The current feed has no complete historical archive, so it never changes the verdict.", rule: {type: passthrough}}
+      - {id: analyst,        label: "Analyst consensus", weight: 25, metric: analyst_recom, expected: "≤ 2 (Buy)", decision_status: information_only, definition: "Current analyst opinion, not reproduced historically by the SFA replay.", rule: {type: lower_better, full_at: 1.5, floor_at: 3.5}}
+      - {id: est_revisions,  label: "Analyst target revisions", weight: 20, metric: estimate_revision_score, expected: "mean analyst price target rising", decision_status: information_only, definition: "Built from recent locally collected targets; the complete historical series is unavailable.", rule: {type: passthrough, drop_if_missing: true}}
+      - {id: sqz_context,    label: "Short interest context", weight: 15, metric: short_float, expected: "elevated but not extreme", decision_status: information_only, definition: "Current short-interest context, not reproduced historically by the SFA replay.", rule: {type: band, bands: [{min: 15, max: 30, score: 70}, {min: 5, max: 15, score: 55}, {min: 0, max: 5, score: 45}]}}
   risk:
     label: Risk, Red Flags & Fragility
-    weight: 13.09
+    weight: 5
     items:
-      - {id: forensic,       label: "Forensic / accounting", weight: 40, metric: red_flags_score, expected: "clean", rule: {type: passthrough}}
-      - {id: short_risk,     label: "Short interest (risk)", weight: 30, metric: short_float, expected: "< 10% = low", rule: {type: lower_better, full_at: 5, floor_at: 30}}
-      - {id: macro,          label: "Macro / beta",          weight: 30, metric: beta, expected: "resilient (β near 1)", rule: {type: lower_better, full_at: 0.8, floor_at: 2.2}}
+      - {id: forensic,       label: "Forensic / accounting review", weight: 40, metric: red_flags_score, expected: "clean", decision_status: information_only, definition: "A current filing warning panel. It is shown prominently but is not part of the tested verdict until the same checks are replayed historically.", rule: {type: passthrough}}
+      - {id: short_risk,     label: "Short interest (risk)", weight: 30, metric: short_float, expected: "< 10% = low", decision_status: information_only, definition: "Current short-interest context, not reproduced historically by the SFA replay.", rule: {type: lower_better, full_at: 5, floor_at: 30}}
+      - {id: macro,          label: "Macro / beta", weight: 30, metric: beta, expected: "resilient (β near 1)", decision_status: information_only, definition: "The live provider beta and the historical calculated beta are not the same series, so beta is context only.", rule: {type: lower_better, full_at: 0.8, floor_at: 2.2}}
 
 # Hard vetoes -> force Avoid regardless of score.
 vetoes:
-  - {id: going_concern,        when: "going_concern == True",         reason: "Going-concern doubt confirmed"}
+  - {id: going_concern,        when: "going_concern == True",         reason: "Going-concern doubt confirmed", decision_status: information_only}
   - {id: distress_corroborated, when: "altman_z < 1.8 and debt_eq > 2", reason: "Corroborated financial distress"}
-  - {id: critical_red_flag,    when: "red_flags_critical > 0",        reason: "Critical accounting / fraud flag"}
+  - {id: critical_red_flag,    when: "red_flags_critical > 0",        reason: "Critical accounting / fraud flag", decision_status: information_only}
 
 # Soft gates -> cap Buy to Watch.
 soft_gates:
-  - {id: survival_floor,   when: "category_survival < 30",  reason: "Survival score below floor"}
+  - {id: survival_floor,   when: "category_survival < 20",  reason: "Financial condition is extremely weak"}
+  - {id: growth_floor,     when: "growth_qualified == False", reason: "Business direction is not yet stable or meaningfully improving"}
   - {id: upside_below_target, when: "upside_pct < target_upside", reason: "Upside below target"}
   - {id: no_confirmation,  when: "category_confirmation < 35", reason: "No market confirmation"}
   - {id: expensive,        when: "valuation_label == 'expensive'", reason: "Valuation is expensive"}
 
 # Presets — bias the weights per strategy (user can pick / edit in the UI).
 presets:
-  backtest_recommended: {quality: 16.99, survival: 17.07, growth: 11.20, valuation: 16.99, confirmation: 14.21, catalysts: 10.45, risk: 13.09}
+  backtest_recommended: {quality: 18, survival: 5, growth: 27, valuation: 15, confirmation: 15, catalysts: 15, risk: 5}
   quality_compounder:   {quality: 20, survival: 9,  growth: 24, valuation: 12, confirmation: 16, catalysts: 12, risk: 7}
   aggressive_growth:    {quality: 20, survival: 6,  growth: 28, valuation: 8,  confirmation: 18, catalysts: 14, risk: 6}
   recovery_value:       {quality: 12, survival: 12, growth: 12, valuation: 22, confirmation: 16, catalysts: 16, risk: 10}
@@ -102,7 +101,7 @@ presets:
 # plain numeric maps so the scoring engine and backtest tuner stay deterministic.
 preset_profiles:
   backtest_recommended:
-    {label: "Backtest Recommended", risk: "Moderate", horizon: "20-60 trading days tested", description: "Protected tuner winner: improved every held-out window while keeping survival and risk near the original defaults."}
+    {label: "Growth-focused default", risk: "Moderate-high", horizon: "1-5 years", description: "Growth and future opportunity lead the score. Financial survival has a small weight, while serious failure warnings still block a Buy."}
   quality_compounder:
     {label: "Quality Compounder", risk: "Moderate-high", horizon: "1-3 years", description: "Prioritizes durable growth and quality with enough market confirmation to avoid weak trends."}
   aggressive_growth:

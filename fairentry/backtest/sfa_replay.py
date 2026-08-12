@@ -61,6 +61,7 @@ def _implementation_fingerprint() -> str:
         repo / "fairentry" / "analytics" / "demand_momentum.py",
         repo / "fairentry" / "pipeline" / "export.py",
         repo / "fairentry" / "backtest" / "seed.py",
+        repo / "fairentry" / "backtest" / "sfa_tune.py",
         repo / "fairentry" / "sharadar" / "warehouse.py",
         repo / "scripts" / "build_all.py",
         repo / "scripts" / "build_sfa_features.py",
@@ -233,6 +234,24 @@ def _row_metrics(row: dict, asof: str, spy_3m: float | None,
         "roe": (_pct(row.get("roe")), "sharadar_sf1_art"),
         "roic": (_pct(row.get("roic")), "sharadar_sf1_art"),
         "debt_eq": (row.get("de"), "sharadar_sf1_art"),
+        "debt_to_assets_pct": (
+            _safe_ratio(row.get("debt_long_q"), row.get("assets_q"), 100),
+            "sharadar_sf1_arq",
+        ),
+        "debt_to_assets_yago_pct": (
+            _safe_ratio(row.get("debt_long_prev_y"), row.get("assets_prev_y"), 100),
+            "sharadar_sf1_arq",
+        ),
+        "debt_to_assets_change_yoy_pp": (
+            (
+                _safe_ratio(row.get("debt_long_q"), row.get("assets_q"), 100)
+                - _safe_ratio(row.get("debt_long_prev_y"), row.get("assets_prev_y"), 100)
+            )
+            if _safe_ratio(row.get("debt_long_q"), row.get("assets_q"), 100) is not None
+            and _safe_ratio(row.get("debt_long_prev_y"), row.get("assets_prev_y"), 100) is not None
+            else None,
+            "sharadar_sf1_arq",
+        ),
         "current_ratio": (row.get("currentratio"), "sharadar_sf1_art"),
         "pfcf_ratio": (
             # Sharadar DAILY.marketcap is USD millions while SF1.fcf is USD.
@@ -253,11 +272,11 @@ def _row_metrics(row: dict, asof: str, spy_3m: float | None,
         ),
         "rev_growth_qoq": (
             _safe_ratio(
-                (row.get("revenue_q") - row.get("revenue_prev_q"))
+                (row.get("revenue_q") - row.get("revenue_prev_y"))
                 if row.get("revenue_q") is not None
-                and row.get("revenue_prev_q") is not None
+                and row.get("revenue_prev_y") is not None
                 else None,
-                row.get("revenue_prev_q"),
+                row.get("revenue_prev_y"),
                 100,
             ),
             "sharadar_sf1_arq",
@@ -412,9 +431,11 @@ class SFAReplay:
                art.datekey,art.reportperiod,art.grossmargin,art.ros,art.opinc,art.revenue,
                art.netmargin,art.roe,art.roic,art.de,art.currentratio,art.fcf,art.assets,
                art.liabilities,art.workingcapital,art.retearn,art.ebit,
-               arq.revenue revenue_q,arq.revenue_prev_q,arq.opinc opinc_q,
+               arq.revenue revenue_q,arq.revenue_prev_q,arq.revenue_prev_y,arq.opinc opinc_q,
                arq.opinc_prev_q,arq.sharesbas sharesbas_q,
                arq.shares_prev_y,arq.grossmargin grossmargin_q,arq.grossmargin_prev_q,
+               arq.debtnc debt_long_q,arq.assets assets_q,
+               arq.debt_long_prev_y,arq.assets_prev_y,
                d.marketcap marketcap_daily,d.pe pe_daily,d.ps ps_daily,d.pb pb_daily
         FROM u
         JOIN LATERAL (
@@ -583,6 +604,12 @@ class SFAReplay:
         decision: str,
         horizons: tuple[int, ...],
         next_close: bool,
+        *,
+        tuning_horizon_days: int = 365,
+        tuning_primary_gain_pct: float = 25,
+        tuning_secondary_gain_pct: float = 30,
+        entry_cost_bps: float = 0,
+        exit_cost_bps: float = 0,
     ) -> dict[str, dict]:
         """Fetch entry and fixed-horizon outcomes in one grouped warehouse scan."""
         if not tickers:
@@ -595,6 +622,19 @@ class SFAReplay:
             "arg_max(p.close,p.date) last_close",
             "arg_max(p.closeadj,p.date) last_closeadj",
         ]
+        entry_multiplier = 1 + entry_cost_bps / 10000
+        exit_multiplier = 1 - exit_cost_bps / 10000
+        net_return = (
+            f"(((coalesce(p.closeadj,p.close)*{exit_multiplier:.12f})/"
+            f"(coalesce(e.entry_closeadj,e.entry_close)*{entry_multiplier:.12f})-1)*100)"
+        )
+        tuning_end = f"e.entry_date+INTERVAL {int(tuning_horizon_days)} DAY"
+        expressions.extend([
+            f"min(p.date) FILTER (WHERE p.date<={tuning_end} AND {net_return}>={float(tuning_primary_gain_pct)}) tuning_hit_primary_date",
+            f"min(p.date) FILTER (WHERE p.date<={tuning_end} AND {net_return}>={float(tuning_secondary_gain_pct)}) tuning_hit_secondary_date",
+            f"max({net_return}) FILTER (WHERE p.date<={tuning_end}) tuning_max_return_pct",
+            f"min({net_return}) FILTER (WHERE p.date<={tuning_end}) tuning_max_drawdown_pct",
+        ])
         for horizon in horizons:
             expressions.extend(
                 [
@@ -603,7 +643,7 @@ class SFAReplay:
                     f"arg_min(p.closeadj,p.date) FILTER (WHERE p.date>=e.entry_date+INTERVAL {int(horizon)} DAY) closeadj_{horizon}",
                 ]
             )
-        maximum = max(horizons)
+        maximum = max(max(horizons), int(tuning_horizon_days))
         entry_search_end = (date.fromisoformat(decision) + timedelta(days=14)).isoformat()
         end = (date.fromisoformat(decision) + timedelta(days=maximum + 28)).isoformat()
         query = f"""
@@ -754,6 +794,11 @@ def run_sfa_rolling(
             entry,
             fixed_horizons,
             strategy.entry == "next_close",
+            tuning_horizon_days=strategy.tuning_horizon_days,
+            tuning_primary_gain_pct=strategy.tuning_primary_gain_pct,
+            tuning_secondary_gain_pct=strategy.tuning_secondary_gain_pct,
+            entry_cost_bps=strategy.slippage_bps + strategy.transaction_cost_bps,
+            exit_cost_bps=strategy.exit_slippage_bps + strategy.exit_transaction_cost_bps,
         )
         evidence_end = (decision + timedelta(days=max(1474, max(strategy.horizons_days) + 28))).isoformat()
         terminals = replay.terminal_events(
@@ -912,7 +957,10 @@ def run_sfa_rolling(
                 or {cid: c["weight"] for cid, c in cfg.categories.items()},
                 "thresholds": cfg.verdict_bands,
                 "vetoes": rec["vetoes"],
+                "context_warnings": rec.get("context_warnings", []),
                 "soft_gates": rec["soft_gates"],
+                "growth_qualification": rec.get("growth_qualification"),
+                "debt_direction": rec.get("research_metrics"),
                 "categories": _compact_categories(rec["categories"]),
                 "valuation": _compact_valuation(rec["valuation"]),
                 "targets": targets,
@@ -926,6 +974,38 @@ def run_sfa_rolling(
                 },
                 "outcome": outcome,
                 "horizons": outcome.get("horizons", {}),
+            }
+            def elapsed_days(observed):
+                return (
+                    (observed - date.fromisoformat(p0row["date"])).days
+                    if observed is not None else None
+                )
+
+            terminal_days = (
+                (date.fromisoformat(str(terminal["date"])[:10])
+                 - date.fromisoformat(p0row["date"])).days
+                if terminal and terminal.get("date") else None
+            )
+            horizon_outcome = horizon_results.get(str(strategy.tuning_horizon_days), {})
+            max_drawdown = prices.get("tuning_max_drawdown_pct")
+            if (terminal and terminal.get("terminal_return_policy") == "zero"
+                    and terminal_days is not None
+                    and terminal_days <= strategy.tuning_horizon_days):
+                max_drawdown = min(float(max_drawdown or 0), -100.0)
+            observation["_tuning_outcome"] = {
+                "horizon_days": strategy.tuning_horizon_days,
+                "primary_gain_pct": strategy.tuning_primary_gain_pct,
+                "secondary_gain_pct": strategy.tuning_secondary_gain_pct,
+                "first_hit_primary_days": elapsed_days(prices.get("tuning_hit_primary_date")),
+                "first_hit_secondary_days": elapsed_days(prices.get("tuning_hit_secondary_date")),
+                "last_observed_days": elapsed_days(prices.get("last_date")),
+                "terminal_days": terminal_days,
+                "return_pct": horizon_outcome.get("return_pct"),
+                "alpha_pct": horizon_outcome.get("alpha_pct"),
+                "max_return_pct": round(float(prices["tuning_max_return_pct"]), 2)
+                if prices.get("tuning_max_return_pct") is not None else None,
+                "max_drawdown_pct": round(float(max_drawdown), 2)
+                if max_drawdown is not None else None,
             }
             cohort_obs.append(observation)
             if include_evidence and rec["verdict"] == "Buy":

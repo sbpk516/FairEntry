@@ -1,11 +1,9 @@
 """Deterministic scoring engine (Layer A + verdict).
 
-Reads config + a ticker's stored metrics, computes item -> category -> base
-score with a full trace (matching the UI's drill-down contract), applies the
-fair value, then vetoes/soft-gates/thesis-modifier -> Buy / Watch / Avoid.
-
-Everything is a pure function of stored inputs (reproducible / backtestable).
-The LLM thesis modifier is injected in Phase 4; here it defaults to 0.
+Reads config + a ticker's stored metrics, computes tested item -> category ->
+base score with a full trace, applies fair value, then tested vetoes and gates.
+AI, news, and every factor not reproduced by the historical replay are exported
+as context only and cannot change Buy / Watch / Avoid.
 """
 from __future__ import annotations
 
@@ -13,6 +11,63 @@ import statistics
 
 from .rules import apply_rule
 from .fair_value import fair_value
+
+
+def growth_qualification(flat: dict, valuation: dict) -> dict:
+    """Decide whether business direction is good enough for a Buy.
+
+    Growth does not need to be fast. A stable business can qualify when its
+    price is deeply below fair value. Otherwise at least one strong numerical
+    improvement is required. News and narrative never satisfy this gate.
+    """
+    revenue = flat.get("rev_growth_qoq")
+    operating_margin = flat.get("oper_margin")
+    fair_gap = valuation.get("intrinsic_gap_pct")
+
+    stable_signals = []
+    if isinstance(revenue, (int, float)) and revenue >= -2:
+        stable_signals.append("Revenue is stable or growing")
+    if isinstance(operating_margin, (int, float)) and operating_margin >= 0:
+        stable_signals.append("The business is currently profitable at the operating level")
+    deeply_undervalued = isinstance(fair_gap, (int, float)) and fair_gap >= 30
+    stable_and_cheap = len(stable_signals) == 2 and deeply_undervalued
+
+    improvement_signals = []
+    if isinstance(revenue, (int, float)) and revenue >= 8:
+        improvement_signals.append("Revenue increased meaningfully")
+    meaningfully_improving = bool(improvement_signals)
+
+    qualified = stable_and_cheap or meaningfully_improving
+    if stable_and_cheap:
+        path = "stable_and_deeply_undervalued"
+        explanation = (
+            "Revenue is stable, the business has a non-negative operating "
+            "margin, and the price is at least 30% below the central "
+            "fair-value estimate."
+        )
+    elif meaningfully_improving:
+        path = "meaningfully_improving"
+        explanation = improvement_signals[0] + "."
+    else:
+        path = "not_yet_qualified"
+        explanation = (
+            "The available numbers do not yet show stable growth at a deep "
+            "discount or a meaningful business improvement."
+        )
+    return {
+        "qualified": qualified,
+        "path": path,
+        "explanation": explanation,
+        "stable_signals": stable_signals,
+        "improvement_signals": improvement_signals,
+        "fair_value_gap_pct": fair_gap,
+        "thresholds": {
+            "stable_revenue_floor_pct": -2,
+            "stable_operating_margin_floor_pct": 0,
+            "deep_discount_pct": 30,
+            "meaningful_revenue_growth_pct": 8,
+        },
+    }
 
 
 # ---- sector medians (for sector_rel rules) --------------------------------
@@ -70,36 +125,48 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
 
     med = medians.get(sec["sector"], {})
     fv = fair_value(metrics_raw, mos, med)
+    growth_check = growth_qualification(flat, fv)
     flat.update({"intrinsic_gap_pct": fv["intrinsic_gap_pct"],
-                 "upside_pct": fv["upside_pct"], "valuation_label": fv["valuation_label"]})
+                 "upside_pct": fv["upside_pct"], "valuation_label": fv["valuation_label"],
+                 "growth_qualified": growth_check["qualified"]})
     categories, cat_scores = [], {}
     for cid, cat in cfg.categories.items():
         items, num, den, observed_den = [], 0.0, 0.0, 0.0
         for it in cat["items"]:
             val = flat.get(it["metric"])
             score, how = apply_rule(it["rule"], val, med.get(it["metric"]))
+            decision_status = it.get("decision_status", "tested")
             rec = {"id": it["id"], "label": it["label"], "weight": it["weight"],
                    "metric": it["metric"], "actual": val, "expected": it.get("expected", ""),
                    "definition": it.get("definition", ""), "formula": it.get("formula", ""),
                    "rule": how, "score": None if score is None else round(score),
+                   "decision_status": decision_status,
                    "source": prov.get(it["metric"], {}).get("source"),
                    "fetched_at": prov.get(it["metric"], {}).get("fetched_at"),
                    "status": ("unknown" if score is None else "satisfied" if score >= 70
                               else "partial" if score >= 45 else "failed")}
             items.append(rec)
-            if score is not None:
+            if score is not None and decision_status == "tested":
                 num += it["weight"] * score
                 den += it["weight"]
                 if val is not None:
                     observed_den += it["weight"]
         cscore = round(num / den) if den else None
-        configured_item_weight = sum(i["weight"] for i in cat["items"])
+        configured_item_weight = sum(
+            i["weight"] for i in cat["items"]
+            if i.get("decision_status", "tested") == "tested"
+        )
         for item in items:
             item["contribution"] = (round(item["weight"] * item["score"] / den, 2)
-                                    if item["score"] is not None and den else None)
+                                    if item["score"] is not None
+                                    and item["decision_status"] == "tested" and den else None)
         cat_scores[cid] = cscore
         categories.append({"id": cid, "label": cat["label"], "weight": weights.get(cid, cat["weight"]),
-                           "score": cscore, "coverage": round(observed_den / configured_item_weight * 100),
+                           "decision_status": ("tested" if configured_item_weight
+                                               else "information_only"),
+                           "score": cscore,
+                           "coverage": (round(observed_den / configured_item_weight * 100)
+                                        if configured_item_weight else None),
                            "available_item_weight": den,
                            "observed_item_weight": observed_den,
                            "configured_item_weight": configured_item_weight,
@@ -117,8 +184,10 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
             round(category["weight"] * category["score"] / bden, 2)
             if category["score"] is not None and bden else None)
 
-    modifier = settings.get("thesis_modifier", 0)   # Phase 4 injects the real value
-    preliminary = round(base + modifier, 1)
+    # Compatibility field retained for existing JSON consumers. It is fixed at
+    # zero so an AI/news review can never alter the tested verdict.
+    modifier = 0
+    preliminary = base
 
     # -- vetoes / gates namespace --
     ns = dict(flat)
@@ -127,9 +196,18 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
     ns["upside_pct"] = fv["upside_pct"]
     ns["valuation_label"] = fv["valuation_label"]
 
-    vetoes = [{"id": v["id"], "reason": v["reason"], "condition": v["when"],
-               "result": True, "effect": "Force Avoid"}
-              for v in cfg.scoring.get("vetoes", []) if _safe_eval(v["when"], ns) is True]
+    vetoes, context_warnings = [], []
+    for v in cfg.scoring.get("vetoes", []):
+        if _safe_eval(v["when"], ns) is not True:
+            continue
+        row = {"id": v["id"], "reason": v["reason"], "condition": v["when"],
+               "result": True, "decision_status": v.get("decision_status", "tested")}
+        if row["decision_status"] == "tested":
+            row["effect"] = "Force Avoid"
+            vetoes.append(row)
+        else:
+            row["effect"] = "Information-only safety warning; verdict unchanged"
+            context_warnings.append(row)
     gates = []
     for g in cfg.scoring.get("soft_gates", []):
         fired = _safe_eval(g["when"], ns)
@@ -152,7 +230,7 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
             verdict = "Watch"
 
     decision_trace = {
-        "formula": "final score = round(base score + thesis modifier)",
+        "formula": "final score = round(weighted score from tested factors only)",
         "base_score": base,
         "base_numerator": round(bnum, 2),
         "available_category_weight": bden,
@@ -162,6 +240,7 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
         "thresholds": {"buy": buy_b, "watch": watch_b},
         "score_band_verdict": score_band_verdict,
         "vetoes": vetoes,
+        "context_warnings": context_warnings,
         "soft_gates": gates,
         "final_verdict": verdict,
         "explanation": ("A hard veto forced Avoid." if vetoes else
@@ -176,11 +255,19 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
         "base_score": base, "thesis_modifier": modifier, "preliminary": preliminary,
         "score": round(preliminary), "verdict": verdict,
         "categories": categories, "valuation": fv,
-        "vetoes": vetoes, "soft_gates": gates,
-        "coverage_pct": round(bden / sum(weights.get(cid, cfg.categories[cid]["weight"])
-                                         for cid in cfg.categories) * 100) if bden else 0,
+        "growth_qualification": growth_check,
+        "research_metrics": {
+            "debt_to_assets_pct": flat.get("debt_to_assets_pct"),
+            "debt_to_assets_yago_pct": flat.get("debt_to_assets_yago_pct"),
+            "debt_to_assets_change_yoy_pp": flat.get("debt_to_assets_change_yoy_pp"),
+        },
+        "vetoes": vetoes, "context_warnings": context_warnings, "soft_gates": gates,
+        "coverage_pct": 100 if bden else 0,
         "factor_coverage_pct": round(
-            sum(c["weight"] * c["coverage"] for c in categories) /
-            sum(c["weight"] for c in categories), 1) if categories else 0,
+            sum(c["weight"] * c["coverage"] for c in categories
+                if c["decision_status"] == "tested") /
+            sum(c["weight"] for c in categories
+                if c["decision_status"] == "tested"), 1)
+            if any(c["decision_status"] == "tested" for c in categories) else 0,
         "decision_trace": decision_trace,
     }

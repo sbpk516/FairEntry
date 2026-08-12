@@ -10,10 +10,12 @@ from . import cache
 from .provider import get_provider
 from ..adapters.finnhub import fetch_news
 
-PROMPT_VERSION = "v5"   # v5 standardizes management/catalyst evidence rows
+PROMPT_VERSION = "v6"   # v6 adds source-linked policy and investment evidence
 
 _SYS = ("You are a disciplined value+growth equity analyst. Think like a careful "
-        "investor, not a hype machine. Reply with a single JSON object only, no prose.")
+        "investor, not a hype machine. A government policy, contract, or expansion is "
+        "evidence only when the supplied headline names a specific action and source; "
+        "speculation stays unknown. Reply with a single JSON object only, no prose.")
 
 # §7B watchlist intelligence — real, specific sources to follow to track THIS
 # name's thesis. The anti-hallucination clause is deliberate: naming a plausible-
@@ -29,9 +31,13 @@ _WATCHLIST_SCHEMA = (
 
 _BREAKOUT_EVIDENCE_SCHEMA = (
     "breakout_evidence (array of up to 5 objects. Always include one object with id "
-    "management_execution and group management, and one with id catalyst_visibility "
-    "and group catalyst; use status unknown when supplied facts/headlines do not support "
-    "a decision. Each object: {id (short stable snake_case), "
+    "management_execution and group management, one with id catalyst_visibility and group "
+    "catalyst, one with id policy_impact and group catalyst, and one with id "
+    "investment_expansion and group management; use status unknown when supplied facts/"
+    "headlines do not support a decision. Policy evidence must name the specific government "
+    "action and who announced it. Investment evidence must name the expansion, contract, "
+    "capacity, or acquisition and explain the measurable business path. Each object: "
+    "{id (short stable snake_case), "
     "label, group (one of: catalyst, management, investor_behavior, contradiction), "
     "status (one of: satisfied, partial, failed, contradicted, unknown), evidence "
     "(specific metric, event, or headline supplied in this prompt; never invent evidence), "
@@ -78,7 +84,7 @@ def _news_block(ticker: str) -> tuple[str, list]:
     lines = []
     for n in news[:10]:
         cats = f" [{','.join(n['categories'])}]" if n.get("categories") else ""
-        lines.append(f"- {n['date']}{cats} {n['headline']}")
+        lines.append(f"- {n['date']} | {n.get('source') or 'source unknown'}{cats} | {n['headline']}")
     block = ("Recent news headlines (you decide if each is bullish/bearish — do "
              "NOT assume; read them):\n" + "\n".join(lines) + " ")
     return block, news

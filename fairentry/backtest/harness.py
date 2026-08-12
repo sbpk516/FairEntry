@@ -93,8 +93,10 @@ def _compact_categories(categories):
     static artifact. Definitions and formulas remain versioned in scoring.yaml."""
     return [{"id": c["id"], "label": c["label"], "weight": c["weight"],
              "score": c["score"], "coverage": c.get("coverage"),
+             "decision_status": c.get("decision_status", "tested"),
              "items": [{k: i.get(k) for k in ("id", "label", "metric", "actual", "expected",
-                                                    "score", "source", "fetched_at", "status")}
+                                                    "score", "source", "fetched_at", "status",
+                                                    "decision_status")}
                        for i in c.get("items", [])]}
             for c in categories]
 
@@ -102,7 +104,8 @@ def _compact_categories(categories):
 def _compact_valuation(valuation):
     return {k: valuation.get(k) for k in ("fair_low", "fair_base", "fair_high", "buy_zone",
                                            "upside_pct", "valuation_label", "method_count") } | {
-        "methods": [{k: m.get(k) for k in ("name", "key", "fair", "upside")}
+        "methods": [{k: m.get(k) for k in ("name", "key", "fair", "upside",
+                                            "decision_status")}
                     for m in valuation.get("methods", [])]}
 
 
@@ -413,7 +416,10 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
                     "screening": screening, "weights": scoring_settings.get("weights") or
                         {cid: c["weight"] for cid, c in cfg.categories.items()},
                     "thresholds": cfg.verdict_bands, "vetoes": rec["vetoes"],
+                    "context_warnings": rec.get("context_warnings", []),
                     "soft_gates": rec["soft_gates"], "categories": _compact_categories(rec["categories"]),
+                    "growth_qualification": rec.get("growth_qualification"),
+                    "debt_direction": rec.get("research_metrics"),
                     "valuation": _compact_valuation(rec["valuation"]), "targets": targets,
                     "practical_target": practical,
                     "data_quality": q, "outcome": outcome,

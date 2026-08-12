@@ -175,9 +175,12 @@ class SharadarWarehouse:
         CREATE OR REPLACE TABLE sfa_arq_features AS
         SELECT *,
           lag(revenue) OVER (PARTITION BY ticker ORDER BY calendardate, datekey) AS revenue_prev_q,
+          lag(revenue, 4) OVER (PARTITION BY ticker ORDER BY calendardate, datekey) AS revenue_prev_y,
           lag(opinc) OVER (PARTITION BY ticker ORDER BY calendardate, datekey) AS opinc_prev_q,
           lag(sharesbas, 4) OVER (PARTITION BY ticker ORDER BY calendardate, datekey) AS shares_prev_y,
-          lag(grossmargin) OVER (PARTITION BY ticker ORDER BY calendardate, datekey) AS grossmargin_prev_q
+          lag(grossmargin) OVER (PARTITION BY ticker ORDER BY calendardate, datekey) AS grossmargin_prev_q,
+          lag(debtnc, 4) OVER (PARTITION BY ticker ORDER BY calendardate, datekey) AS debt_long_prev_y,
+          lag(assets, 4) OVER (PARTITION BY ticker ORDER BY calendardate, datekey) AS assets_prev_y
         FROM sfa_fundamentals WHERE dimension='ARQ'
         """)
         self.con.execute(

@@ -5,7 +5,8 @@ from __future__ import annotations
 
 ID = "deep_value"
 STRATEGY = "deepvalue"
-INPUT_FIELDS = ["fwd_pe", "pb_ratio", "debt_eq", "current_ratio", "target_price", "price", "perf_year"]
+INPUT_FIELDS = ["pb_ratio", "ps_ratio", "pfcf_ratio", "debt_eq", "current_ratio",
+                "price", "perf_year"]
 
 
 def _n(m, k):
@@ -14,17 +15,17 @@ def _n(m, k):
 
 
 def passes(metrics: dict) -> tuple[bool, dict]:
-    fwd_pe = _n(metrics, "fwd_pe")
     pb = _n(metrics, "pb_ratio")
+    ps = _n(metrics, "ps_ratio")
+    pfcf = _n(metrics, "pfcf_ratio")
     debt = _n(metrics, "debt_eq")
     perf = _n(metrics, "perf_year")
-    price = _n(metrics, "price")
-    target = _n(metrics, "target_price")
-    upside = ((target / price) - 1) * 100 if price and target else None
-
-    cheap = (fwd_pe is not None and fwd_pe <= 18) or (pb is not None and pb <= 2) \
-        or (upside is not None and upside >= 25)
+    cheap = ((pb is not None and pb <= 2)
+             or (ps is not None and ps <= 2)
+             or (pfcf is not None and 0 < pfcf <= 18))
     beaten = perf is not None and perf <= 0
     survivable = debt is None or debt <= 2.5
-    ok = bool(cheap and survivable and (beaten or (upside or 0) >= 20))
-    return ok, {"cheap": cheap, "beaten": beaten, "survivable": survivable, "upside": upside}
+    ok = bool(cheap and survivable and beaten)
+    return ok, {"cheap": cheap, "beaten": beaten, "survivable": survivable,
+                "decision_inputs": ["pb_ratio", "ps_ratio", "pfcf_ratio",
+                                    "debt_eq", "perf_year"]}

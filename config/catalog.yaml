@@ -40,6 +40,9 @@ fields:
   - {id: pb_ratio,         entity: company,  source: Finviz, adapter: finviz, cadence: daily,       unit: ratio, raw_path: "P/B",           freshness_limit_h: 200, required_for: [valuation], cost_tier: cheap}
   - {id: pfcf_ratio,       entity: company,  source: Finviz, adapter: finviz, cadence: daily,       unit: ratio, raw_path: "P/Free Cash Flow", freshness_limit_h: 200, required_for: [valuation], cost_tier: cheap}
   - {id: debt_eq,          entity: company,  source: Finviz, adapter: finviz, cadence: daily,       unit: ratio, raw_path: "Total Debt/Equity", freshness_limit_h: 200, required_for: [survival], cost_tier: cheap}
+  - {id: debt_to_assets_pct, entity: company, source: "SEC EDGAR", adapter: sec_edgar, cadence: filing_based, unit: pct, transform: debt_direction, freshness_limit_h: 720, required_for: [research], cost_tier: expensive}
+  - {id: debt_to_assets_yago_pct, entity: company, source: "SEC EDGAR", adapter: sec_edgar, cadence: filing_based, unit: pct, transform: debt_direction, freshness_limit_h: 720, required_for: [research], cost_tier: expensive}
+  - {id: debt_to_assets_change_yoy_pp, entity: company, source: "SEC EDGAR", adapter: sec_edgar, cadence: filing_based, unit: pct, transform: debt_direction, freshness_limit_h: 720, required_for: [research], cost_tier: expensive}
   - {id: current_ratio,    entity: company,  source: Finviz, adapter: finviz, cadence: daily,       unit: ratio, raw_path: "Current Ratio", freshness_limit_h: 200, required_for: [survival], cost_tier: cheap}
   - {id: target_price,     entity: security, source: Finviz, adapter: finviz, cadence: daily,       unit: usd,   raw_path: "Target Price",  freshness_limit_h: 30, required_for: [valuation], cost_tier: cheap}
   - {id: analyst_recom,    entity: security, source: Finviz, adapter: finviz, cadence: daily,       unit: ratio, raw_path: "Analyst Recom", freshness_limit_h: 30, required_for: [catalysts], cost_tier: cheap}

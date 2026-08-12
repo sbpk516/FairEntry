@@ -29,12 +29,14 @@ COMPUTED_METRICS = {
     "estimate_revision_score",   # derived from analyst-target history (build_board)
     "breakout_price_score", "breakout_volume_score", "relative_strength_score",
     "trend_regime_score", "margin_trend_score",  # breakout_v2 trace metrics
+    "growth_qualified",  # stable+deeply undervalued OR meaningfully improving
 }
 
 VALID_CADENCES = {"twice_daily", "daily", "weekly", "filing_based", "event_based"}
 VALID_ENTITIES = {"company", "security", "sector", "market"}
 VALID_RULE_TYPES = {"higher_better", "lower_better", "sector_rel", "band",
                     "bool_good", "passthrough"}
+VALID_DECISION_STATUSES = {"tested", "testing", "information_only"}
 
 
 class ConfigError(ValueError):
@@ -138,6 +140,12 @@ def _validate_scoring(sc: dict, known_metrics: set[str]) -> list[str]:
             rule = it.get("rule", {})
             if rule.get("type") not in VALID_RULE_TYPES:
                 errs.append(f"scoring {cid}.{it.get('id','?')}: bad rule type '{rule.get('type')}'")
+            decision_status = it.get("decision_status", "tested")
+            if decision_status not in VALID_DECISION_STATUSES:
+                errs.append(
+                    f"scoring {cid}.{it.get('id','?')}: bad decision_status "
+                    f"'{decision_status}'"
+                )
             m = it.get("metric")
             if m and m not in known_metrics and m not in COMPUTED_METRICS:
                 errs.append(f"scoring {cid}.{it.get('id','?')}: metric '{m}' not in catalog or computed set")
@@ -150,6 +158,14 @@ def _validate_scoring(sc: dict, known_metrics: set[str]) -> list[str]:
         errs.append("scoring: verdict_bands must define 'buy' and 'watch'")
     elif vb["buy"] <= vb["watch"]:
         errs.append("scoring: buy band must be > watch band")
+    for group in ("vetoes", "soft_gates"):
+        for rule in sc.get(group, []):
+            decision_status = rule.get("decision_status", "tested")
+            if decision_status not in VALID_DECISION_STATUSES:
+                errs.append(
+                    f"scoring {group}.{rule.get('id','?')}: bad decision_status "
+                    f"'{decision_status}'"
+                )
     errs += _validate_when_expressions(sc, cats, known_metrics)
     return errs
 

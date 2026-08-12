@@ -5,7 +5,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from fairentry.config import load_config
 from fairentry.scoring.rules import apply_rule
-from fairentry.scoring.engine import score_ticker
+from fairentry.scoring.engine import score_ticker, growth_qualification
 from fairentry.scoring.fair_value import fair_value
 from fairentry.pipeline.export import _export_categories, _labels, _map
 
@@ -51,6 +51,33 @@ def test_missing_metric_is_na():
     assert s is None and why == "no data"
 
 
+def test_growth_qualification_accepts_stable_business_at_deep_discount():
+    result = growth_qualification(
+        {"rev_growth_qoq": 1, "oper_margin": 8},
+        {"intrinsic_gap_pct": 35},
+    )
+    assert result["qualified"] is True
+    assert result["path"] == "stable_and_deeply_undervalued"
+
+
+def test_growth_qualification_accepts_meaningful_numerical_improvement():
+    result = growth_qualification(
+        {"rev_growth_qoq": 12, "oper_margin": -4},
+        {"intrinsic_gap_pct": 10},
+    )
+    assert result["qualified"] is True
+    assert result["path"] == "meaningfully_improving"
+
+
+def test_growth_qualification_rejects_cheap_but_deteriorating_business():
+    result = growth_qualification(
+        {"rev_growth_qoq": -8, "oper_margin": -2},
+        {"intrinsic_gap_pct": 80},
+    )
+    assert result["qualified"] is False
+    assert result["path"] == "not_yet_qualified"
+
+
 def test_reproducible():
     """Same inputs -> identical score (deterministic core)."""
     cfg = load_config()
@@ -82,8 +109,36 @@ def test_decision_trace_reproduces_score_and_explains_every_effect():
     for category in r["categories"]:
         for item in category["items"]:
             assert "status" in item
-            if item["score"] is not None:
+            if item["score"] is not None and item["decision_status"] == "tested":
                 assert item["contribution"] is not None
+            if item["decision_status"] != "tested":
+                assert item["contribution"] is None
+
+
+def test_ai_or_news_modifier_cannot_change_the_tested_verdict():
+    cfg = load_config()
+    baseline = score_ticker(cfg, _SEC, _strong_metrics(), _MED, _SETTINGS)
+    attempted = score_ticker(
+        cfg, _SEC, _strong_metrics(), _MED,
+        dict(_SETTINGS, thesis_modifier=100),
+    )
+    assert attempted["thesis_modifier"] == 0
+    assert attempted["score"] == baseline["score"]
+    assert attempted["verdict"] == baseline["verdict"]
+
+
+def test_testing_debt_direction_is_visible_but_has_no_contribution():
+    cfg = load_config()
+    metrics = _strong_metrics(debt_to_assets_change_yoy_pp=-8,
+                              debt_to_assets_pct=20,
+                              debt_to_assets_yago_pct=28)
+    result = score_ticker(cfg, _SEC, metrics, _MED, _SETTINGS)
+    survival = next(c for c in result["categories"] if c["id"] == "survival")
+    debt = next(i for i in survival["items"] if i["id"] == "debt_direction")
+    assert debt["decision_status"] == "testing"
+    assert debt["actual"] == -8
+    assert debt["contribution"] is None
+    assert result["research_metrics"]["debt_to_assets_pct"] == 20
 
 
 def test_missing_item_is_traced_and_excluded_not_neutralized():
@@ -138,6 +193,10 @@ def test_management_execution_is_a_stable_progressive_disclosure_row():
     assert management["label"] == "Management Execution"
     assert management["status"] == "unknown"
     assert "No specific evidence" in management["evidence"]
+    policy = next(f for f in mapped["breakout_setup"]["factors"]
+                  if f["id"] == "policy_impact")
+    assert policy["status"] == "unknown"
+    assert "government action" in policy["expected"]
 
     r["_thesis"] = {
         "thesis_score": 70,
@@ -154,6 +213,31 @@ def test_management_execution_is_a_stable_progressive_disclosure_row():
                       if f["id"] == "management_execution")
     assert management["status"] == "satisfied"
     assert management["observed_at"] == "2026-07-18"
+
+
+def test_named_policy_and_expansion_evidence_keep_their_own_rows():
+    cfg = load_config()
+    r = score_ticker(cfg, _SEC, _strong_metrics(), _MED, _SETTINGS)
+    r["_breakout_setup"] = {"overall": "building", "factors": [], "counts": {}}
+    r["_thesis"] = {
+        "thesis_score": 70,
+        "breakout_evidence": [
+            {"id": "policy_impact", "label": "Policy", "group": "catalyst",
+             "status": "satisfied", "evidence": "A named agency awarded a tax credit.",
+             "source": "Agency release", "date": "2026-07-20"},
+            {"id": "investment_expansion", "label": "Expansion", "group": "management",
+             "status": "partial", "evidence": "A new plant entered construction.",
+             "source": "Company filing", "date": "2026-07-19"},
+        ],
+    }
+    mapped = _map(r, ["growth"], "quality_growth")
+    factors = {f["id"]: f for f in mapped["breakout_setup"]["factors"]}
+    assert factors["catalyst_visibility"]["status"] == "unknown"
+    assert factors["management_execution"]["status"] == "unknown"
+    assert factors["policy_impact"]["source"] == "Agency release"
+    assert factors["policy_impact"]["status"] == "satisfied"
+    assert factors["investment_expansion"]["source"] == "Company filing"
+    assert factors["investment_expansion"]["status"] == "partial"
 
 
 def test_score_preserves_country():
@@ -202,16 +286,13 @@ def test_tile_labels_include_quality_growth_and_entry():
 
 # ---- veto / soft-gate firing -------------------------------------------------
 
-def test_going_concern_veto_forces_avoid():
-    """Regression: the going-concern hard veto must fire on its own. Two prior
-    bugs: (1) a YAML `true` typo -> NameError, and (2) the store persists the bool
-    as 1.0, so a bare `going_concern` expr returns 1.0 which fails the engine's
-    `is True` check. We use the STORED numeric form (1) here so the test exercises
-    the real data path, not a Python bool that would mask the second bug."""
+def test_going_concern_is_visible_but_does_not_change_tested_verdict():
     cfg = load_config()
-    r = score_ticker(cfg, _SEC, _strong_metrics(going_concern=1), _MED, _SETTINGS)
-    assert r["verdict"] == "Avoid"
-    assert any(v["id"] == "going_concern" for v in r["vetoes"])
+    baseline = score_ticker(cfg, _SEC, _strong_metrics(going_concern=0), _MED, _SETTINGS)
+    warned = score_ticker(cfg, _SEC, _strong_metrics(going_concern=1), _MED, _SETTINGS)
+    assert warned["verdict"] == baseline["verdict"]
+    assert not any(v["id"] == "going_concern" for v in warned["vetoes"])
+    assert any(v["id"] == "going_concern" for v in warned["context_warnings"])
 
 
 def test_no_going_concern_is_not_vetoed():
@@ -220,9 +301,7 @@ def test_no_going_concern_is_not_vetoed():
     assert not any(v["id"] == "going_concern" for v in r["vetoes"])
 
 
-def test_going_concern_veto_through_store():
-    """Full path: set_metric(True) is persisted as 1.0; metrics_for -> scoring
-    must still fire the veto (guards the bool->float->`is True` pitfall)."""
+def test_going_concern_warning_through_store():
     import tempfile, os
     from fairentry.store.db import Store
     cfg = load_config()
@@ -235,15 +314,14 @@ def test_going_concern_veto_through_store():
     assert s.metrics_for("GC")["going_concern"]["value"] == 1.0   # stored as float
     r = score_ticker(cfg, s.securities()[0], s.metrics_for("GC"), _MED, _SETTINGS)
     s.close(); os.remove(db)
-    assert r["verdict"] == "Avoid"
-    assert any(v["id"] == "going_concern" for v in r["vetoes"])
+    assert any(v["id"] == "going_concern" for v in r["context_warnings"])
 
 
-def test_critical_red_flag_veto():
+def test_critical_red_flag_is_information_only_warning():
     cfg = load_config()
     r = score_ticker(cfg, _SEC, _strong_metrics(red_flags_critical=1), _MED, _SETTINGS)
-    assert r["verdict"] == "Avoid"
-    assert any(v["id"] == "critical_red_flag" for v in r["vetoes"])
+    assert not any(v["id"] == "critical_red_flag" for v in r["vetoes"])
+    assert any(v["id"] == "critical_red_flag" for v in r["context_warnings"])
 
 
 def test_distress_corroborated_veto():
@@ -262,16 +340,15 @@ def test_missing_veto_metric_does_not_fire():
     assert not r["vetoes"]
 
 
-def test_upside_soft_gate_caps_buy_to_watch():
-    """A name whose upside is below target is soft-gated (never a clean Buy)."""
+def test_analyst_target_is_not_used_as_tested_fair_value():
     cfg = load_config()
-    # Drop the valuation-multiple metrics so fair value = analyst anchor only,
-    # then a modest +10% target sits well below the 30% upside target.
     m = _strong_metrics(target_price=110)
     for k in ("pfcf_ratio", "ps_ratio"):
         m.pop(k, None)
     r = score_ticker(cfg, _SEC, m, _MED, _SETTINGS)
-    assert round(r["valuation"]["upside_pct"]) == 10
+    assert round(r["valuation"]["upside_pct"]) == 0
+    analyst = next(x for x in r["valuation"]["methods"] if x["key"] == "analyst")
+    assert analyst["decision_status"] == "information_only"
     assert any(g["id"] == "upside_below_target" for g in r["soft_gates"])
     assert r["verdict"] != "Buy"
 
@@ -302,7 +379,8 @@ def test_fair_value_blends_multiple_methods():
                "pfcf_ratio": {"value": 12}}
     sector_med = {"fwd_pe": 15, "ps_ratio": 3, "pb_ratio": 2.5}
     fv = fair_value(metrics, mos_pct=15, sector_med=sector_med)
-    assert fv["method_count"] >= 4                      # several methods contributed
+    assert fv["method_count"] == 3                      # replayable methods contributed
+    assert fv["context_method_count"] == 3              # forecasts remain visible
     assert fv["fair_low"] <= fv["fair_base"] <= fv["fair_high"]
     assert fv["upside_pct"] > 0                         # cheap on every method -> upside
     assert fv["valuation_label"] == "cheap"
