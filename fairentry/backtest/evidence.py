@@ -546,13 +546,58 @@ def _terminal_explanation(terminal: dict | None) -> dict | None:
             "counted_in_success_rate": policy["counts_as_failure"]}
 
 
-def _fixed_goal_reason(status: str, days, milestone: dict, terminal: dict | None) -> dict:
-    max_gain = (milestone.get("max_return_pct_by_horizon") or {}).get("365")
-    drawdown = (milestone.get("max_drawdown_pct_by_horizon") or {}).get("365")
+# A "never_within_three_years" verdict is decided over the full 3-year window,
+# so its evidence must report the 3-year peak, not the first-year peak used by
+# every other status. Using the wrong horizon here understated how close (or
+# how far) these stocks actually got before the episode was called a miss.
+_FIXED_MISS_HORIZON_DAYS = {"never_within_three_years": 1095}
+
+_FIXED_MISS_CATEGORIES = (
+    (0, "stayed_at_or_below_entry", "Never traded above the entry price"),
+    (15, "modest_gain_short_of_target", "Gained, but stayed well below the target"),
+    (30, "close_but_short_of_target", "Came close, but never closed at or above the target"),
+)
+
+
+def _fixed_miss_category(max_gain: float | None) -> tuple[str, str] | None:
+    """Bucket a confirmed miss by how far the price actually got, so misses
+    can be filtered/grouped by cause rather than read one at a time."""
+    if not isinstance(max_gain, (int, float)):
+        return None
+    for ceiling, code, label in _FIXED_MISS_CATEGORIES:
+        if max_gain <= ceiling:
+            return (code, label)
+    return ("near_target_no_qualifying_close",
+            "Came within reach of the target but never on a qualifying close")
+
+
+def _benchmark_context(root: dict | None, horizon_days: int) -> dict | None:
+    """Benchmark return/alpha already computed for this episode's entry, at the
+    same horizon used to judge the miss, so 'why' can note a market-wide
+    headwind versus stock-specific underperformance."""
+    if not root:
+        return None
+    entry = ((root.get("outcome") or {}).get("horizons") or {}).get(str(horizon_days))
+    if not entry or not isinstance(entry.get("alpha_pct"), (int, float)):
+        return None
+    return {
+        "horizon_days": horizon_days,
+        "benchmark_return_pct": entry.get("benchmark_return_pct"),
+        "alpha_pct": entry.get("alpha_pct"),
+    }
+
+
+def _fixed_goal_reason(status: str, days, milestone: dict, terminal: dict | None,
+                       root: dict | None = None) -> dict:
+    horizon = _FIXED_MISS_HORIZON_DAYS.get(status, 365)
+    window_label = (f"{horizon // 365} year{'s' if horizon // 365 != 1 else ''}"
+                    if horizon >= 365 else f"{horizon} days")
+    max_gain = (milestone.get("max_return_pct_by_horizon") or {}).get(str(horizon))
+    drawdown = (milestone.get("max_drawdown_pct_by_horizon") or {}).get(str(horizon))
     observed = milestone.get("last_observed_days")
     observed_label = (
         f"during {int(observed)} observed days"
-        if isinstance(observed, (int, float)) and observed < 365 else "during year one"
+        if isinstance(observed, (int, float)) and observed < horizon else f"during {window_label}"
     )
     evidence = [
         {"label": f"Highest gain {observed_label}", "value": max_gain, "unit": "%"},
@@ -578,13 +623,28 @@ def _fixed_goal_reason(status: str, days, milestone: dict, terminal: dict | None
                 if isinstance(observed, (int, float)) else
                 "There is not enough later price history for a final result.",
                 "evidence": evidence}
+    category = _fixed_miss_category(max_gain)
     shortfall = round(30 - max_gain, 2) if isinstance(max_gain, (int, float)) else None
-    return {"code": "fell_short", "short": "Did not reach +30% within one year",
-            "details": (f"Its highest gain during the first year was {max_gain:.2f}%, "
-                        f"which was {shortfall:.2f} percentage points short of the goal.")
-            if shortfall is not None else
-            "The available first-year prices never reached the +30% goal.",
-            "evidence": evidence}
+    market = _benchmark_context(root, horizon)
+    details = (
+        f"Its highest gain {observed_label} was {max_gain:.2f}%, "
+        f"which was {shortfall:.2f} percentage points short of the goal."
+        if shortfall is not None else
+        f"The available prices {observed_label} never reached the +30% goal."
+    )
+    if market:
+        alpha = market["alpha_pct"]
+        bench = market.get("benchmark_return_pct")
+        if alpha < 0 and isinstance(bench, (int, float)):
+            details += (f" Over the same {window_label}, the stock also underperformed the "
+                        f"benchmark by {abs(alpha):.1f} points (benchmark return {bench:.1f}%).")
+        elif isinstance(bench, (int, float)):
+            details += (f" The benchmark returned {bench:.1f}% over the same {window_label}; "
+                        "this stock still fell short of its own target.")
+    return {"code": "fell_short",
+            "short": category[1] if category else "Did not reach +30% within the observed period",
+            "category": category[0] if category else None,
+            "details": details, "evidence": evidence, "market_context": market}
 
 
 def _practical_goal_reason(target: dict, terminal: dict | None) -> dict:
@@ -764,7 +824,7 @@ def _buy_episode_roots(observations: list[dict], max_gap_days: int) -> list[dict
                 practical_summary["counted_in_success_rate"] = False
                 practical_summary["counting_reason"] = terminal_policy["counting_reason"]
         fixed_reason = _fixed_goal_reason(
-            fixed_status, days_to_30, milestone, terminal
+            fixed_status, days_to_30, milestone, terminal, root
         )
         if practical_summary:
             practical_summary["result_reason"] = _practical_goal_reason(
@@ -799,6 +859,7 @@ def _buy_episode_roots(observations: list[dict], max_gap_days: int) -> list[dict
                 milestone.get("max_drawdown_pct_by_horizon", {}).get("365")
             ),
             "fixed_30_reason": fixed_reason,
+            "fixed_30_miss_category": fixed_reason.get("category"),
             "fixed_30_evaluation": fixed_evaluation,
             "practical_target": practical_summary,
             "terminal_event": terminal,
@@ -942,6 +1003,15 @@ def summarize_buy_return_achievement(
                 for key in ("within_one_year", "during_year_two", "during_year_three",
                             "after_three_years", "never_within_three_years",
                             "closed_early_failure", "closed_early_excluded", "still_waiting")
+            },
+            "fixed_30_miss_breakdown": {
+                "basis": "Buy episodes with fixed_30_status == never_within_three_years "
+                         "(the full 3-year window observed, target never reached).",
+                "counts": {
+                    key: sum(row.get("fixed_30_miss_category") == key for row in details)
+                    for key in ("stayed_at_or_below_entry", "modest_gain_short_of_target",
+                                "close_but_short_of_target", "near_target_no_qualifying_close")
+                },
             },
             "practical_target_with_compounding_deadline": {
                 "observations": len(practical_rows),

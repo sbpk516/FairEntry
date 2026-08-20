@@ -447,21 +447,74 @@ def test_short_unclassified_history_is_not_a_three_year_failure():
 
 
 def test_episode_miss_reason_shows_highest_gain_and_shortfall():
+    # never_within_three_years is decided over the full 3-year window, so the
+    # evidence must report the 3-year peak (here 18%), not a first-year figure.
     observations = [{
         "entry_date": "2020-01-01", "entry_price": 100, "ticker": "SHORT",
         "issuer_key": "SHORT", "verdict": "Buy",
         "return_milestones": {
             "first_hit_days": {"30": None}, "last_observed_days": 1200,
             "terminal_days": None,
-            "max_return_pct_by_horizon": {"365": 18},
-            "max_drawdown_pct_by_horizon": {"365": -25},
+            "max_return_pct_by_horizon": {"365": 6, "1095": 18},
+            "max_drawdown_pct_by_horizon": {"365": -10, "1095": -25},
+        },
+    }]
+    episode = summarize_buy_return_achievement(
+        observations, 30, thresholds=(30,), horizons=(365,)
+    )["episode_details"][0]
+    reason = episode["fixed_30_reason"]
+    assert reason["code"] == "fell_short"
+    assert "12.00 percentage points short" in reason["details"]
+    assert reason["evidence"][0]["value"] == 18
+    assert reason["category"] == "close_but_short_of_target"
+    assert episode["fixed_30_miss_category"] == "close_but_short_of_target"
+
+
+def test_fixed_miss_category_covers_the_full_range():
+    def make(ticker, max_gain):
+        return {
+            "entry_date": "2020-01-01", "entry_price": 100, "ticker": ticker,
+            "issuer_key": ticker, "verdict": "Buy",
+            "return_milestones": {
+                "first_hit_days": {"30": None}, "last_observed_days": 1200,
+                "terminal_days": None,
+                "max_return_pct_by_horizon": {"1095": max_gain},
+                "max_drawdown_pct_by_horizon": {"1095": -5},
+            },
+        }
+    summary = summarize_buy_return_achievement(
+        [make("A", -4), make("B", 9), make("C", 22)], 30, thresholds=(30,), horizons=(365,)
+    )
+    categories = {row["ticker"]: row["fixed_30_miss_category"] for row in summary["episode_details"]}
+    assert categories == {
+        "A": "stayed_at_or_below_entry", "B": "modest_gain_short_of_target",
+        "C": "close_but_short_of_target",
+    }
+    breakdown = summary["primary_success_contract"]["fixed_30_miss_breakdown"]["counts"]
+    assert breakdown["stayed_at_or_below_entry"] == 1
+    assert breakdown["modest_gain_short_of_target"] == 1
+    assert breakdown["close_but_short_of_target"] == 1
+
+
+def test_fixed_miss_reason_notes_market_underperformance():
+    observations = [{
+        "entry_date": "2020-01-01", "entry_price": 100, "ticker": "LAG",
+        "issuer_key": "LAG", "verdict": "Buy",
+        "outcome": {"horizons": {"1095": {"benchmark_return_pct": 40.0, "alpha_pct": -25.0}}},
+        "return_milestones": {
+            "first_hit_days": {"30": None}, "last_observed_days": 1200,
+            "terminal_days": None,
+            "max_return_pct_by_horizon": {"1095": 15},
+            "max_drawdown_pct_by_horizon": {"1095": -5},
         },
     }]
     reason = summarize_buy_return_achievement(
         observations, 30, thresholds=(30,), horizons=(365,)
     )["episode_details"][0]["fixed_30_reason"]
-    assert reason["code"] == "fell_short"
-    assert "12.00 percentage points short" in reason["details"]
+    assert reason["market_context"] == {
+        "horizon_days": 1095, "benchmark_return_pct": 40.0, "alpha_pct": -25.0,
+    }
+    assert "underperformed the benchmark by 25.0 points" in reason["details"]
 
 
 def test_fixed_return_milestones_accept_terminal_timestamp():
