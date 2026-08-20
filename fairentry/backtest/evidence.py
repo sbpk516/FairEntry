@@ -196,12 +196,16 @@ def price_series(store, ticker: str, entry: str, days: int) -> list[dict]:
 
 def evaluate_path(series: list[dict], entry_price: float, targets: dict,
                   horizons: tuple[int, ...], entry: str,
-                  *, terminal_date: str | None = None) -> dict:
+                  *, terminal_date: str | None = None,
+                  terminal_event: dict | None = None) -> dict:
     if not series or not entry_price:
         return {"status": "data_unavailable", "horizons": {},
                 "targets": {k: {**v, "status": "data_unavailable", "hit_date": None,
                                 "days_to_target": None} for k, v in targets.items()}}
     start = date.fromisoformat(entry)
+    if terminal_event and not terminal_date:
+        terminal_date = str(terminal_event.get("date") or "")[:10] or None
+    terminal_policy = _terminal_outcome_policy(terminal_event)
     horizon_results = {}
     for h in horizons:
         eligible = [p for p in series if (date.fromisoformat(p["date"]) - start).days >= h]
@@ -229,18 +233,43 @@ def evaluate_path(series: list[dict], entry_price: float, targets: dict,
             if value and p["close"] >= value
             and (date.fromisoformat(p["date"]) - start).days <= expiry_days
         ]
-        expired = (date.fromisoformat(series[-1]["date"]) - start).days >= expiry_days
+        observed_days = (date.fromisoformat(series[-1]["date"]) - start).days
+        expired = observed_days >= expiry_days
+        terminal_days = (
+            max(0, (date.fromisoformat(str(terminal_date)[:10]) - start).days)
+            if terminal_date else None
+        )
+        ended_early = (
+            isinstance(terminal_days, (int, float))
+            and terminal_days <= expiry_days
+            and not expired
+        )
         status = ("unavailable" if not value else
                   "already_above_at_entry" if already_above else
                   "reached" if hits else "expired" if expired else "active")
+        if status == "active" and ended_early:
+            status = ("expired" if terminal_policy["counts_as_failure"]
+                      else "closed_early_excluded")
         first = hits[0] if hits else None
         target_results[model] = {**target, "status": status,
             "hit_date": entry if already_above else first["date"] if first else None,
             "days_to_target": 0 if already_above else
-                (date.fromisoformat(first["date"]) - start).days if first else None}
+                (date.fromisoformat(first["date"]) - start).days if first else None,
+            "last_observed_days": observed_days,
+            "last_observed_date": str(series[-1]["date"])[:10],
+            "terminal_days": terminal_days,
+            "counted_in_success_rate": status in {"reached", "expired"},
+            "counting_reason": (
+                terminal_policy["counting_reason"] if ended_early
+                else "The full target period was observed."
+                if expired else "The target was reached."
+                if status == "reached" else "The result is still incomplete."
+            ),
+        }
         if model == "practical":
             target_results[model]["performance_test"] = _practical_target_test(
-                series, entry_price, target, entry, terminal_date=terminal_date
+                series, entry_price, target, entry, terminal_date=terminal_date,
+                terminal_event=terminal_event,
             )
     return {"status": "complete", "horizons": horizon_results, "targets": target_results,
             "max_gain_pct": round((max(closes) / entry_price - 1) * 100, 2),
@@ -250,7 +279,8 @@ def evaluate_path(series: list[dict], entry_price: float, targets: dict,
 
 
 def _practical_target_test(series: list[dict], entry_price: float, target: dict,
-                           entry: str, *, terminal_date: str | None = None) -> dict:
+                           entry: str, *, terminal_date: str | None = None,
+                           terminal_event: dict | None = None) -> dict:
     """Test a frozen Practical Target using the 30%-per-year deadline ladder."""
     value = target.get("price")
     upside = target.get("upside_pct")
@@ -267,6 +297,9 @@ def _practical_target_test(series: list[dict], entry_price: float, target: dict,
                 "highest_gain_before_deadline_pct": None,
                 "highest_price_before_deadline": None}
     start = date.fromisoformat(entry)
+    if terminal_event and not terminal_date:
+        terminal_date = str(terminal_event.get("date") or "")[:10] or None
+    terminal_policy = _terminal_outcome_policy(terminal_event)
     rows = []
     for point in series:
         observed = point.get("date")
@@ -288,10 +321,12 @@ def _practical_target_test(series: list[dict], entry_price: float, target: dict,
               and observed_days >= deadline["deadline_days"])
     terminal_before_deadline = (isinstance(terminal_days, (int, float))
                                 and terminal_days <= deadline["deadline_days"])
+    closed_early_excluded = terminal_before_deadline and not mature and not terminal_policy["counts_as_failure"]
     status = ("already_above_at_entry" if already_above else
               "reached" if reached_on_time else
               "reached_late" if first_any and mature else
-              "expired" if mature or terminal_before_deadline else "active")
+              "expired" if mature or (terminal_before_deadline and terminal_policy["counts_as_failure"]) else
+              "closed_early_excluded" if closed_early_excluded else "active")
     result_day = (first_any[0] if first_any else
                   min([x for x in (observed_days, terminal_days, deadline["deadline_days"])
                        if isinstance(x, (int, float))], default=None))
@@ -314,7 +349,16 @@ def _practical_target_test(series: list[dict], entry_price: float, target: dict,
         "hit_date": entry if already_above else first_any[1] if first_any else None,
         "days_to_target": 0 if already_above else first_any[0] if first_any else None,
         "last_observed_days": observed_days,
+        "last_observed_date": rows[-1][1] if rows else None,
         "terminal_days": terminal_days,
+        "deadline_date": (start + timedelta(days=deadline["deadline_days"])).isoformat(),
+        "counted_in_success_rate": status in {"reached", "reached_late", "expired"},
+        "counting_reason": (
+            terminal_policy["counting_reason"] if terminal_before_deadline and not mature
+            else "The full promised period was observed."
+            if mature else "The target was reached."
+            if status == "reached" else "The result is still incomplete."
+        ),
         "max_drawdown_before_result_pct": drawdown,
         "highest_gain_before_deadline_pct": highest_gain,
         "highest_price_before_deadline": round(highest_price, 2)
@@ -330,6 +374,7 @@ def fixed_return_milestones(
     entry_cost_bps: float = 0,
     exit_cost_bps: float = 0,
     terminal_date: str | None = None,
+    terminal_event: dict | None = None,
     thresholds: tuple[int, ...] = RETURN_THRESHOLDS_PCT,
 ) -> dict:
     """Record first daily-close attainment for fixed investment returns.
@@ -341,6 +386,8 @@ def fixed_return_milestones(
     if not entry_closeadj or entry_closeadj <= 0:
         return {"status": "data_unavailable", "first_hit_days": {}}
     start = date.fromisoformat(entry)
+    if terminal_event and not terminal_date:
+        terminal_date = str(terminal_event.get("date") or "")[:10] or None
     entry_basis = entry_closeadj * (1 + entry_cost_bps / 10000)
     rows = []
     for point in series:
@@ -379,6 +426,7 @@ def fixed_return_milestones(
         "last_observed_days": rows[-1][0] if rows else None,
         "last_observed_date": rows[-1][2] if rows else None,
         "terminal_days": terminal_days,
+        "terminal_policy": _terminal_outcome_policy(terminal_event),
         "max_return_pct": round(max((value for _, value, _ in rows), default=0), 2),
         "max_return_pct_by_horizon": {
             str(horizon): round(
@@ -412,11 +460,11 @@ def _percentile(values: list[int], fraction: float) -> float | None:
 
 
 _TERMINAL_REASON = {
-    "acquisitionby": ("acquired", "The company was acquired before the deadline."),
-    "mergerto": ("merged", "The company merged into another company before the deadline."),
+    "acquisitionby": ("acquired", "The company was acquired before the required test period ended."),
+    "mergerto": ("merged", "The company merged into another company before the required test period ended."),
     "bankruptcyliquidation": (
         "bankruptcy_or_liquidation",
-        "The company entered bankruptcy or liquidation before the deadline.",
+        "The company entered bankruptcy or liquidation before the required test period ended.",
     ),
     "regulatorydelisting": (
         "regulatory_delisting", "The stock was removed from its exchange by a regulator."
@@ -424,34 +472,91 @@ _TERMINAL_REASON = {
     "voluntarydelisting": (
         "voluntary_delisting", "The company voluntarily stopped exchange trading."
     ),
-    "delisted": ("delisted", "The stock stopped exchange trading before the deadline."),
+    "delisted": (
+        "unclassified_trading_end",
+        "The trading record ended, but the available event data does not confirm why.",
+    ),
+    "delistedinferred": (
+        "unclassified_trading_end",
+        "The price history ended, but no confirmed ending event was found.",
+    ),
 }
+
+
+def _terminal_outcome_policy(terminal: dict | None) -> dict:
+    """Explain whether an early security ending can complete an unresolved test."""
+    if not terminal:
+        return {
+            "category": None,
+            "label": "No early trading end recorded",
+            "counts_as_failure": False,
+            "excluded_from_success_rate": False,
+            "counting_reason": "No early trading end affected this result.",
+            "event_date": None,
+            "successor": None,
+        }
+    action = str(terminal.get("action") or "delisted").lower().replace("_", "")
+    category, text = _TERMINAL_REASON.get(
+        action, ("unclassified_trading_end", "The available price history ended for an unconfirmed reason.")
+    )
+    zero_value = terminal.get("terminal_return_policy") == "zero"
+    counts_as_failure = category == "bankruptcy_or_liquidation" or zero_value
+    if counts_as_failure:
+        counting_reason = (
+            "Counted as a failed target because the recorded event ended the investment "
+            "with no continuing value."
+        )
+    elif category in {"acquired", "merged"}:
+        counting_reason = (
+            "Not counted in the target success percentage because the original stock "
+            "ended through an acquisition or merger before the required period was observed."
+        )
+    else:
+        counting_reason = (
+            "Not counted in the target success percentage because trading ended before "
+            "the required period and a final failure cannot be proved."
+        )
+    return {
+        "category": category,
+        "label": text,
+        "counts_as_failure": counts_as_failure,
+        "excluded_from_success_rate": not counts_as_failure,
+        "counting_reason": counting_reason,
+        "event_date": str(terminal.get("date") or "")[:10] or None,
+        "successor": terminal.get("successor"),
+        "action": terminal.get("action"),
+    }
 
 
 def _terminal_explanation(terminal: dict | None) -> dict | None:
     if not terminal:
         return None
-    action = str(terminal.get("action") or "delisted").lower().replace("_", "")
-    code, text = _TERMINAL_REASON.get(
-        action, ("trading_ended", "The available trading history ended before the deadline.")
-    )
+    policy = _terminal_outcome_policy(terminal)
+    code, text = policy["category"], policy["label"]
     event_date = str(terminal.get("date") or "")[:10] or None
     successor = terminal.get("successor")
     details = text
     if event_date:
-        details += f" Recorded event date: {event_date}."
+        details += f" Last available or recorded event date: {event_date}."
     if successor:
         details += f" Recorded successor: {successor}."
+    details += f" {policy['counting_reason']}"
     return {"code": code, "short": text, "details": details,
-            "event_date": event_date, "successor": successor}
+            "event_date": event_date, "successor": successor,
+            "counted_in_success_rate": policy["counts_as_failure"]}
 
 
 def _fixed_goal_reason(status: str, days, milestone: dict, terminal: dict | None) -> dict:
     max_gain = (milestone.get("max_return_pct_by_horizon") or {}).get("365")
     drawdown = (milestone.get("max_drawdown_pct_by_horizon") or {}).get("365")
+    observed = milestone.get("last_observed_days")
+    observed_label = (
+        f"during {int(observed)} observed days"
+        if isinstance(observed, (int, float)) and observed < 365 else "during year one"
+    )
     evidence = [
-        {"label": "Highest gain during year one", "value": max_gain, "unit": "%"},
-        {"label": "Largest fall during year one", "value": drawdown, "unit": "%"},
+        {"label": f"Highest gain {observed_label}", "value": max_gain, "unit": "%"},
+        {"label": f"Largest fall {observed_label}", "value": drawdown, "unit": "%"},
     ]
     if status == "within_one_year":
         return {"code": "reached_on_time", "short": "Reached within one year",
@@ -463,7 +568,7 @@ def _fixed_goal_reason(status: str, days, milestone: dict, terminal: dict | None
                             f"but it eventually reached it after {int(days)} days."),
                 "evidence": evidence}
     terminal_reason = _terminal_explanation(terminal)
-    if terminal_reason:
+    if terminal_reason and status in {"closed_early_excluded", "closed_early_failure"}:
         return {**terminal_reason, "evidence": evidence}
     if status == "still_waiting":
         observed = milestone.get("last_observed_days")
@@ -509,7 +614,17 @@ def _practical_goal_reason(target: dict, terminal: dict | None) -> dict:
         return {"code": "target_unavailable", "short": "No credible Practical Target",
                 "details": reason, "evidence": evidence}
     terminal_reason = _terminal_explanation(terminal)
-    if terminal_reason:
+    terminal_days = target.get("terminal_days")
+    observed_days = target.get("last_observed_days")
+    ended_early = (
+        isinstance(terminal_days, (int, float))
+        and isinstance(deadline, (int, float))
+        and terminal_days <= deadline
+        and not (isinstance(observed_days, (int, float)) and observed_days >= deadline)
+    )
+    if terminal_reason and ended_early and status in {
+        "closed_early_excluded", "closed_early_failure", "expired"
+    }:
         return {**terminal_reason, "evidence": evidence}
     if status == "active":
         observed = target.get("last_observed_days")
@@ -528,6 +643,52 @@ def _practical_goal_reason(target: dict, terminal: dict | None) -> dict:
             if shortfall is not None else
             "The available prices never reached the Practical Target before its deadline.",
             "evidence": evidence}
+
+
+def _fixed_horizon_evaluation(row: dict, threshold: int, horizon: int) -> dict:
+    milestone = row.get("return_milestones") or {}
+    first = (milestone.get("first_hit_days") or {}).get(str(threshold))
+    observed_days = milestone.get("last_observed_days")
+    terminal_days = milestone.get("terminal_days")
+    terminal_policy = _terminal_outcome_policy(row.get("terminal_event"))
+    hit = isinstance(first, (int, float)) and first <= horizon
+    full_period = isinstance(observed_days, (int, float)) and observed_days >= horizon
+    ended_early = (
+        isinstance(terminal_days, (int, float))
+        and terminal_days <= horizon
+        and not full_period
+    )
+    counted_failure = ended_early and terminal_policy["counts_as_failure"]
+    excluded = ended_early and not terminal_policy["counts_as_failure"] and not hit
+    counted = hit or full_period or counted_failure
+    if hit:
+        result = "success"
+        reason = "Counted as a success because the gain was reached within the required time."
+    elif full_period:
+        result = "failure"
+        reason = "Counted as a failure because the full required period was observed without reaching the gain."
+    elif counted_failure:
+        result = "failure"
+        reason = terminal_policy["counting_reason"]
+    elif excluded:
+        result = "excluded"
+        reason = terminal_policy["counting_reason"]
+    else:
+        result = "active"
+        reason = "Not counted yet because the required period has not finished."
+    start = date.fromisoformat(str(row.get("entry_date"))[:10])
+    return {
+        "result": result,
+        "counted_in_success_rate": counted,
+        "excluded_from_success_rate": excluded,
+        "counting_reason": reason,
+        "observed_days": observed_days,
+        "required_days": horizon,
+        "deadline_date": (start + timedelta(days=horizon)).isoformat(),
+        "last_observed_date": milestone.get("last_observed_date"),
+        "terminal_days": terminal_days,
+        "terminal_policy": terminal_policy,
+    }
 
 
 def _buy_episode_roots(observations: list[dict], max_gap_days: int) -> list[dict]:
@@ -556,15 +717,23 @@ def _buy_episode_roots(observations: list[dict], max_gap_days: int) -> list[dict
         practical = ((root.get("outcome") or {}).get("targets") or {}).get("practical", {})
         practical_test = practical.get("performance_test") or {}
         terminal = root.get("terminal_event")
+        terminal_policy = _terminal_outcome_policy(terminal)
+        fixed_evaluation = _fixed_horizon_evaluation(root, 30, 365)
+        observed_days = milestone.get("last_observed_days")
+        terminal_days = milestone.get("terminal_days")
+        full_three_years = isinstance(observed_days, (int, float)) and observed_days >= 1095
+        ended_before_three_years = (
+            isinstance(terminal_days, (int, float)) and terminal_days < 1095
+            and not full_three_years
+        )
         fixed_status = (
             "within_one_year" if isinstance(days_to_30, (int, float)) and days_to_30 <= 365 else
             "during_year_two" if isinstance(days_to_30, (int, float)) and days_to_30 <= 730 else
             "during_year_three" if isinstance(days_to_30, (int, float)) and days_to_30 <= 1095 else
             "after_three_years" if isinstance(days_to_30, (int, float)) else
-            "never_within_three_years" if (
-                isinstance(milestone.get("last_observed_days"), (int, float))
-                and milestone.get("last_observed_days") >= 1095
-            ) or isinstance(milestone.get("terminal_days"), (int, float)) else
+            "never_within_three_years" if full_three_years else
+            "closed_early_failure" if ended_before_three_years and terminal_policy["counts_as_failure"] else
+            "closed_early_excluded" if ended_before_three_years else
             "still_waiting"
         )
         entry_price = (float(root["entry_price"])
@@ -577,6 +746,23 @@ def _buy_episode_roots(observations: list[dict], max_gap_days: int) -> list[dict
             "reason": practical.get("reason"),
             **practical_test,
         } if practical else None
+        if practical_summary:
+            practical_deadline = practical_summary.get("deadline_days")
+            practical_observed = practical_summary.get("last_observed_days")
+            practical_terminal = practical_summary.get("terminal_days")
+            practical_ended_early = (
+                isinstance(practical_deadline, (int, float))
+                and isinstance(practical_terminal, (int, float))
+                and practical_terminal <= practical_deadline
+                and not (isinstance(practical_observed, (int, float))
+                         and practical_observed >= practical_deadline)
+            )
+            if (practical_ended_early
+                    and practical_summary.get("status") == "expired"
+                    and not terminal_policy["counts_as_failure"]):
+                practical_summary["status"] = "closed_early_excluded"
+                practical_summary["counted_in_success_rate"] = False
+                practical_summary["counting_reason"] = terminal_policy["counting_reason"]
         fixed_reason = _fixed_goal_reason(
             fixed_status, days_to_30, milestone, terminal
         )
@@ -613,8 +799,10 @@ def _buy_episode_roots(observations: list[dict], max_gap_days: int) -> list[dict
                 milestone.get("max_drawdown_pct_by_horizon", {}).get("365")
             ),
             "fixed_30_reason": fixed_reason,
+            "fixed_30_evaluation": fixed_evaluation,
             "practical_target": practical_summary,
             "terminal_event": terminal,
+            "terminal_evaluation": terminal_policy if terminal else None,
             "currency_conversion": root.get("currency_conversion"),
         }
         episodes.append(root)
@@ -645,19 +833,15 @@ def _return_attainment_view(
     for threshold in thresholds:
         horizon_rows = {}
         for horizon in horizons:
-            completed, reached, days = [], [], []
+            completed, reached, excluded, days = [], [], [], []
             for row in rows:
                 milestone = row.get("return_milestones") or {}
                 first = (milestone.get("first_hit_days") or {}).get(str(threshold))
-                observed_days = milestone.get("last_observed_days")
-                terminal_days = milestone.get("terminal_days")
                 hit = isinstance(first, (int, float)) and first <= horizon
-                mature = (
-                    isinstance(observed_days, (int, float)) and observed_days >= horizon
-                ) or (
-                    isinstance(terminal_days, (int, float)) and terminal_days <= horizon
-                )
-                if hit or mature:
+                evaluation = _fixed_horizon_evaluation(row, threshold, horizon)
+                if evaluation["excluded_from_success_rate"]:
+                    excluded.append(row)
+                if evaluation["counted_in_success_rate"]:
                     completed.append(row)
                     if hit:
                         reached.append(row)
@@ -670,7 +854,8 @@ def _return_attainment_view(
                 "reached": hits,
                 "evaluable": total,
                 "expired": total - hits,
-                "active": len(rows) - total,
+                "active": len(rows) - total - len(excluded),
+                "excluded": len(excluded),
                 "hit_rate_pct": round(hits / total * 100, 1) if total else None,
                 "hit_rate_ci90": _wilson_ci(hits, total),
                 "median_days_to_hit": round(statistics.median(days), 1) if days else None,
@@ -726,6 +911,7 @@ def summarize_buy_return_achievement(
             "reached_late": sum(row.get("status") == "reached_late" for row in completed),
             "expired": sum(row.get("status") == "expired" for row in completed),
             "active": sum(row.get("status") == "active" for row in band),
+            "excluded": sum(row.get("status") == "closed_early_excluded" for row in band),
             "hit_rate_pct": (round(len(reached) / len(completed) * 100, 1)
                              if completed else None),
         }
@@ -741,8 +927,9 @@ def summarize_buy_return_achievement(
         ),
         "episode_max_gap_days": max_gap_days,
         "active_policy": (
-            "Reached observations are immediately evaluable; otherwise the full horizon "
-            "or a terminal security event must be observed. Incomplete recent observations are active."
+            "Reached observations count immediately. Otherwise the full horizon must be observed. "
+            "Bankruptcy with no continuing value counts as a failure; acquisitions, mergers and "
+            "unconfirmed early trading endings are shown separately and are not included in the success percentage."
         ),
         "views": {
             "episodes": _return_attainment_view(episodes, thresholds, horizons),
@@ -753,7 +940,8 @@ def summarize_buy_return_achievement(
             "fixed_30_timing": {
                 key: sum(row.get("fixed_30_status") == key for row in details)
                 for key in ("within_one_year", "during_year_two", "during_year_three",
-                            "after_three_years", "never_within_three_years", "still_waiting")
+                            "after_three_years", "never_within_three_years",
+                            "closed_early_failure", "closed_early_excluded", "still_waiting")
             },
             "practical_target_with_compounding_deadline": {
                 "observations": len(practical_rows),
@@ -762,6 +950,8 @@ def summarize_buy_return_achievement(
                 "evaluable": len(practical_completed),
                 "expired": sum(row.get("status") == "expired" for row in practical_completed),
                 "active": sum(row.get("status") == "active" for row in practical_rows),
+                "excluded": sum(row.get("status") == "closed_early_excluded"
+                                for row in practical_rows),
                 "hit_rate_pct": (round(len(practical_reached) / len(practical_completed) * 100, 1)
                                  if practical_completed else None),
                 "hit_rate_ci90": _wilson_ci(len(practical_reached), len(practical_completed)),

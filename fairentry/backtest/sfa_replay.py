@@ -789,7 +789,20 @@ class SFAReplay:
           WHERE a.date BETWEEN ? AND ? AND a.action IN (
             'delisted','regulatorydelisting','voluntarydelisting',
             'bankruptcyliquidation','acquisitionby','mergerto')
-          QUALIFY row_number() OVER (PARTITION BY a.ticker ORDER BY a.date)=1
+          QUALIFY row_number() OVER (
+            PARTITION BY a.ticker
+            ORDER BY
+              CASE WHEN a.action='delisted' THEN 1 ELSE 0 END,
+              a.date,
+              CASE a.action
+                WHEN 'bankruptcyliquidation' THEN 1
+                WHEN 'acquisitionby' THEN 2
+                WHEN 'mergerto' THEN 3
+                WHEN 'regulatorydelisting' THEN 4
+                WHEN 'voluntarydelisting' THEN 5
+                ELSE 9
+              END
+          )=1
         """, [start, end]).fetchall()
         self.con.unregister("requested_tickers")
         return {ticker: {"date": d.isoformat(), "action": action, "value": value,
@@ -1146,6 +1159,7 @@ def run_sfa_rolling(
                 target_outcome = evaluate_path(
                     series, adjusted_entry, targets, strategy.horizons_days, entry_date,
                     terminal_date=terminal.get("date") if terminal else None,
+                    terminal_event=terminal,
                 )
                 target_outcome.pop("path", None)
                 target_outcome["horizons"] = observation["horizons"]
@@ -1156,21 +1170,8 @@ def run_sfa_rolling(
                     entry_cost_bps=(strategy.slippage_bps + strategy.transaction_cost_bps),
                     exit_cost_bps=(strategy.exit_slippage_bps + strategy.exit_transaction_cost_bps),
                     terminal_date=terminal.get("date") if terminal else None,
+                    terminal_event=terminal,
                 )
-                if terminal:
-                    for target in target_outcome.get("targets", {}).values():
-                        target_expiry = (
-                            date.fromisoformat(entry_date)
-                            + timedelta(days=int(target.get("expiry_days", strategy.target_expiry_days)))
-                        ).isoformat()
-                        if target.get("status") == "active" and terminal["date"] <= target_expiry:
-                            target.update(
-                                {
-                                    "status": "expired",
-                                    "expiry_reason": terminal["action"],
-                                    "observed_exit_date": terminal["date"],
-                                }
-                            )
                 observation["outcome"] = target_outcome
                 observation["practical_target"] = target_outcome.get("targets", {}).get(
                     "practical"

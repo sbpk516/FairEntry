@@ -65,6 +65,21 @@ def test_fixed_horizons_are_anchored_to_actual_next_close_entry():
     con.close()
 
 
+def test_specific_terminal_cause_wins_over_generic_delisted_row():
+    con = duckdb.connect(":memory:")
+    con.execute("""CREATE TABLE sfa_actions(
+        ticker VARCHAR,date DATE,action VARCHAR,value DOUBLE,contraticker VARCHAR)""")
+    con.executemany("INSERT INTO sfa_actions VALUES (?,?,?,?,?)", [
+        ("SKX", "2025-09-11", "delisted", 9486.9, "N/A"),
+        ("SKX", "2025-09-11", "acquisitionby", 9486.9, "N/A"),
+    ])
+    replay = SFAReplay(type("Warehouse", (), {"con": con})())
+    event = replay.terminal_events(["SKX"], "2025-01-01", "2026-01-01")["SKX"]
+    assert event["action"] == "acquisitionby"
+    assert event["terminal_return_policy"] == "last_total_return_close"
+    con.close()
+
+
 def test_snapshot_applies_live_universe_floors_before_top_n():
     con = duckdb.connect(":memory:")
     con.execute("""CREATE TABLE canonical_securities(

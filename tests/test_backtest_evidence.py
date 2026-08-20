@@ -89,7 +89,7 @@ def test_practical_target_without_enough_history_is_still_active():
     assert result["targets"]["practical"]["performance_test"]["status"] == "active"
 
 
-def test_practical_target_terminal_event_is_a_completed_failure():
+def test_unclassified_terminal_event_is_excluded_not_called_a_failure():
     start = date(2024, 1, 1)
     series = [{"date": start.isoformat(), "close": 100}]
     result = evaluate_path(
@@ -101,8 +101,26 @@ def test_practical_target_terminal_event_is_a_completed_failure():
         terminal_date=(start + timedelta(days=90)).isoformat(),
     )
     test = result["targets"]["practical"]["performance_test"]
-    assert test["status"] == "expired"
+    assert test["status"] == "closed_early_excluded"
     assert test["terminal_days"] == 90
+    assert test["counted_in_success_rate"] is False
+
+
+def test_bankruptcy_terminal_event_is_a_completed_failure():
+    start = date(2024, 1, 1)
+    terminal = {
+        "date": (start + timedelta(days=90)).isoformat(),
+        "action": "bankruptcyliquidation",
+        "terminal_return_policy": "zero",
+    }
+    result = evaluate_path(
+        [{"date": start.isoformat(), "close": 100}], 100,
+        {"practical": {"price": 160, "upside_pct": 60, "available": True}},
+        (365,), start.isoformat(), terminal_event=terminal,
+    )
+    test = result["targets"]["practical"]["performance_test"]
+    assert test["status"] == "expired"
+    assert test["counted_in_success_rate"] is True
 
 
 def test_strategy_rejects_descriptive_only_contract_values():
@@ -334,12 +352,13 @@ def test_return_attainment_collapses_consecutive_buys_and_censors_active_rows():
     assert contract["practical_target_with_compounding_deadline"]["hit_rate_pct"] == 50
 
 
-def test_terminal_event_makes_fixed_return_horizon_evaluable():
+def test_unclassified_terminal_event_is_excluded_from_fixed_return_rate():
     observations = [{
         "entry_date": "2024-01-01",
         "ticker": "DELIST",
         "issuer_key": "DELIST",
         "verdict": "Buy",
+        "terminal_event": {"date": "2024-03-16", "action": "delisted"},
         "return_milestones": {
             "first_hit_days": {"25": None},
             "last_observed_days": 60,
@@ -349,9 +368,10 @@ def test_terminal_event_makes_fixed_return_horizon_evaluable():
     cell = summarize_buy_return_achievement(
         observations, 30, thresholds=(25,), horizons=(365,)
     )["views"]["episodes"]["matrix"]["25"]["365"]
-    assert cell["evaluable"] == 1
-    assert cell["expired"] == 1
+    assert cell["evaluable"] == 0
+    assert cell["expired"] == 0
     assert cell["active"] == 0
+    assert cell["excluded"] == 1
 
 
 def test_episode_explains_acquisition_before_both_target_deadlines():
@@ -388,6 +408,42 @@ def test_episode_explains_acquisition_before_both_target_deadlines():
     assert episode["fixed_30_reason"]["code"] == "acquired"
     assert episode["fixed_30_reason"]["successor"] == "NEWCO"
     assert episode["practical_target"]["result_reason"]["code"] == "acquired"
+    assert episode["fixed_30_status"] == "closed_early_excluded"
+    assert episode["fixed_30_evaluation"]["counted_in_success_rate"] is False
+    assert episode["practical_target"]["status"] == "closed_early_excluded"
+
+
+def test_short_unclassified_history_is_not_a_three_year_failure():
+    observations = [{
+        "entry_date": "2025-09-02", "entry_price": 63.24,
+        "ticker": "SHORT", "issuer_key": "SHORT", "verdict": "Buy",
+        "terminal_event": {"date": "2025-09-11", "action": "delisted"},
+        "return_milestones": {
+            "first_hit_days": {"30": None}, "last_observed_days": 9,
+            "last_observed_date": "2025-09-11", "terminal_days": 9,
+            "max_return_pct_by_horizon": {"365": -0.13},
+            "max_drawdown_pct_by_horizon": {"365": -0.33},
+        },
+        "outcome": {"targets": {"practical": {
+            "price": 88.31, "upside_pct": 40, "selected_method": "peer_ps",
+            "performance_test": {
+                "status": "closed_early_excluded", "deadline_days": 730,
+                "deadline_years": 2, "last_observed_days": 9,
+                "last_observed_date": "2025-09-11", "terminal_days": 9,
+                "counted_in_success_rate": False,
+            },
+        }}},
+    }]
+    summary = summarize_buy_return_achievement(
+        observations, 30, thresholds=(30,), horizons=(365,)
+    )
+    episode = summary["episode_details"][0]
+    assert episode["fixed_30_status"] == "closed_early_excluded"
+    assert episode["fixed_30_evaluation"]["observed_days"] == 9
+    assert episode["fixed_30_evaluation"]["required_days"] == 365
+    fixed = summary["primary_success_contract"]["fixed_30_within_one_year"]
+    assert fixed["excluded"] == 1
+    assert fixed["evaluable"] == 0
 
 
 def test_episode_miss_reason_shows_highest_gain_and_shortfall():
