@@ -52,6 +52,7 @@ def test_practical_target_has_separate_on_time_and_late_result():
     assert test["status"] == "reached_late"
     assert test["days_to_target"] == 800
     assert test["max_drawdown_before_result_pct"] == -10
+    assert test["highest_gain_before_deadline_pct"] == 0
 
 
 def test_practical_target_hit_on_exact_deadline_is_on_time():
@@ -321,11 +322,13 @@ def test_return_attainment_collapses_consecutive_buys_and_censors_active_rows():
     assert first["days_to_30_pct"] == 80
     assert first["fixed_30_target_price"] == 130
     assert first["fixed_30_status"] == "within_one_year"
+    assert first["fixed_30_reason"]["code"] == "reached_on_time"
     assert first["max_drawdown_within_one_year_pct"] == -12
     assert first["practical_target"]["deadline_years"] == 2
     assert first["practical_target"]["reason"] == (
         "A tested fundamental value cleared the required range."
     )
+    assert first["practical_target"]["result_reason"]["code"] == "reached_on_time"
     contract = summary["primary_success_contract"]
     assert contract["fixed_30_within_one_year"]["hit_rate_pct"] == 50
     assert contract["practical_target_with_compounding_deadline"]["hit_rate_pct"] == 50
@@ -349,6 +352,60 @@ def test_terminal_event_makes_fixed_return_horizon_evaluable():
     assert cell["evaluable"] == 1
     assert cell["expired"] == 1
     assert cell["active"] == 0
+
+
+def test_episode_explains_acquisition_before_both_target_deadlines():
+    observations = [{
+        "entry_date": "2024-01-01",
+        "entry_price": 100,
+        "ticker": "TAKEN",
+        "company": "Taken Corp",
+        "issuer_key": "TAKEN",
+        "verdict": "Buy",
+        "terminal_event": {
+            "date": "2024-06-01", "action": "acquisitionby", "successor": "NEWCO"
+        },
+        "return_milestones": {
+            "first_hit_days": {"30": None},
+            "last_observed_days": 150,
+            "terminal_days": 152,
+            "max_return_pct_by_horizon": {"365": 12},
+            "max_drawdown_pct_by_horizon": {"365": -8},
+        },
+        "outcome": {"targets": {"practical": {
+            "price": 160, "upside_pct": 60, "selected_method": "fundamental",
+            "performance_test": {
+                "status": "expired", "deadline_days": 730, "deadline_years": 2,
+                "days_to_target": None, "last_observed_days": 150,
+                "terminal_days": 152, "highest_gain_before_deadline_pct": 12,
+                "max_drawdown_before_result_pct": -8,
+            },
+        }}},
+    }]
+    episode = summarize_buy_return_achievement(
+        observations, 30, thresholds=(30,), horizons=(365,)
+    )["episode_details"][0]
+    assert episode["fixed_30_reason"]["code"] == "acquired"
+    assert episode["fixed_30_reason"]["successor"] == "NEWCO"
+    assert episode["practical_target"]["result_reason"]["code"] == "acquired"
+
+
+def test_episode_miss_reason_shows_highest_gain_and_shortfall():
+    observations = [{
+        "entry_date": "2020-01-01", "entry_price": 100, "ticker": "SHORT",
+        "issuer_key": "SHORT", "verdict": "Buy",
+        "return_milestones": {
+            "first_hit_days": {"30": None}, "last_observed_days": 1200,
+            "terminal_days": None,
+            "max_return_pct_by_horizon": {"365": 18},
+            "max_drawdown_pct_by_horizon": {"365": -25},
+        },
+    }]
+    reason = summarize_buy_return_achievement(
+        observations, 30, thresholds=(30,), horizons=(365,)
+    )["episode_details"][0]["fixed_30_reason"]
+    assert reason["code"] == "fell_short"
+    assert "12.00 percentage points short" in reason["details"]
 
 
 def test_fixed_return_milestones_accept_terminal_timestamp():

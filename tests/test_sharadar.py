@@ -1,9 +1,17 @@
+import json
+
 from fairentry.backtest.strategy import BacktestStrategy
 import duckdb
+import pytest
 from dataclasses import replace
 
 from fairentry.backtest.evidence import metrics_for_policy, quality_for
-from fairentry.backtest.sfa_replay import SFAReplay, _implementation_fingerprint, _row_metrics
+from fairentry.backtest.sfa_replay import (
+    SFAReplay,
+    _fcf_currency_conversion,
+    _implementation_fingerprint,
+    _row_metrics,
+)
 from fairentry.backtest.sfa_tune import (
     _episode_roots, _normalize, _tested_categories, tune_sfa_observations,
 )
@@ -79,9 +87,11 @@ def test_snapshot_applies_live_universe_floors_before_top_n():
         ("ILLIQ", "2025-01-02", 100, 100, 100, 101, 99, 100, 1000, 90, 80, 70, 100, 98, 80, 90, 80, 89),
     ])
     con.execute("""CREATE TABLE sfa_art_features(
-        ticker VARCHAR,datekey DATE,reportperiod DATE,grossmargin DOUBLE,ros DOUBLE,opinc DOUBLE,revenue DOUBLE,
+        ticker VARCHAR,datekey DATE,reportperiod DATE,fxusd DOUBLE,grossmargin DOUBLE,ros DOUBLE,opinc DOUBLE,revenue DOUBLE,
         netmargin DOUBLE,roe DOUBLE,roic DOUBLE,de DOUBLE,currentratio DOUBLE,fcf DOUBLE,assets DOUBLE,
         liabilities DOUBLE,workingcapital DOUBLE,retearn DOUBLE,ebit DOUBLE,marketcap DOUBLE)""")
+    con.execute("""CREATE TABLE sfa_tickers(
+        "table" VARCHAR,ticker VARCHAR,currency VARCHAR,lastupdated DATE)""")
     con.execute("""CREATE TABLE sfa_arq_features(
         ticker VARCHAR,datekey DATE,reportperiod DATE,revenue DOUBLE,revenue_prev_q DOUBLE,revenue_prev_y DOUBLE,opinc DOUBLE,
         opinc_prev_q DOUBLE,sharesbas DOUBLE,shares_prev_y DOUBLE,grossmargin DOUBLE,grossmargin_prev_q DOUBLE,
@@ -121,13 +131,15 @@ def test_direct_sharadar_maps_to_same_logical_tables():
     assert DirectSharadarClient.logical_code("actions") == "ACTIONS"
 
 
-def test_sfa_market_cap_millions_are_normalized_for_price_to_fcf():
+def test_sfa_market_cap_millions_are_normalized_for_usd_price_to_fcf():
     metrics = _row_metrics(
         {
             "close": 50.0,
             "price_date": "2025-01-02",
             "marketcap_daily": 2_000.0,
             "fcf": 100_000_000,
+            "reporting_currency": "USD",
+            "fxusd": 1.0,
             "assets": 1_000_000_000,
             "liabilities": 1_000_000_000,
             "workingcapital": 0,
@@ -141,6 +153,71 @@ def test_sfa_market_cap_millions_are_normalized_for_price_to_fcf():
     assert metrics["pfcf_ratio"]["value"] == 20.0
     assert metrics["market_cap"]["value"] == 2_000_000_000.0
     assert metrics["altman_z"]["value"] == 1.2
+
+
+@pytest.mark.parametrize(("currency", "country", "fxusd"), [
+    ("USD", "United States", 1.0),
+    ("CNY", "China", 7.2),
+    ("JPY", "Japan", 150.0),
+    ("EUR", "Germany", 0.92),
+    ("GBP", "United Kingdom", 0.79),
+    ("CAD", "Canada", 1.35),
+])
+def test_fcf_uses_each_financial_reports_historical_currency_rate(
+    currency, country, fxusd
+):
+    # $100m converted FCF and $2bn market value must always produce P/FCF 20.
+    reported_fcf = 100_000_000 * fxusd
+    row = {
+        "datekey": "2020-05-01",
+        "reporting_currency": currency,
+        "country": country,
+        "fxusd": fxusd,
+        "fcf": reported_fcf,
+        "marketcap_daily": 2_000.0,
+    }
+    conversion = _fcf_currency_conversion(row)
+    metrics = _row_metrics(row, "2020-06-01", None)
+    assert conversion["financial_report_date"] == "2020-05-01"
+    assert conversion["historical_fxusd"] == fxusd
+    assert conversion["converted_fcf_usd"] == pytest.approx(100_000_000)
+    assert conversion["country_check"] == "matches"
+    assert metrics["pfcf_ratio"]["value"] == pytest.approx(20)
+
+
+@pytest.mark.parametrize(("currency", "country"), [
+    ("CNY", "China"), ("USD", "California; U.S.A"),
+])
+def test_fcf_is_excluded_when_same_report_has_no_currency_rate(currency, country):
+    row = {
+        "datekey": "2020-05-01",
+        "reporting_currency": currency,
+        "country": country,
+        "fxusd": None,
+        "fcf": 720_000_000,
+        "marketcap_daily": 2_000.0,
+    }
+    conversion = _fcf_currency_conversion(row)
+    metrics = _row_metrics(row, "2020-06-01", None)
+    assert conversion["status"] == "unavailable"
+    assert "excluded" in conversion["reason"]
+    assert "pfcf_ratio" not in metrics
+
+
+def test_country_is_only_a_currency_validation_check():
+    row = {
+        "datekey": "2020-05-01",
+        "reporting_currency": "EUR",
+        "country": "China",  # Deliberate metadata mismatch.
+        "fxusd": 0.8,
+        "fcf": 80_000_000,
+        "marketcap_daily": 2_000.0,
+    }
+    conversion = _fcf_currency_conversion(row)
+    metrics = _row_metrics(row, "2020-06-01", None)
+    assert conversion["country_check"] == "review"
+    assert conversion["converted_fcf_usd"] == 100_000_000
+    assert metrics["pfcf_ratio"]["value"] == 20
 
 
 def test_sfa_market_features_use_the_shared_live_formulas():
@@ -207,11 +284,16 @@ def test_public_artifact_redacts_reconstructable_vendor_values():
         "observations": [
             {
                 "raw_close": 10,
+                "country": float("nan"),
                 "_tuning_outcome": {"first_hit_primary_days": 30},
                 "security_id": "vendor-permanent-id",
                 "categories": [{"items": [{"actual": 42}]}],
                 "data_quality": {"grade": "point_in_time", "fields": [{"value": 42}]},
                 "outcome": {"path": [["2020-01-01", 10]], "horizons": {}},
+                "currency_conversion": {
+                    "reporting_currency": "CNY", "historical_fxusd": 7.123456,
+                    "reported_fcf": 712_345_600, "converted_fcf_usd": 100_000_000,
+                },
             }
         ]
     }
@@ -224,7 +306,14 @@ def test_public_artifact_redacts_reconstructable_vendor_values():
     assert "items" not in row["categories"][0]
     assert row["data_quality"]["fields"] == []
     assert row["quality_grade"] == "point_in_time"
+    assert row["country"] is None
+    assert "reported_fcf" not in row["currency_conversion"]
+    assert "converted_fcf_usd" not in row["currency_conversion"]
+    assert row["currency_conversion"]["converted_fcf_usd_rounded_millions"] == 100
+    assert row["currency_conversion"]["historical_fxusd"] == 7.1235
     assert clean["public_data_boundary"]["raw_vendor_rows_exposed"] is False
+    # The browser must be able to parse the published artifact as strict JSON.
+    json.dumps(clean, allow_nan=False)
 
 
 def test_sfa_tuner_uses_disjoint_chronological_partitions_and_never_promotes_automatically():

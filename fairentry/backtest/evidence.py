@@ -263,7 +263,9 @@ def _practical_target_test(series: list[dict], entry_price: float, target: dict,
     }
     if not deadline or not isinstance(value, (int, float)) or value <= 0 or not entry_price:
         return {**base, "status": "unavailable", "hit_date": None,
-                "days_to_target": None, "max_drawdown_before_result_pct": None}
+                "days_to_target": None, "max_drawdown_before_result_pct": None,
+                "highest_gain_before_deadline_pct": None,
+                "highest_price_before_deadline": None}
     start = date.fromisoformat(entry)
     rows = []
     for point in series:
@@ -296,6 +298,16 @@ def _practical_target_test(series: list[dict], entry_price: float, target: dict,
     drawdown_rows = [row for row in rows if result_day is None or row[0] <= result_day]
     drawdown = (round((min(row[2] for row in drawdown_rows) / entry_price - 1) * 100, 2)
                 if drawdown_rows else None)
+    evidence_end = min(
+        [x for x in (deadline["deadline_days"], terminal_days) if isinstance(x, (int, float))],
+        default=deadline["deadline_days"],
+    )
+    deadline_rows = [row for row in rows if row[0] <= evidence_end]
+    highest_price = max((row[2] for row in deadline_rows), default=None)
+    highest_gain = (
+        round((highest_price / entry_price - 1) * 100, 2)
+        if highest_price is not None else None
+    )
     return {
         **base,
         "status": status,
@@ -304,6 +316,9 @@ def _practical_target_test(series: list[dict], entry_price: float, target: dict,
         "last_observed_days": observed_days,
         "terminal_days": terminal_days,
         "max_drawdown_before_result_pct": drawdown,
+        "highest_gain_before_deadline_pct": highest_gain,
+        "highest_price_before_deadline": round(highest_price, 2)
+        if highest_price is not None else None,
     }
 
 
@@ -396,6 +411,125 @@ def _percentile(values: list[int], fraction: float) -> float | None:
     return ordered[lower] + (ordered[upper] - ordered[lower]) * (position - lower)
 
 
+_TERMINAL_REASON = {
+    "acquisitionby": ("acquired", "The company was acquired before the deadline."),
+    "mergerto": ("merged", "The company merged into another company before the deadline."),
+    "bankruptcyliquidation": (
+        "bankruptcy_or_liquidation",
+        "The company entered bankruptcy or liquidation before the deadline.",
+    ),
+    "regulatorydelisting": (
+        "regulatory_delisting", "The stock was removed from its exchange by a regulator."
+    ),
+    "voluntarydelisting": (
+        "voluntary_delisting", "The company voluntarily stopped exchange trading."
+    ),
+    "delisted": ("delisted", "The stock stopped exchange trading before the deadline."),
+}
+
+
+def _terminal_explanation(terminal: dict | None) -> dict | None:
+    if not terminal:
+        return None
+    action = str(terminal.get("action") or "delisted").lower().replace("_", "")
+    code, text = _TERMINAL_REASON.get(
+        action, ("trading_ended", "The available trading history ended before the deadline.")
+    )
+    event_date = str(terminal.get("date") or "")[:10] or None
+    successor = terminal.get("successor")
+    details = text
+    if event_date:
+        details += f" Recorded event date: {event_date}."
+    if successor:
+        details += f" Recorded successor: {successor}."
+    return {"code": code, "short": text, "details": details,
+            "event_date": event_date, "successor": successor}
+
+
+def _fixed_goal_reason(status: str, days, milestone: dict, terminal: dict | None) -> dict:
+    max_gain = (milestone.get("max_return_pct_by_horizon") or {}).get("365")
+    drawdown = (milestone.get("max_drawdown_pct_by_horizon") or {}).get("365")
+    evidence = [
+        {"label": "Highest gain during year one", "value": max_gain, "unit": "%"},
+        {"label": "Largest fall during year one", "value": drawdown, "unit": "%"},
+    ]
+    if status == "within_one_year":
+        return {"code": "reached_on_time", "short": "Reached within one year",
+                "details": f"The price first reached the +30% goal after {int(days)} days.",
+                "evidence": evidence}
+    if isinstance(days, (int, float)):
+        return {"code": "reached_late", "short": f"Reached late after {int(days)} days",
+                "details": ("The stock did not reach +30% during the promised first year, "
+                            f"but it eventually reached it after {int(days)} days."),
+                "evidence": evidence}
+    terminal_reason = _terminal_explanation(terminal)
+    if terminal_reason:
+        return {**terminal_reason, "evidence": evidence}
+    if status == "still_waiting":
+        observed = milestone.get("last_observed_days")
+        return {"code": "still_waiting", "short": "Not enough time has passed",
+                "details": (f"Only {int(observed)} days of later prices are available. "
+                            "This episode is still waiting for a full result.")
+                if isinstance(observed, (int, float)) else
+                "There is not enough later price history for a final result.",
+                "evidence": evidence}
+    shortfall = round(30 - max_gain, 2) if isinstance(max_gain, (int, float)) else None
+    return {"code": "fell_short", "short": "Did not reach +30% within one year",
+            "details": (f"Its highest gain during the first year was {max_gain:.2f}%, "
+                        f"which was {shortfall:.2f} percentage points short of the goal.")
+            if shortfall is not None else
+            "The available first-year prices never reached the +30% goal.",
+            "evidence": evidence}
+
+
+def _practical_goal_reason(target: dict, terminal: dict | None) -> dict:
+    status = target.get("status") or "unavailable"
+    days = target.get("days_to_target")
+    deadline = target.get("deadline_days")
+    gain = target.get("highest_gain_before_deadline_pct")
+    drawdown = target.get("max_drawdown_before_result_pct")
+    evidence = [
+        {"label": "Practical Target gain", "value": target.get("upside_pct"), "unit": "%"},
+        {"label": "Promised time", "value": deadline, "unit": " days"},
+        {"label": "Highest gain before deadline", "value": gain, "unit": "%"},
+        {"label": "Largest fall before result", "value": drawdown, "unit": "%"},
+    ]
+    if status in {"reached", "already_above_at_entry"}:
+        return {"code": "reached_on_time", "short": "Reached within the promised time",
+                "details": ("The entry price was already above this reference value."
+                            if status == "already_above_at_entry" else
+                            f"The price first reached the Practical Target after {int(days)} days."),
+                "evidence": evidence}
+    if status == "reached_late":
+        return {"code": "reached_late", "short": f"Reached late after {int(days)} days",
+                "details": (f"The price reached the Practical Target after {int(days)} days, "
+                            "which was later than its promised time."), "evidence": evidence}
+    if status == "unavailable":
+        reason = target.get("reason") or "No credible Practical Target could be calculated."
+        return {"code": "target_unavailable", "short": "No credible Practical Target",
+                "details": reason, "evidence": evidence}
+    terminal_reason = _terminal_explanation(terminal)
+    if terminal_reason:
+        return {**terminal_reason, "evidence": evidence}
+    if status == "active":
+        observed = target.get("last_observed_days")
+        return {"code": "still_waiting", "short": "Still waiting for the deadline",
+                "details": (f"Only {int(observed)} days have been observed; the promised "
+                            f"time is {int(deadline)} days.")
+                if isinstance(observed, (int, float)) and isinstance(deadline, (int, float)) else
+                "The promised time has not ended yet.", "evidence": evidence}
+    target_gain = target.get("upside_pct")
+    shortfall = (round(float(target_gain) - float(gain), 2)
+                 if isinstance(target_gain, (int, float)) and isinstance(gain, (int, float))
+                 else None)
+    return {"code": "fell_short", "short": "Did not reach the Practical Target in time",
+            "details": (f"Its highest gain before the deadline was {gain:.2f}%, "
+                        f"which was {shortfall:.2f} percentage points short of the target.")
+            if shortfall is not None else
+            "The available prices never reached the Practical Target before its deadline.",
+            "evidence": evidence}
+
+
 def _buy_episode_roots(observations: list[dict], max_gap_days: int) -> list[dict]:
     """Collapse a contiguous run of Buy recommendations into one entry episode.
 
@@ -421,6 +555,7 @@ def _buy_episode_roots(observations: list[dict], max_gap_days: int) -> list[dict
         days_to_30 = (milestone.get("first_hit_days") or {}).get("30")
         practical = ((root.get("outcome") or {}).get("targets") or {}).get("practical", {})
         practical_test = practical.get("performance_test") or {}
+        terminal = root.get("terminal_event")
         fixed_status = (
             "within_one_year" if isinstance(days_to_30, (int, float)) and days_to_30 <= 365 else
             "during_year_two" if isinstance(days_to_30, (int, float)) and days_to_30 <= 730 else
@@ -434,6 +569,21 @@ def _buy_episode_roots(observations: list[dict], max_gap_days: int) -> list[dict
         )
         entry_price = (float(root["entry_price"])
                        if isinstance(root.get("entry_price"), (int, float)) else None)
+        practical_summary = {
+            "price": practical.get("price"),
+            "upside_pct": practical.get("upside_pct"),
+            "selected_method": practical.get("selected_method"),
+            "basis": practical.get("basis"),
+            "reason": practical.get("reason"),
+            **practical_test,
+        } if practical else None
+        fixed_reason = _fixed_goal_reason(
+            fixed_status, days_to_30, milestone, terminal
+        )
+        if practical_summary:
+            practical_summary["result_reason"] = _practical_goal_reason(
+                practical_summary, terminal
+            )
         root["episode"] = {
             "issuer_key": root.get("issuer_key"),
             "ticker": root.get("ticker"),
@@ -462,14 +612,10 @@ def _buy_episode_roots(observations: list[dict], max_gap_days: int) -> list[dict
             "max_drawdown_within_one_year_pct": (
                 milestone.get("max_drawdown_pct_by_horizon", {}).get("365")
             ),
-            "practical_target": {
-                "price": practical.get("price"),
-                "upside_pct": practical.get("upside_pct"),
-                "selected_method": practical.get("selected_method"),
-                "basis": practical.get("basis"),
-                "reason": practical.get("reason"),
-                **practical_test,
-            } if practical else None,
+            "fixed_30_reason": fixed_reason,
+            "practical_target": practical_summary,
+            "terminal_event": terminal,
+            "currency_conversion": root.get("currency_conversion"),
         }
         episodes.append(root)
 

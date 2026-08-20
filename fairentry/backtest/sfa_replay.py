@@ -209,6 +209,90 @@ def _margin_trend_score(row: dict) -> float | None:
             "deteriorating": 25, "worsening": 10}.get(combined)
 
 
+_COUNTRY_CURRENCY = {
+    "united states": "USD", "u.s.a": "USD", "us": "USD", "usa": "USD",
+    "china": "CNY", "hong kong": "HKD", "japan": "JPY",
+    "united kingdom": "GBP", "uk": "GBP", "canada": "CAD",
+    "australia": "AUD", "switzerland": "CHF", "taiwan": "TWD",
+    "south korea": "KRW", "india": "INR", "brazil": "BRL",
+}
+_EURO_COUNTRIES = {
+    "austria", "belgium", "croatia", "cyprus", "estonia", "finland",
+    "france", "germany", "greece", "ireland", "italy", "latvia",
+    "lithuania", "luxembourg", "malta", "netherlands", "portugal",
+    "slovakia", "slovenia", "spain",
+}
+
+
+def _fcf_currency_conversion(row: dict) -> dict:
+    """Convert report-currency FCF using only that report's stored FX rate.
+
+    Sharadar SF1 ``fxusd`` is local-currency units per US dollar. DAILY market
+    capitalization is USD millions, so non-USD FCF must be divided by fxusd
+    before the two values can be compared. Country is deliberately validation
+    evidence only; it never supplies or changes the exchange rate.
+    """
+    def clean_text(value):
+        if value is None or (isinstance(value, (int, float))
+                             and not math.isfinite(float(value))):
+            return None
+        text = str(value).strip()
+        return None if text.lower() in {"", "nan", "nat", "none"} else text
+
+    currency_text = clean_text(row.get("reporting_currency"))
+    currency = currency_text.upper() if currency_text else None
+    country = clean_text(row.get("country")) or ""
+    fcf = row.get("fcf")
+    fxusd = row.get("fxusd")
+    report_date = str(row.get("datekey") or "")[:10] or None
+    country_name = country.lower().split(";")[-1].strip().rstrip(".")
+    expected = _COUNTRY_CURRENCY.get(country_name)
+    if country_name in _EURO_COUNTRIES:
+        expected = "EUR"
+    country_check = (
+        "not_available" if not country or not expected or not currency else
+        "matches" if currency == expected else "review"
+    )
+    numeric_fcf = isinstance(fcf, (int, float)) and math.isfinite(float(fcf))
+    numeric_fx = isinstance(fxusd, (int, float)) and math.isfinite(float(fxusd))
+    base = {
+        "reporting_currency": currency,
+        "historical_fxusd": float(fxusd) if numeric_fx else None,
+        "financial_report_date": report_date,
+        "country": country or None,
+        "country_expected_currency": expected,
+        "country_check": country_check,
+        "reported_fcf": float(fcf) if numeric_fcf else None,
+        "converted_fcf_usd": None,
+        "calculation": None,
+        "status": "unavailable",
+        "reason": "The historical financial report has no FCF value.",
+    }
+    if not numeric_fcf:
+        return base
+    if not currency:
+        return {
+            **base,
+            "reason": "The report currency is missing, so FCF was excluded from valuation.",
+        }
+    if not numeric_fx or fxusd <= 0:
+        return {
+            **base,
+            "reason": (
+                f"The {report_date or 'historical'} report has no valid {currency}-to-USD "
+                "rate, so FCF was excluded from valuation."
+            ),
+        }
+    converted = float(fcf) / float(fxusd)
+    return {
+        **base,
+        "converted_fcf_usd": converted,
+        "calculation": "Reported FCF ÷ the same report's fxusd rate = FCF in USD.",
+        "status": "used",
+        "reason": None,
+    }
+
+
 def _row_metrics(row: dict, asof: str, spy_3m: float | None,
                  sector_3m: float | None = None) -> dict:
     effective_f = row.get("datekey") or asof
@@ -220,6 +304,7 @@ def _row_metrics(row: dict, asof: str, spy_3m: float | None,
         row.get("close"), row.get("resistance50"), failed=failed_support
     )
     breakout_volume, _ = breakout_volume_metric(row.get("volume"), row.get("avgvol50"))
+    conversion = _fcf_currency_conversion(row)
     values = {
         "price": (row.get("close"), "sharadar_sep"),
         "gross_margin": (_pct(row.get("grossmargin")), "sharadar_sf1_art"),
@@ -253,9 +338,13 @@ def _row_metrics(row: dict, asof: str, spy_3m: float | None,
         ),
         "current_ratio": (row.get("currentratio"), "sharadar_sf1_art"),
         "pfcf_ratio": (
-            # Sharadar DAILY.marketcap is USD millions while SF1.fcf is USD.
-            # Normalize to the same units before calculating price/FCF.
-            _safe_ratio(row.get("marketcap_daily"), row.get("fcf"), 1_000_000),
+            # DAILY.marketcap is USD millions. SF1.fcf is report currency, so
+            # compare it only after conversion with the same report's fxusd.
+            _safe_ratio(
+                row.get("marketcap_daily"),
+                conversion.get("converted_fcf_usd"),
+                1_000_000,
+            ),
             "sharadar_sf1_art_daily",
         ),
         "ps_ratio": (row.get("ps_daily"), "sharadar_daily"),
@@ -427,7 +516,8 @@ class SFAReplay:
         SELECT u.security_id,u.ticker,u.company,u.sector,u.industry,u.country,u.category,u.isdelisted,u.lastpricedate,
                p.date price_date,p.close,p.closeadj,p.closeunadj,p.high,p.low,p.volume,
                p.history_sessions,p.sma50,p.sma200,p.wma200_proxy,p.avgvol50,p.resistance50,p.support126,p.close_3m,p.close_1y,p.sma50_1m_ago,
-               art.datekey,art.reportperiod,art.grossmargin,art.ros,art.opinc,art.revenue,
+               art.datekey,art.reportperiod,art.fxusd,meta.currency reporting_currency,
+               art.grossmargin,art.ros,art.opinc,art.revenue,
                art.netmargin,art.roe,art.roic,art.de,art.currentratio,art.fcf,art.assets,
                art.liabilities,art.workingcapital,art.retearn,art.ebit,
                arq.revenue revenue_q,arq.revenue_prev_q,arq.revenue_prev_y,arq.opinc opinc_q,
@@ -447,6 +537,11 @@ class SFAReplay:
           WHERE art0.ticker=u.ticker AND art0.datekey<=?
           ORDER BY art0.datekey DESC,art0.reportperiod DESC LIMIT 1
         ) art ON true
+        LEFT JOIN LATERAL (
+          SELECT t0.currency FROM sfa_tickers t0
+          WHERE t0.ticker=u.ticker AND t0."table"='SF1'
+          ORDER BY t0.lastupdated DESC NULLS LAST LIMIT 1
+        ) meta ON true
         LEFT JOIN LATERAL (
           SELECT * FROM sfa_arq_features arq0
           WHERE arq0.ticker=u.ticker AND arq0.datekey<=?
@@ -480,6 +575,7 @@ class SFAReplay:
                         "sector": row["sector"],
                         "industry": row["industry"],
                         "country": row["country"],
+                        "reporting_currency": row.get("reporting_currency"),
                         "category": row["category"],
                         "security_id": row["security_id"],
                         "isdelisted": str(row["isdelisted"]).lower() in {"y", "true", "1"},
@@ -488,6 +584,7 @@ class SFAReplay:
                     "metrics": _row_metrics(
                         row, asof, spy_3m, sector_returns.get(row["sector"])
                     ),
+                    "currency_conversion": _fcf_currency_conversion(row),
                     "raw": row,
                 }
             )
@@ -935,6 +1032,8 @@ def run_sfa_rolling(
                 "excluded_share_classes": item.get("excluded_share_classes", []),
                 "company": sec["company"],
                 "sector": sec["sector"],
+                "country": (item.get("currency_conversion") or {}).get("country"),
+                "currency_conversion": item.get("currency_conversion"),
                 "strategy_key": primary,
                 "strategy_memberships": memberships,
                 "preset_name": preset_name,

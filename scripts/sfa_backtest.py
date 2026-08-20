@@ -56,7 +56,26 @@ def grouped_return_summary(observations: list[dict], hold_days: int) -> dict:
 
 def public_artifact(result: dict, detail_limit: int = 2000) -> dict:
     """Remove reconstructable vendor inputs while retaining decision evidence."""
-    clean = json.loads(json.dumps(result))
+    # Python's encoder permits NaN, but browsers correctly reject it as invalid
+    # JSON. Convert any missing dataframe number to null in the public copy.
+    clean = json.loads(json.dumps(result), parse_constant=lambda _value: None)
+
+    def public_currency_evidence(value):
+        if not isinstance(value, dict):
+            return value
+        exact = value.pop("converted_fcf_usd", None)
+        value.pop("reported_fcf", None)
+        if isinstance(exact, (int, float)):
+            value["converted_fcf_usd_rounded_millions"] = round(exact / 1_000_000)
+        rate = value.get("historical_fxusd")
+        if isinstance(rate, (int, float)):
+            value["historical_fxusd"] = round(rate, 4)
+        for key in ("reporting_currency", "country", "country_expected_currency"):
+            if str(value.get(key) or "").lower() in {"nan", "nat", "none"}:
+                value[key] = None
+        value["licensed_amounts_redacted"] = True
+        return value
+
     observations = clean.get("observations", [])
     clean["evidence_return_summary"] = grouped_return_summary(
         observations, int(clean.get("hold_days", 30))
@@ -102,8 +121,18 @@ def public_artifact(result: dict, detail_limit: int = 2000) -> dict:
             "fields": [],
         }
         observation["licensed_inputs_redacted"] = True
+        observation["currency_conversion"] = public_currency_evidence(
+            observation.get("currency_conversion")
+        )
         if observation.get("terminal_event"):
             observation["terminal_event"].pop("value", None)
+    for episode in (clean.get("buy_return_achievement", {})
+                    .get("episode_details", [])):
+        episode["currency_conversion"] = public_currency_evidence(
+            episode.get("currency_conversion")
+        )
+        if episode.get("terminal_event"):
+            episode["terminal_event"].pop("value", None)
     clean["public_data_boundary"] = {
         "raw_vendor_rows_exposed": False,
         "reconstructable_inputs_redacted": True,
