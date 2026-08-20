@@ -84,6 +84,23 @@ loads SFA by default and offers a link to the legacy seeded replay.
   terminal event within its expiry.
 - Entry and exit trading costs are included in returns and portfolio evidence.
 
+## Primary success scorecards
+
+Every full replay publishes two episode-level scorecards at the top of the
+backtest page:
+
+- a fixed net +30% result within one year, with later hits separated into year
+  2, year 3, and after year 3; and
+- the frozen Practical Target checked against a deadline based on the expected
+  gain: 1 year through +30%, 2 years through +70%, 3 years through +120%, and
+  5 years through +271%.
+
+The first Buy starts both clocks. Consecutive Buy signals for the same issuer
+remain one episode. A late Practical Target hit is shown but is not an on-time
+success; a recent episode whose deadline has not passed remains active rather
+than becoming a failure. The public artifact contains derived episode results,
+not the licensed daily price rows.
+
 ## Known residual limitations
 
 - SFA does not supply historical forward analyst EPS growth, analyst targets,
@@ -139,7 +156,7 @@ the middle 50% of successful hit times.
 
 ## Latest completed replay
 
-Run `sfa-927c352ce0b3` used snapshot `20260810T132048Z`. It evaluated 333
+Run `sfa-7853ef5c27eb` used snapshot `20260810T132048Z`. It evaluated 333
 monthly decision dates from October 1998 through June 2026, comprising 73,843
 issuer-deduplicated observations under the new testable-factor contract.
 
@@ -149,7 +166,10 @@ issuer-deduplicated observations under the new testable-factor contract.
 - Among 644 completed current-weight Buy episodes, 312 (48.4%) touched a net
   +25% within one year. The 90% likely range was 45.2% to 51.7%, and successful
   episodes typically took 110.5 days. A net +30% was reached by 278 (43.2%).
-- The Practical value hit rate was 32.7%: 256 of 783 completed Buy goals.
+- Under the new episode-level deadline rule, 175 of 456 completed Practical
+  Targets were reached on time (38.4%); 96 more were reached late, 185 missed
+  their deadline, and 12 are still waiting. The older signal-level,
+  method-expiry view remains available below and reports 32.7% (256 of 783).
 - The constrained Buy portfolio compounded +103.69%, but experienced an
   -84.47% maximum drawdown and an approximate 0.24 Sharpe ratio. This confirms
   that absolute return alone is not an acceptance criterion.
@@ -175,7 +195,7 @@ observation. This lets a challenger fairly turn a historical Watch into a Buy
 without publishing or duplicating the licensed daily price rows. Repeated
 weekly Buys for one issuer remain one episode.
 
-The exact effective weights used by run `sfa-927c352ce0b3` were Growth 33.75%,
+The exact effective weights used by run `sfa-7853ef5c27eb` were Growth 33.75%,
 Business Quality 22.50%, Valuation 18.75%, Market Confirmation 18.75%, and
 Financial Survival 6.25%. These are displayed directly on both the SFA
 evidence page and the live board. The former `18, 5, 27, 15, 15` display scale

@@ -6,7 +6,6 @@ import hashlib
 import importlib.metadata
 import json
 import math
-import os
 import statistics
 import subprocess
 import sys
@@ -800,7 +799,7 @@ def run_sfa_rolling(
             entry_cost_bps=strategy.slippage_bps + strategy.transaction_cost_bps,
             exit_cost_bps=strategy.exit_slippage_bps + strategy.exit_transaction_cost_bps,
         )
-        evidence_end = (decision + timedelta(days=max(1474, max(strategy.horizons_days) + 28))).isoformat()
+        evidence_end = (decision + timedelta(days=max(1853, max(strategy.horizons_days) + 28))).isoformat()
         terminals = replay.terminal_events(
             [x["sec"]["ticker"] for x in filtered], entry, evidence_end
         )
@@ -1046,7 +1045,8 @@ def run_sfa_rolling(
                     if entry_date <= point["date"] <= portfolio_end
                 ]
                 target_outcome = evaluate_path(
-                    series, adjusted_entry, targets, strategy.horizons_days, entry_date
+                    series, adjusted_entry, targets, strategy.horizons_days, entry_date,
+                    terminal_date=terminal.get("date") if terminal else None,
                 )
                 target_outcome.pop("path", None)
                 target_outcome["horizons"] = observation["horizons"]

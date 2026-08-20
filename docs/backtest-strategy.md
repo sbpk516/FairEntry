@@ -52,7 +52,7 @@ cross-sectional mean.
 
 ## Current status
 
-### 2026-08-10 — Sharadar SFA point-in-time baseline
+### 2026-08-20 — Sharadar SFA point-in-time baseline
 
 The first full SFA replay used snapshot `20260810T132048Z`, 333 monthly entry
 cohorts from 1998-10-27 through 2026-07-29, historical active **and delisted**
@@ -61,19 +61,20 @@ entries, configured costs, and SPY total return as the benchmark. It covered
 2,916 unique securities after screening and factor-coverage controls.
 
 ```text
-Buy    n=244     -0.21% mean alpha   47.1% beat-benchmark rate
-Watch  n=58,932  -0.08% mean alpha   48.3% beat-benchmark rate
-Avoid  n=35,705  -0.24% mean alpha   47.6% beat-benchmark rate
-Buy - Avoid spread +0.03% · 90% cohort-block CI [-1.14%, +1.15%]
-Monotonic ladder: no
+Buy    n=1,116   +0.01% mean alpha   47.7% beat-benchmark rate
+Watch  n=48,336  -0.29% mean alpha   47.3% beat-benchmark rate
+Avoid  n=24,391  -0.44% mean alpha   46.6% beat-benchmark rate
+Buy - Avoid spread +0.45% · 90% cohort-block CI [-0.33%, +1.30%]
+Monotonic ladder: yes
 ```
 
 **Conclusion:** the current Backtest Recommended weights and Buy filter are
-**not validated by the SFA baseline**. This materially conflicts with the older
-survivor-seeded result below. The weights remain unchanged for now so that a
-single newly integrated dataset does not silently alter the live strategy; they
-must be redesigned and evaluated on separate development and held-out periods
-before another recommendation is adopted.
+**not fully validated by the SFA baseline**. The ordering now points in the
+right direction, but the likely Buy-minus-Avoid range still crosses zero and
+fewer than half of Buy observations beat SPY over 30 days. The full replay also
+shows 278 of 644 completed Buy episodes (43.2%) reached a net +30% within one
+year. The weights remain unchanged; the chronological challenger failed the
+complete promotion checks.
 
 The SFA result is the preferred historical reliability check. The older result
 below remains useful for implementation comparison, but not as the primary

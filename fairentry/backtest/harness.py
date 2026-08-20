@@ -334,7 +334,8 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
         if _days(d, dates[-1]) < hold_days:
             break
         if last_pick is None or _days(last_pick, d) >= step_days:
-            entries.append(d); last_pick = d
+            entries.append(d)
+            last_pick = d
 
     secs = store.securities()
     alpha = {"Buy": [], "Watch": [], "Avoid": []}
@@ -395,7 +396,10 @@ def run_rolling(store, cfg, hold_days: int = 30, step_days: int = 7,
                 targets = targets_for(rec, m, strategy)
                 longest_target = max((t.get("expiry_days", strategy.target_expiry_days)
                                       for t in targets.values()), default=strategy.target_expiry_days)
-                path = price_series(store, tkr, entry, max(strategy.horizons_days + (longest_target,)))
+                path = price_series(
+                    store, tkr, entry,
+                    max(strategy.horizons_days + (longest_target, 1825)),
+                )
                 outcome = evaluate_path(path, adjusted_entry, targets, strategy.horizons_days, entry)
                 return_milestones = fixed_return_milestones(
                     path, adjusted_entry, entry

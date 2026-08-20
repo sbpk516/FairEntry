@@ -29,7 +29,33 @@ these permanent rules:
 
 The Practical valuation goal starts at 30% by default. The fixed-return explorer
 is a separate question and currently supports 10%, 15%, 20%, 25%, 30%, 40%,
-50%, 75%, 100%, 150%, and 200% gains over 3, 6, 9, 12, and 24 months.
+50%, 75%, 100%, 150%, and 200% gains over 3, 6, 9, 12, 24, 36, and 60 months.
+
+## Two primary success tests
+
+The page now starts with two separate answers. Neither one changes how a stock
+receives Buy, Watch, or Avoid:
+
+1. **Fixed minimum result:** did one Buy episode reach a net +30% investment
+   return within 365 calendar days? Later results remain visible as year 2,
+   year 3, after year 3, never within three years, or still waiting.
+2. **Frozen Practical Target:** did the first Buy reach the Practical Target
+   calculated on that day before the target's size-based deadline? A target up
+   to +30% gets one year, above +30% through +70% gets two years, above +70%
+   through +120% gets three years, and above +120% through +271% gets five
+   years. Larger targets receive a clearly calculated longer deadline.
+
+A Practical Target reached after its promised deadline is recorded as
+`reached_late`. It remains visible as evidence but does not count as an on-time
+success. A target still inside its deadline is `active` and is not counted as a
+failure. Targets already below the Buy price remain Day 0 references and do not
+enter either post-entry success percentage.
+
+Both tests use the first Buy in a continuous Buy episode. Later repeated Buy
+signals remain available for audit, but they do not become separate investments.
+The stock-level evidence freezes the first entry, the +30% amount, the Practical
+Target, both deadlines, first hit dates, time taken, and the largest fall before
+the result.
 
 ## Review findings
 

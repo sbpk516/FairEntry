@@ -1,11 +1,12 @@
-import tempfile
-import pytest
 from datetime import date, timedelta
+
+import pytest
 
 from fairentry.backtest.evidence import (
     RETURN_THRESHOLDS_PCT,
     evaluate_path,
     fixed_return_milestones,
+    practical_target_deadline,
     quality_for,
     summarize_buy_return_achievement,
     summarize_methods,
@@ -26,6 +27,81 @@ def test_strategy_has_stable_version_id():
 
 def test_return_explorer_covers_large_gains():
     assert RETURN_THRESHOLDS_PCT == (10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200)
+
+
+@pytest.mark.parametrize(("upside", "years"), [
+    (30, 1), (30.1, 2), (70, 2), (70.1, 3),
+    (120, 3), (120.1, 5), (271, 5), (500, 7),
+])
+def test_practical_target_deadline_uses_compounding_ladder(upside, years):
+    assert practical_target_deadline(upside)["deadline_years"] == years
+
+
+def test_practical_target_has_separate_on_time_and_late_result():
+    start = date(2020, 1, 1)
+    series = [
+        {"date": start.isoformat(), "close": 100},
+        {"date": (start + timedelta(days=500)).isoformat(), "close": 90},
+        {"date": (start + timedelta(days=800)).isoformat(), "close": 171},
+    ]
+    target = {"price": 170, "upside_pct": 70, "available": True,
+              "expiry_days": 365, "selected_method": "fundamental"}
+    result = evaluate_path(series, 100, {"practical": target}, (365,), start.isoformat())
+    test = result["targets"]["practical"]["performance_test"]
+    assert test["deadline_years"] == 2
+    assert test["status"] == "reached_late"
+    assert test["days_to_target"] == 800
+    assert test["max_drawdown_before_result_pct"] == -10
+
+
+def test_practical_target_hit_on_exact_deadline_is_on_time():
+    start = date(2020, 1, 1)
+    series = [
+        {"date": start.isoformat(), "close": 100},
+        {"date": (start + timedelta(days=365)).isoformat(), "close": 130},
+    ]
+    result = evaluate_path(
+        series,
+        100,
+        {"practical": {"price": 130, "upside_pct": 30, "available": True}},
+        (365,),
+        start.isoformat(),
+    )
+    test = result["targets"]["practical"]["performance_test"]
+    assert test["status"] == "reached"
+    assert test["days_to_target"] == 365
+
+
+def test_practical_target_without_enough_history_is_still_active():
+    start = date(2024, 1, 1)
+    series = [
+        {"date": start.isoformat(), "close": 100},
+        {"date": (start + timedelta(days=300)).isoformat(), "close": 110},
+    ]
+    result = evaluate_path(
+        series,
+        100,
+        {"practical": {"price": 130, "upside_pct": 30, "available": True}},
+        (365,),
+        start.isoformat(),
+    )
+    assert result["targets"]["practical"]["performance_test"]["status"] == "active"
+
+
+def test_practical_target_terminal_event_is_a_completed_failure():
+    start = date(2024, 1, 1)
+    series = [{"date": start.isoformat(), "close": 100}]
+    result = evaluate_path(
+        series,
+        100,
+        {"practical": {"price": 160, "upside_pct": 60, "available": True}},
+        (365,),
+        start.isoformat(),
+        terminal_date=(start + timedelta(days=90)).isoformat(),
+    )
+    test = result["targets"]["practical"]["performance_test"]
+    assert test["status"] == "expired"
+    assert test["terminal_days"] == 90
 
 
 def test_strategy_rejects_descriptive_only_contract_values():
@@ -195,11 +271,22 @@ def test_return_attainment_collapses_consecutive_buys_and_censors_active_rows():
             "issuer_key": issuer,
             "verdict": verdict,
             "return_milestones": {
-                "first_hit_days": {"25": first_hit},
+                "first_hit_days": {"25": first_hit, "30": first_hit},
                 "last_observed_days": observed,
                 "terminal_days": None,
                 "max_return_pct_by_horizon": {"365": 31.0},
+                "max_drawdown_pct_by_horizon": {"365": -12.0},
             },
+            "outcome": {"targets": {"practical": {
+                "price": 160, "upside_pct": 60, "selected_method": "fundamental",
+                "performance_test": {
+                    "status": ("reached" if first_hit is not None else
+                               "expired" if observed >= 730 else "active"),
+                    "deadline_days": 730, "deadline_years": 2,
+                    "within_standard_five_year_range": True,
+                    "days_to_target": first_hit,
+                },
+            }}},
         }
 
     observations = [
@@ -230,7 +317,14 @@ def test_return_attainment_collapses_consecutive_buys_and_censors_active_rows():
     assert first["entry_price_low"] == 100
     assert first["entry_price_high"] == 137
     assert first["highest_gain_within_one_year_pct"] == 31.0
-    assert first["days_to_25_pct"] == 80
+    assert first["days_to_30_pct"] == 80
+    assert first["fixed_30_target_price"] == 130
+    assert first["fixed_30_status"] == "within_one_year"
+    assert first["max_drawdown_within_one_year_pct"] == -12
+    assert first["practical_target"]["deadline_years"] == 2
+    contract = summary["primary_success_contract"]
+    assert contract["fixed_30_within_one_year"]["hit_rate_pct"] == 50
+    assert contract["practical_target_with_compounding_deadline"]["hit_rate_pct"] == 50
 
 
 def test_terminal_event_makes_fixed_return_horizon_evaluable():

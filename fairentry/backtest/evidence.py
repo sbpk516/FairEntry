@@ -9,6 +9,39 @@ from datetime import date, timedelta
 
 RETURN_THRESHOLDS_PCT = (10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200)
 RETURN_HORIZONS_DAYS = (90, 180, 270, 365, 730, 1095, 1825)
+PRACTICAL_TARGET_DEADLINES = (
+    (30.0, 365, 1),
+    (70.0, 730, 2),
+    (120.0, 1095, 3),
+    (271.0, 1825, 5),
+)
+
+
+def practical_target_deadline(upside_pct: float | int | None) -> dict | None:
+    """Map a target gain to the deadline promised by the product.
+
+    The displayed boundaries are deliberately rounded for a family audience:
+    30% in one year, about 70% in two, 120% in three and 271% in five.
+    Targets beyond that range get an honest calculated year count rather than
+    being squeezed into an unrealistic five-year promise.
+    """
+    if not isinstance(upside_pct, (int, float)) or upside_pct <= 0:
+        return None
+    for maximum, days, years in PRACTICAL_TARGET_DEADLINES:
+        if float(upside_pct) <= maximum:
+            return {
+                "deadline_days": days,
+                "deadline_years": years,
+                "band_maximum_gain_pct": maximum,
+                "within_standard_five_year_range": True,
+            }
+    years = max(6, math.ceil(math.log1p(float(upside_pct) / 100) / math.log(1.3)))
+    return {
+        "deadline_days": years * 365,
+        "deadline_years": years,
+        "band_maximum_gain_pct": round((1.3 ** years - 1) * 100, 1),
+        "within_standard_five_year_range": False,
+    }
 
 
 def source_quality(source: str | None, field_id: str | None = None) -> str:
@@ -161,7 +194,9 @@ def price_series(store, ticker: str, entry: str, days: int) -> list[dict]:
         "AND substr(fetched_at,1,10)<=? ORDER BY fetched_at", (ticker, entry, end)) if r["value_num"]]
 
 
-def evaluate_path(series: list[dict], entry_price: float, targets: dict, horizons: tuple[int, ...], entry: str) -> dict:
+def evaluate_path(series: list[dict], entry_price: float, targets: dict,
+                  horizons: tuple[int, ...], entry: str,
+                  *, terminal_date: str | None = None) -> dict:
     if not series or not entry_price:
         return {"status": "data_unavailable", "horizons": {},
                 "targets": {k: {**v, "status": "data_unavailable", "hit_date": None,
@@ -203,11 +238,73 @@ def evaluate_path(series: list[dict], entry_price: float, targets: dict, horizon
             "hit_date": entry if already_above else first["date"] if first else None,
             "days_to_target": 0 if already_above else
                 (date.fromisoformat(first["date"]) - start).days if first else None}
+        if model == "practical":
+            target_results[model]["performance_test"] = _practical_target_test(
+                series, entry_price, target, entry, terminal_date=terminal_date
+            )
     return {"status": "complete", "horizons": horizon_results, "targets": target_results,
             "max_gain_pct": round((max(closes) / entry_price - 1) * 100, 2),
             "max_drawdown_pct": round((min(closes) / entry_price - 1) * 100, 2),
             "last_date": series[-1]["date"], "last_price": round(series[-1]["close"], 2),
             "path": [[p["date"], round(p["close"], 2)] for p in series]}
+
+
+def _practical_target_test(series: list[dict], entry_price: float, target: dict,
+                           entry: str, *, terminal_date: str | None = None) -> dict:
+    """Test a frozen Practical Target using the 30%-per-year deadline ladder."""
+    value = target.get("price")
+    upside = target.get("upside_pct")
+    deadline = practical_target_deadline(upside)
+    base = {
+        "rule": "deadline_from_30_pct_annual_compounding",
+        "target_price": value,
+        "target_upside_pct": upside,
+        **(deadline or {}),
+    }
+    if not deadline or not isinstance(value, (int, float)) or value <= 0 or not entry_price:
+        return {**base, "status": "unavailable", "hit_date": None,
+                "days_to_target": None, "max_drawdown_before_result_pct": None}
+    start = date.fromisoformat(entry)
+    rows = []
+    for point in series:
+        observed = point.get("date")
+        close = point.get("close")
+        if not observed or not isinstance(close, (int, float)):
+            continue
+        elapsed = (date.fromisoformat(str(observed)[:10]) - start).days
+        if elapsed >= 0:
+            rows.append((elapsed, str(observed)[:10], float(close)))
+    rows.sort()
+    already_above = value <= entry_price
+    first_any = None if already_above else next((row for row in rows if row[2] >= value), None)
+    reached_on_time = bool(first_any and first_any[0] <= deadline["deadline_days"])
+    observed_days = rows[-1][0] if rows else None
+    terminal_days = None
+    if terminal_date:
+        terminal_days = max(0, (date.fromisoformat(str(terminal_date)[:10]) - start).days)
+    mature = (isinstance(observed_days, (int, float))
+              and observed_days >= deadline["deadline_days"])
+    terminal_before_deadline = (isinstance(terminal_days, (int, float))
+                                and terminal_days <= deadline["deadline_days"])
+    status = ("already_above_at_entry" if already_above else
+              "reached" if reached_on_time else
+              "reached_late" if first_any and mature else
+              "expired" if mature or terminal_before_deadline else "active")
+    result_day = (first_any[0] if first_any else
+                  min([x for x in (observed_days, terminal_days, deadline["deadline_days"])
+                       if isinstance(x, (int, float))], default=None))
+    drawdown_rows = [row for row in rows if result_day is None or row[0] <= result_day]
+    drawdown = (round((min(row[2] for row in drawdown_rows) / entry_price - 1) * 100, 2)
+                if drawdown_rows else None)
+    return {
+        **base,
+        "status": status,
+        "hit_date": entry if already_above else first_any[1] if first_any else None,
+        "days_to_target": 0 if already_above else first_any[0] if first_any else None,
+        "last_observed_days": observed_days,
+        "terminal_days": terminal_days,
+        "max_drawdown_before_result_pct": drawdown,
+    }
 
 
 def fixed_return_milestones(
@@ -256,6 +353,14 @@ def fixed_return_milestones(
         "status": "observed" if rows else "data_unavailable",
         "return_basis": "dividend_adjusted_close_with_entry_and_exit_costs",
         "first_hit_days": first_hits,
+        "max_drawdown_before_first_hit_pct": {
+            str(threshold): (
+                round(min(value for elapsed, value, _ in rows
+                          if elapsed <= first_hits[str(threshold)]), 2)
+                if first_hits.get(str(threshold)) is not None else None
+            )
+            for threshold in thresholds
+        },
         "last_observed_days": rows[-1][0] if rows else None,
         "last_observed_date": rows[-1][2] if rows else None,
         "terminal_days": terminal_days,
@@ -263,6 +368,13 @@ def fixed_return_milestones(
         "max_return_pct_by_horizon": {
             str(horizon): round(
                 max((value for elapsed, value, _ in rows if elapsed <= horizon), default=0),
+                2,
+            )
+            for horizon in RETURN_HORIZONS_DAYS
+        },
+        "max_drawdown_pct_by_horizon": {
+            str(horizon): round(
+                min((value for elapsed, value, _ in rows if elapsed <= horizon), default=0),
                 2,
             )
             for horizon in RETURN_HORIZONS_DAYS
@@ -306,9 +418,22 @@ def _buy_episode_roots(observations: list[dict], max_gap_days: int) -> list[dict
         prices = [float(row["entry_price"]) for row in rows
                   if isinstance(row.get("entry_price"), (int, float))]
         milestone = root.get("return_milestones") or {}
-        days_to_25 = (milestone.get("first_hit_days") or {}).get("25")
-        if not isinstance(days_to_25, (int, float)) or days_to_25 > 365:
-            days_to_25 = None
+        days_to_30 = (milestone.get("first_hit_days") or {}).get("30")
+        practical = ((root.get("outcome") or {}).get("targets") or {}).get("practical", {})
+        practical_test = practical.get("performance_test") or {}
+        fixed_status = (
+            "within_one_year" if isinstance(days_to_30, (int, float)) and days_to_30 <= 365 else
+            "during_year_two" if isinstance(days_to_30, (int, float)) and days_to_30 <= 730 else
+            "during_year_three" if isinstance(days_to_30, (int, float)) and days_to_30 <= 1095 else
+            "after_three_years" if isinstance(days_to_30, (int, float)) else
+            "never_within_three_years" if (
+                isinstance(milestone.get("last_observed_days"), (int, float))
+                and milestone.get("last_observed_days") >= 1095
+            ) or isinstance(milestone.get("terminal_days"), (int, float)) else
+            "still_waiting"
+        )
+        entry_price = (float(root["entry_price"])
+                       if isinstance(root.get("entry_price"), (int, float)) else None)
         root["episode"] = {
             "issuer_key": root.get("issuer_key"),
             "ticker": root.get("ticker"),
@@ -319,10 +444,31 @@ def _buy_episode_roots(observations: list[dict], max_gap_days: int) -> list[dict
             "buy_signals": len(rows),
             "entry_price_low": round(min(prices), 2) if prices else None,
             "entry_price_high": round(max(prices), 2) if prices else None,
+            "entry_price": round(entry_price, 2) if entry_price else None,
             "highest_gain_within_one_year_pct": (
                 milestone.get("max_return_pct_by_horizon", {}).get("365")
             ),
-            "days_to_25_pct": int(days_to_25) if days_to_25 is not None else None,
+            "fixed_30_target_price": round(entry_price * 1.3, 2) if entry_price else None,
+            "fixed_30_status": fixed_status,
+            "days_to_30_pct": (int(days_to_30)
+                               if isinstance(days_to_30, (int, float)) else None),
+            "fixed_30_hit_date": (
+                (date.fromisoformat(rows[0]["entry_date"]) + timedelta(days=int(days_to_30))).isoformat()
+                if isinstance(days_to_30, (int, float)) else None
+            ),
+            "max_drawdown_before_30_pct": (
+                milestone.get("max_drawdown_before_first_hit_pct", {}).get("30")
+            ),
+            "max_drawdown_within_one_year_pct": (
+                milestone.get("max_drawdown_pct_by_horizon", {}).get("365")
+            ),
+            "practical_target": {
+                "price": practical.get("price"),
+                "upside_pct": practical.get("upside_pct"),
+                "selected_method": practical.get("selected_method"),
+                "basis": practical.get("basis"),
+                **practical_test,
+            } if practical else None,
         }
         episodes.append(root)
 
@@ -404,8 +550,40 @@ def summarize_buy_return_achievement(
             if row.get("verdict") == "Buy" and row.get("return_milestones")]
     max_gap_days = max(step_days + 1, int(math.ceil(step_days * 1.5)))
     episodes = _buy_episode_roots(observations, max_gap_days)
+    details = [row["episode"] for row in episodes]
+    fixed_one_year = _return_attainment_view(
+        episodes, (30,), (365,)
+    )["matrix"]["30"]["365"]
+    practical_rows = [row["practical_target"] for row in details
+                      if row.get("practical_target")
+                      and row["practical_target"].get("status")
+                      not in {None, "unavailable", "already_above_at_entry"}]
+    practical_completed = [row for row in practical_rows
+                           if row.get("status") in {"reached", "reached_late", "expired"}]
+    practical_reached = [row for row in practical_completed if row.get("status") == "reached"]
+    practical_late = [row for row in practical_completed if row.get("status") == "reached_late"]
+    practical_days = [row["days_to_target"] for row in practical_reached
+                      if isinstance(row.get("days_to_target"), (int, float))]
+    practical_by_deadline = {}
+    for years in sorted({row.get("deadline_years") for row in practical_rows
+                         if isinstance(row.get("deadline_years"), int)}):
+        band = [row for row in practical_rows if row.get("deadline_years") == years]
+        completed = [row for row in band
+                     if row.get("status") in {"reached", "reached_late", "expired"}]
+        reached = [row for row in completed if row.get("status") == "reached"]
+        practical_by_deadline[str(years)] = {
+            "deadline_years": years,
+            "observations": len(band),
+            "evaluable": len(completed),
+            "reached": len(reached),
+            "reached_late": sum(row.get("status") == "reached_late" for row in completed),
+            "expired": sum(row.get("status") == "expired" for row in completed),
+            "active": sum(row.get("status") == "active" for row in band),
+            "hit_rate_pct": (round(len(reached) / len(completed) * 100, 1)
+                             if completed else None),
+        }
     return {
-        "version": 1,
+        "version": 2,
         "thresholds_pct": list(thresholds),
         "horizons_days": list(horizons),
         "return_basis": "dividend_adjusted_close_with_entry_and_exit_costs",
@@ -423,7 +601,37 @@ def summarize_buy_return_achievement(
             "episodes": _return_attainment_view(episodes, thresholds, horizons),
             "signals": _return_attainment_view(buys, thresholds, horizons),
         },
-        "episode_details": [row["episode"] for row in episodes],
+        "primary_success_contract": {
+            "fixed_30_within_one_year": fixed_one_year,
+            "fixed_30_timing": {
+                key: sum(row.get("fixed_30_status") == key for row in details)
+                for key in ("within_one_year", "during_year_two", "during_year_three",
+                            "after_three_years", "never_within_three_years", "still_waiting")
+            },
+            "practical_target_with_compounding_deadline": {
+                "observations": len(practical_rows),
+                "reached": len(practical_reached),
+                "reached_late": len(practical_late),
+                "evaluable": len(practical_completed),
+                "expired": sum(row.get("status") == "expired" for row in practical_completed),
+                "active": sum(row.get("status") == "active" for row in practical_rows),
+                "hit_rate_pct": (round(len(practical_reached) / len(practical_completed) * 100, 1)
+                                 if practical_completed else None),
+                "hit_rate_ci90": _wilson_ci(len(practical_reached), len(practical_completed)),
+                "median_days_to_hit": (round(statistics.median(practical_days), 1)
+                                       if practical_days else None),
+                "outside_five_year_range": sum(
+                    row.get("within_standard_five_year_range") is False for row in practical_rows
+                ),
+                "by_deadline_years": practical_by_deadline,
+                "deadline_rule": [
+                    {"maximum_gain_pct": maximum, "deadline_days": days,
+                     "deadline_years": years}
+                    for maximum, days, years in PRACTICAL_TARGET_DEADLINES
+                ],
+            },
+        },
+        "episode_details": details,
     }
 
 
