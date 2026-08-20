@@ -467,6 +467,7 @@ def _buy_episode_roots(observations: list[dict], max_gap_days: int) -> list[dict
                 "upside_pct": practical.get("upside_pct"),
                 "selected_method": practical.get("selected_method"),
                 "basis": practical.get("basis"),
+                "reason": practical.get("reason"),
                 **practical_test,
             } if practical else None,
         }

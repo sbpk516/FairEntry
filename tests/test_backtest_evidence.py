@@ -279,6 +279,7 @@ def test_return_attainment_collapses_consecutive_buys_and_censors_active_rows():
             },
             "outcome": {"targets": {"practical": {
                 "price": 160, "upside_pct": 60, "selected_method": "fundamental",
+                "reason": "A tested fundamental value cleared the required range.",
                 "performance_test": {
                     "status": ("reached" if first_hit is not None else
                                "expired" if observed >= 730 else "active"),
@@ -322,6 +323,9 @@ def test_return_attainment_collapses_consecutive_buys_and_censors_active_rows():
     assert first["fixed_30_status"] == "within_one_year"
     assert first["max_drawdown_within_one_year_pct"] == -12
     assert first["practical_target"]["deadline_years"] == 2
+    assert first["practical_target"]["reason"] == (
+        "A tested fundamental value cleared the required range."
+    )
     contract = summary["primary_success_contract"]
     assert contract["fixed_30_within_one_year"]["hit_rate_pct"] == 50
     assert contract["practical_target_with_compounding_deadline"]["hit_rate_pct"] == 50
