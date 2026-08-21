@@ -608,3 +608,13 @@ def test_target_failure_reason_is_honest_when_cause_is_not_proven():
 
     reasons = _target_failure_reasons({"categories": [], "outcome": {"horizons": {}}})
     assert [row["code"] for row in reasons] == ["cause_not_verified"]
+
+
+def test_researched_failure_reason_overrides_inferred_proxy_for_known_ticker():
+    from fairentry.backtest.evidence import _target_failure_reasons
+
+    reasons = _target_failure_reasons({"ticker": "CSCO", "categories": [], "outcome": {}})
+    assert len(reasons) == 1
+    assert reasons[0]["evidence_status"] == "researched"
+    assert "inventory digestion" in reasons[0]["phrase"]
+    assert reasons[0]["sources"]

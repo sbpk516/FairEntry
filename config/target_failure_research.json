@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "researched_at": "2026-08-21",
+  "entries": {
+    "CSCO": {
+      "code": "earnings_or_guidance_disappointment",
+      "category": "growth",
+      "reason": "Customer inventory digestion and cautious IT spending reduced product demand and drove a fiscal-2024 revenue decline.",
+      "sources": ["https://www.cisco.com/c/dam/en_us/about/annual-report/2024-cisco-full-annual-report.pdf"]
+    },
+    "TEL": {
+      "code": "growth_below_expectations",
+      "category": "growth",
+      "reason": "Industrial-equipment demand fell during supply-chain inventory corrections, offsetting strength in TE's other end markets.",
+      "sources": ["https://www.te.com/content/dam/te-com/documents/about-te/our-company/global/annual-report/te-connectivity-annual-report-2024.pdf"]
+    },
+    "BKNG": {
+      "code": "target_overly_optimistic",
+      "category": "valuation",
+      "reason": "No material operating setback was verified; the business posted record room nights, but the fixed +30% one-year hurdle was too aggressive.",
+      "sources": ["https://www.sec.gov/Archives/edgar/data/1075531/000130817925000476/bkng013642-def14a.htm"]
+    },
+    "ORLY": {
+      "code": "growth_below_expectations",
+      "category": "growth",
+      "reason": "Comparable-sales growth slowed sharply as DIY transactions weakened, leaving solid earnings growth short of the +30% stock-price hurdle.",
+      "sources": ["https://www.sec.gov/Archives/edgar/data/898173/000089817325000008/orly-20241231x10k.htm"]
+    },
+    "VZ": {
+      "code": "growth_below_expectations",
+      "category": "growth",
+      "reason": "A saturated wireless market, moderating connection growth and aggressive promotions limited the re-rating of Verizon's mature, debt-heavy business.",
+      "sources": ["https://www.sec.gov/Archives/edgar/data/732712/000073271225000006/vz-20241231.htm"]
+    },
+    "LOW": {
+      "code": "growth_below_expectations",
+      "category": "growth",
+      "reason": "High rates and weak housing turnover depressed big-ticket DIY demand; fiscal-2024 comparable sales fell 2.7% on fewer transactions.",
+      "sources": ["https://corporate.lowes.com/sites/lowes-corp/files/2025-04/Lowes_2024_Annual_Report_Website.pdf"]
+    },
+    "CMG": {
+      "code": "earnings_or_guidance_disappointment",
+      "category": "growth",
+      "reason": "Consumer pullback and lower traffic pushed comparable sales negative and reduced guidance, compressing Chipotle's premium growth valuation.",
+      "sources": ["https://www.sec.gov/Archives/edgar/data/1058090/000105809025000028/cmg-20250423xex991.htm"]
+    },
+    "KLAC": {
+      "code": "adverse_government_policy",
+      "category": "catalysts",
+      "reason": "Tighter U.S. semiconductor-export controls reduced KLA's China exposure and created uncertainty around a major revenue market.",
+      "sources": ["https://ir.kla.com/sec-filings/all-sec-filings/content/0000319201-25-000024/klac-20250630.htm"]
+    },
+    "HPE": {
+      "code": "adverse_government_policy",
+      "category": "catalysts",
+      "reason": "The DOJ lawsuit delayed the Juniper acquisition and the eventual settlement required divestitures, prolonging deal and integration uncertainty.",
+      "sources": ["https://www.justice.gov/opa/pr/justice-department-requires-divestitures-and-licensing-commitments-hpes-acquisition-juniper"]
+    },
+    "TCOM": {
+      "code": "target_overly_optimistic",
+      "category": "valuation",
+      "reason": "No material operating setback was verified and travel demand stayed strong; the shares simply did not clear the fixed +30% hurdle on time.",
+      "sources": ["https://investors.trip.com/static-files/4407bb42-2e71-4620-87ff-e56a6022ee2e"]
+    },
+    "ZM": {
+      "code": "growth_below_expectations",
+      "category": "growth",
+      "reason": "Post-pandemic normalization left Zoom near 3% annual revenue growth while intense communications-software competition constrained its re-rating.",
+      "sources": ["https://investors.zoom.us/sec-filings/sec-filing/10-k/0001585521-25-000042"]
+    },
+    "TKO": {
+      "code": "legal_or_litigation_pressure",
+      "category": "risk",
+      "reason": "A $375 million UFC antitrust settlement and continuing litigation created a material legal overhang despite strong underlying media assets.",
+      "sources": ["https://www.sec.gov/Archives/edgar/data/1973266/000119312526071651/tko-20251231.htm"]
+    },
+    "DIS": {
+      "code": "growth_below_expectations",
+      "category": "growth",
+      "reason": "Continued cord-cutting reduced domestic linear-network subscribers and affiliate revenue, offsetting improvement in streaming and parks.",
+      "sources": ["https://investors.thewaltdisneycompany.com/files/doc_financials/2025/ar/2025-Annual-Report.pdf"]
+    },
+    "T": {
+      "code": "growth_below_expectations",
+      "category": "growth",
+      "reason": "Persistent legacy Business Wireline declines and the mature telecom growth profile kept AT&T below the fixed +30% one-year hurdle.",
+      "sources": ["https://www.sec.gov/Archives/edgar/data/732717/000073271725000080/t-20250630.htm"]
+    }
+  }
+}

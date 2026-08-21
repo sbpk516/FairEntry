@@ -4,7 +4,9 @@ from __future__ import annotations
 import statistics
 import math
 import random
+import json
 from datetime import date, timedelta
+from pathlib import Path
 
 
 RETURN_THRESHOLDS_PCT = (10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200)
@@ -573,8 +575,17 @@ TARGET_FAILURE_REASON_CATALOG = (
     {"code": "external_event", "phrase": "Natural disaster, war, pandemic, or other external event", "category": "risk"},
     {"code": "target_overly_optimistic", "phrase": "Target price was overly optimistic", "category": "valuation"},
     {"code": "company_specific_underperformance", "phrase": "Company-specific underperformance versus the benchmark", "category": "confirmation"},
+    {"code": "legal_or_litigation_pressure", "phrase": "Legal settlement or continuing litigation created pressure", "category": "risk"},
     {"code": "cause_not_verified", "phrase": "Cause not verified from available point-in-time evidence", "category": "risk"},
 )
+
+
+def _failure_research() -> dict:
+    path = Path(__file__).resolve().parents[2] / "config" / "target_failure_research.json"
+    try:
+        return (json.loads(path.read_text(encoding="utf-8")).get("entries") or {})
+    except (OSError, ValueError, TypeError):
+        return {}
 
 
 def _category_score(row: dict, category_id: str):
@@ -588,6 +599,18 @@ def _category_score(row: dict, category_id: str):
 def _target_failure_reasons(row: dict, *, horizon_days: int = 1095) -> list[dict]:
     """Assign only evidence-supported phrases to a confirmed failed target."""
     catalog = {item["code"]: item for item in TARGET_FAILURE_REASON_CATALOG}
+    researched = _failure_research().get(str(row.get("ticker") or "").upper())
+    if researched:
+        code = researched.get("code") or "cause_not_verified"
+        base = catalog.get(code, catalog["cause_not_verified"])
+        return [{
+            **base,
+            "category": researched.get("category") or base["category"],
+            "phrase": researched.get("reason") or base["phrase"],
+            "evidence": "Company filing or authoritative source reviewed for the episode window.",
+            "evidence_status": "researched",
+            "sources": researched.get("sources") or [],
+        }]
     found = []
 
     def add(code, evidence):
@@ -1112,7 +1135,7 @@ def summarize_buy_return_achievement(
                 "catalog": list(TARGET_FAILURE_REASON_CATALOG),
                 "counts": {
                     item["code"]: sum(
-                        any(reason.get("code") == item["code"]
+                        any(item["code"] in (reason.get("codes") or [reason.get("code")])
                             for reason in (row.get("target_failure_reasons") or []))
                         for row in details
                     )
