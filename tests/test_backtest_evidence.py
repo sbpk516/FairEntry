@@ -446,6 +446,59 @@ def test_short_unclassified_history_is_not_a_three_year_failure():
     assert fixed["evaluable"] == 0
 
 
+def test_missed_first_year_but_still_in_three_year_window_is_not_labeled_no_time_passed():
+    # Regression: an episode with 584 observed days (well past the 365-day
+    # deadline) and no hit had been falling into the generic "still_waiting"
+    # bucket alongside genuinely fresh Buys, and its reason claimed "not
+    # enough time has passed" even though the one-year test already failed.
+    observations = [{
+        "entry_date": "2024-12-31", "entry_price": 20.65,
+        "ticker": "FLYW", "issuer_key": "FLYW", "verdict": "Buy",
+        "return_milestones": {
+            "first_hit_days": {"30": None}, "last_observed_days": 584,
+            "terminal_days": None,
+            "max_return_pct_by_horizon": {"365": 2.84},
+            "max_drawdown_pct_by_horizon": {"365": -59.29},
+        },
+    }]
+    summary = summarize_buy_return_achievement(
+        observations, 30, thresholds=(30,), horizons=(365,)
+    )
+    episode = summary["episode_details"][0]
+    assert episode["fixed_30_status"] == "missed_within_one_year_tracking"
+    assert episode["fixed_30_evaluation"]["result"] == "failure"
+    assert episode["fixed_30_evaluation"]["counted_in_success_rate"] is True
+    reason = episode["fixed_30_reason"]
+    assert reason["code"] == "missed_first_year_tracking"
+    assert "not enough time" not in reason["details"].lower()
+    assert "already counted as a miss in the one-year result" in reason["details"]
+    assert episode["fixed_30_miss_category"] == "modest_gain_short_of_target"
+    timing = summary["primary_success_contract"]["fixed_30_timing"]
+    assert timing["missed_within_one_year_tracking"] == 1
+    assert timing["still_waiting"] == 0
+
+
+def test_genuinely_fresh_buy_is_still_labeled_not_enough_time():
+    observations = [{
+        "entry_date": "2026-08-01", "entry_price": 50,
+        "ticker": "NEW", "issuer_key": "NEW", "verdict": "Buy",
+        "return_milestones": {
+            "first_hit_days": {"30": None}, "last_observed_days": 19,
+            "terminal_days": None,
+            "max_return_pct_by_horizon": {"365": 3.0},
+            "max_drawdown_pct_by_horizon": {"365": -2.0},
+        },
+    }]
+    summary = summarize_buy_return_achievement(
+        observations, 30, thresholds=(30,), horizons=(365,)
+    )
+    episode = summary["episode_details"][0]
+    assert episode["fixed_30_status"] == "still_waiting"
+    assert episode["fixed_30_reason"]["code"] == "still_waiting"
+    assert "not enough" in episode["fixed_30_reason"]["details"].lower() or \
+           "still waiting" in episode["fixed_30_reason"]["details"].lower()
+
+
 def test_episode_miss_reason_shows_highest_gain_and_shortfall():
     # never_within_three_years is decided over the full 3-year window, so the
     # evidence must report the 3-year peak (here 18%), not a first-year figure.

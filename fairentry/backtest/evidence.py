@@ -623,6 +623,27 @@ def _fixed_goal_reason(status: str, days, milestone: dict, terminal: dict | None
                 if isinstance(observed, (int, float)) else
                 "There is not enough later price history for a final result.",
                 "evidence": evidence}
+    if status == "missed_within_one_year_tracking":
+        # The promised one-year deadline has already passed and failed — this is
+        # already counted as a miss in the +30%-within-one-year headline rate.
+        # It is only "waiting" on a possible (non-qualifying) late catch-up.
+        category = _fixed_miss_category(max_gain)
+        shortfall = round(30 - max_gain, 2) if isinstance(max_gain, (int, float)) else None
+        details = (
+            f"The +30% goal was not reached within the promised first year. Its highest "
+            f"gain {observed_label} was {max_gain:.2f}%, {shortfall:.2f} percentage points "
+            "short of the goal. This episode is already counted as a miss in the one-year "
+            "result and is now only being tracked for a possible late catch-up, which would "
+            "not count as an on-time success."
+            if shortfall is not None else
+            "The +30% goal was not reached within the promised first year. This episode is "
+            "already counted as a miss in the one-year result and is now only being tracked "
+            "for a possible late catch-up, which would not count as an on-time success."
+        )
+        return {"code": "missed_first_year_tracking",
+                "short": "Missed within one year; tracking for a late catch-up",
+                "category": category[0] if category else None,
+                "details": details, "evidence": evidence}
     category = _fixed_miss_category(max_gain)
     shortfall = round(30 - max_gain, 2) if isinstance(max_gain, (int, float)) else None
     market = _benchmark_context(root, horizon)
@@ -786,6 +807,11 @@ def _buy_episode_roots(observations: list[dict], max_gap_days: int) -> list[dict
             isinstance(terminal_days, (int, float)) and terminal_days < 1095
             and not full_three_years
         )
+        # The primary +30%-within-one-year test can already be a concluded miss
+        # (365+ days observed, never reached) while the broader 3-year window is
+        # still open. That is a different situation from genuinely too little
+        # time having passed, and must not be labeled "not enough time".
+        missed_first_year = isinstance(observed_days, (int, float)) and observed_days >= 365
         fixed_status = (
             "within_one_year" if isinstance(days_to_30, (int, float)) and days_to_30 <= 365 else
             "during_year_two" if isinstance(days_to_30, (int, float)) and days_to_30 <= 730 else
@@ -794,6 +820,7 @@ def _buy_episode_roots(observations: list[dict], max_gap_days: int) -> list[dict
             "never_within_three_years" if full_three_years else
             "closed_early_failure" if ended_before_three_years and terminal_policy["counts_as_failure"] else
             "closed_early_excluded" if ended_before_three_years else
+            "missed_within_one_year_tracking" if missed_first_year else
             "still_waiting"
         )
         entry_price = (float(root["entry_price"])
@@ -1002,7 +1029,8 @@ def summarize_buy_return_achievement(
                 key: sum(row.get("fixed_30_status") == key for row in details)
                 for key in ("within_one_year", "during_year_two", "during_year_three",
                             "after_three_years", "never_within_three_years",
-                            "closed_early_failure", "closed_early_excluded", "still_waiting")
+                            "closed_early_failure", "closed_early_excluded",
+                            "missed_within_one_year_tracking", "still_waiting")
             },
             "fixed_30_miss_breakdown": {
                 "basis": "Buy episodes with fixed_30_status == never_within_three_years "
