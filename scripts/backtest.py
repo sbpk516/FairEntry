@@ -19,6 +19,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from fairentry.backtest.harness import run, run_rolling
+from fairentry.backtest.failure_research import build_research_queue
 from fairentry.backtest.strategy import load_strategy
 from fairentry.config import load_config
 from fairentry.store import Store
@@ -107,6 +108,13 @@ def _write_json(res, path):
                 encoding="utf-8")
         payload["observations"] = compact
         payload["evidence_delivery"] = {"mode": "per_ticker_lazy", "directory": "data/backtest-evidence"}
+    queue_path = p.parent / "target-failure-research-queue.json"
+    queue = build_research_queue(payload, queue_path=queue_path)
+    payload["failure_research_queue"] = {
+        **queue["summary"],
+        "path": f"data/{queue_path.name}",
+        "policy": queue["policy"],
+    }
     p.write_text(json.dumps(payload, separators=(",", ":"), ensure_ascii=False), encoding="utf-8")
 
 

@@ -1,0 +1,13 @@
+{
+  "findings": [
+    {
+      "episode_key": "XYZ:2024-01-15",
+      "ticker": "XYZ",
+      "code": "growth_below_expectations",
+      "category": "growth",
+      "reason": "One concise, source-supported explanation of why the stock missed the fixed +30% one-year hurdle.",
+      "sources": ["https://www.sec.gov/example-authoritative-filing"],
+      "researched_at": "2026-08-21"
+    }
+  ]
+}

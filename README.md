@@ -29,6 +29,22 @@ cd web && python -m http.server 8795   # open http://localhost:8795
 # portfolio tracker: http://localhost:8795/portfolio.html
 ```
 
+Every JSON backtest build also writes
+`web/data/target-failure-research-queue.json`. It contains only completed Buy
+episodes that failed the fixed +30% one-year test and do not yet have saved
+research. Existing entries in `config/target_failure_research.json` are never
+overwritten. After reviewing authoritative sources, copy the example findings
+file, fill it in, and append the verified findings:
+
+```bash
+python scripts/failure_research.py queue --backtest web/data/backtest.json
+python scripts/failure_research.py apply --findings path/to/verified-findings.json
+python scripts/backtest.py --db data/backtest.db --rolling --json-out web/data/backtest.json
+```
+
+Findings require a concise reason and at least one HTTPS source. They are
+qualitative context only and never change the score or historical result.
+
 ## How it works
 
 ```
