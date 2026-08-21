@@ -940,10 +940,10 @@ def _buy_episode_roots(observations: list[dict], max_gap_days: int) -> list[dict
             practical_summary["result_reason"] = _practical_goal_reason(
                 practical_summary, terminal
             )
-        target_failed = (
-            fixed_status in {"never_within_three_years", "closed_early_failure"}
-            or bool(practical_summary and practical_summary.get("status") == "expired")
-        )
+        # The Reasons column contract is the fixed +30% / one-year result only.
+        # Late catch-ups still failed that promise; Practical Target outcomes do
+        # not populate this field. Successful, excluded and active rows stay blank.
+        target_failed = fixed_evaluation.get("result") == "failure"
         failure_reasons = _target_failure_reasons(root) if target_failed else []
         root["episode"] = {
             "issuer_key": root.get("issuer_key"),

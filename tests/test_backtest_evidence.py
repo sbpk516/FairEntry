@@ -618,3 +618,25 @@ def test_researched_failure_reason_overrides_inferred_proxy_for_known_ticker():
     assert reasons[0]["evidence_status"] == "researched"
     assert "inventory digestion" in reasons[0]["phrase"]
     assert reasons[0]["sources"]
+
+
+def test_one_year_miss_gets_reason_even_when_target_is_reached_late():
+    observations = [{
+        "ticker": "CSCO", "company": "Cisco", "issuer_key": "CSCO",
+        "entry_date": "2023-01-01", "entry_price": 100, "verdict": "Buy",
+        "strategy_key": "quality_growth", "categories": [],
+        "return_milestones": {
+            "first_hit_days": {"30": 500}, "last_observed_days": 1200,
+            "terminal_days": None,
+            "max_return_pct_by_horizon": {"365": 10, "1095": 35},
+            "max_drawdown_pct_by_horizon": {"365": -8, "1095": -8},
+            "max_drawdown_before_first_hit_pct": {"30": -8},
+        },
+        "outcome": {"targets": {}, "horizons": {}},
+    }]
+    episode = summarize_buy_return_achievement(
+        observations, 30, thresholds=(30,), horizons=(365,)
+    )["episode_details"][0]
+    assert episode["fixed_30_status"] == "during_year_two"
+    assert episode["fixed_30_evaluation"]["result"] == "failure"
+    assert episode["target_failure_reasons"][0]["evidence_status"] == "researched"
