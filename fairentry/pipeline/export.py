@@ -435,6 +435,20 @@ def _map(rec, strategies, strategy_key):
             "Qualitative and human evidence is information only. It does not change "
             "the tested score, verdict, or deterministic breakout label."
         )
+    qualitative_by_category = {category: [] for category in (
+        "quality", "survival", "growth", "valuation", "confirmation", "catalysts", "risk"
+    )}
+    for factor in ((breakout or {}).get("factors") or []):
+        if factor.get("quantifiable") is False:
+            category = factor.get("category")
+            if category in qualitative_by_category:
+                qualitative_by_category[category].append(factor)
+    rec["qualitative_context"] = {
+        "score_effect": 0,
+        "verdict_effect": "none",
+        "policy": "Information only; displayed inside the existing category and excluded from scoring.",
+        "categories": qualitative_by_category,
+    }
     display_verdict = ("Quant Buy" if rec["verdict"] == "Buy" and not th else rec["verdict"])
     rec["display_verdict"] = display_verdict
     # Growth-entry plan (for Quality Growth names): fair-price cases + entry zone
@@ -523,6 +537,7 @@ def _map(rec, strategies, strategy_key):
         "target_plan": rec.get("_target_plan"),
         "demand_momentum": rec.get("_demand_momentum"),
         "breakout_setup": breakout,
+        "qualitative_context": rec["qualitative_context"],
         "vetoes": [v["reason"] for v in rec["vetoes"]],
         "context_warnings": rec.get("context_warnings", []),
         "soft": [g["reason"] for g in rec["soft_gates"]],

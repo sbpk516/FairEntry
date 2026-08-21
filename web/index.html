@@ -879,17 +879,27 @@ function metricHTML(it){ var missing=it.score==null, shown=missing?'n/a':it.scor
 function itemHTML(it){ var dl=decisionLabel(it); return '<div class="item" data-exp><button class="row"><span class="chev"></span><span class="rname">'+esc(it.label)+' <span class="lab '+dl[1]+'">'+esc(dl[0])+'</span>'+
   '</span><span class="rmeta">'+(it.decision_status==='tested'||!it.decision_status?'<span class="wchip tnum">w '+it.weight+'</span>':'')+pctbar(it.score)+'<span class="rscore tnum" style="color:'+(it.score==null?'var(--ink-faint)':HUET(it.score))+'">'+(it.score==null?'n/a':it.score)+'</span></span></button>'+
   '<div class="detail"><div class="detail-in">'+metricHTML(it)+'</div></div></div>'; }
+function qualitativeItemsFor(s,category){
+  var grouped=((s.qualitative_context||{}).categories||{}); if(grouped[category])return grouped[category];
+  return (((s.breakout_setup||{}).factors)||[]).filter(function(f){return f.quantifiable===false&&f.category===category;});
+}
+function qualitativeItemHTML(f){
+  var direction=f.direction||'uncertain',tone=direction==='positive'?'good':direction==='negative'?'bad':direction==='mixed'?'warn':'info';
+  return '<div class="item" data-exp><button class="row"><span class="chev"></span><span class="rname">'+esc(f.label||f.id||'Qualitative context')+' <span class="lab info">Not scored</span></span><span class="rmeta"><span class="lab '+tone+'">'+esc(direction)+'</span> <span class="lab info">'+esc((f.impact||'unknown')+' impact')+'</span></span></button>'+
+    '<div class="detail"><div class="detail-in"><div class="metricbox"><div class="ea"><span class="k">Direction</span><span class="v">'+esc(direction)+'</span><span class="k">Impact</span><span class="v">'+esc(f.impact||'unknown')+'</span><span class="k">Confidence</span><span class="v">'+esc(f.confidence||'low')+'</span><span class="k">Evidence</span><span class="v">'+esc(f.evidence||f.actual||'No specific evidence supplied.')+'</span><span class="k">Attention / response</span><span class="v">'+esc((f.attention_level||'note').replaceAll('_',' ')+' · '+(f.recommended_response||'Note only'))+'</span><span class="k">Timing and exposure</span><span class="v">'+esc((f.time_horizon||'unknown')+' horizon · '+(f.event_status||'unknown')+' · affects '+(f.affected_area||'unknown'))+'</span><span class="k">Decision effect</span><span class="v">Information only · 0 points · no verdict effect</span></div><div class="scoreline"><span class="why">source '+esc(f.source||'-')+(f.observed_at?' · observed '+esc(f.observed_at):'')+'</span></div></div></div></div></div>';
+}
 // category: shows the weighted-average arithmetic, then each item
-function catHTML(c){
+function catHTML(c,s){
   var scored=c.items.filter(function(i){return i.score!=null&&(i.decision_status||'tested')==='tested';});
   var terms=scored.map(function(i){return i.weight+'x'+i.score;}).join(' + ')||'no available items';
   var wsum=scored.reduce(function(a,i){return a+i.weight;},0);
   var num=scored.reduce(function(a,i){return a+i.weight*i.score;},0);
   var math='<div class="mathbox" style="margin:12px 14px"><div class="mformula"><b>'+(c.score==null?'n/a':c.score)+'</b> = ('+terms+') / '+wsum+
     (wsum?' = '+(num/wsum).toFixed(1):'')+'  <span style="color:var(--ink-faint)"> - '+scored.length+' tested factor(s) used; testing and information-only factors are excluded</span></div></div>';
+  var qualitative=qualitativeItemsFor(s,c.id),qualitativeHTML='<div class="mathbox" style="margin:12px 14px"><div class="mformula"><b>Non-quantifiable context · not scored</b><br><span style="color:var(--ink-faint)">'+(qualitative.length?'Direction, impact and confidence guide attention only; these items contribute 0 points.':'No sourced non-quantifiable item is currently recorded in this category.')+'</span></div></div>'+qualitative.map(qualitativeItemHTML).join('');
   return '<div class="cat" data-exp><button class="row"><span class="chev"></span><span class="rname">'+esc(c.label)+
     '</span><span class="rmeta"><span class="wchip tnum">weight '+S.weights[c.id]+'</span>'+pctbar(c.score)+'<span class="rscore tnum" style="color:'+(c.score==null?'var(--ink-faint)':HUET(c.score))+'">'+(c.score==null?'n/a':c.score)+'</span></span></button>'+
-    '<div class="detail"><div class="detail-in">'+math+c.items.map(itemHTML).join('')+'</div></div></div>'; }
+    '<div class="detail"><div class="detail-in">'+math+c.items.map(itemHTML).join('')+qualitativeHTML+'</div></div></div>'; }
 // overall: the category-contribution table that produces the base score
 function scoreMathHTML(s,c){
   if(!settingsChanged() && s.decision_trace){ var d=s.decision_trace, cats=s.categories||s.cats;
@@ -1060,7 +1070,7 @@ function setupHTML(s){
   var counts=b.counts||{}, strategy=b.strategy==='quality_growth'?'Quality Growth':'Deep Value';
   var statusLabel={satisfied:'Satisfied',partial:'Partial',failed:'Failed',contradicted:'Opposing',unknown:'Unknown'};
   var groups={market_confirmation:'Market confirmation',business_support:'Strategy-specific business support',human_and_flow:'Human / flow evidence',human_and_catalyst:'Qualitative, management & catalysts'};
-  var by={}; (b.factors||[]).forEach(function(f){(by[f.group]||(by[f.group]=[])).push(f);});
+  var by={}; (b.factors||[]).filter(function(f){return f.quantifiable!==false;}).forEach(function(f){(by[f.group]||(by[f.group]=[])).push(f);});
   var sections=Object.keys(groups).map(function(g){ if(!by[g]||!by[g].length)return '';
     return '<div class="cat" data-exp><button class="row"><span class="chev"></span><span class="rname">'+esc(groups[g])+'</span><span class="rmeta">'+by[g].filter(function(f){return f.status==='satisfied';}).length+' / '+by[g].length+' supportive</span></button><div class="detail"><div class="detail-in">'+
       by[g].map(function(f){var overlay=f.quantifiable===false?'<span class="lab info">'+esc((f.direction||'uncertain')+' · '+(f.impact||'unknown')+' impact · '+(f.confidence||'low')+' confidence')+'</span> ':'';return '<div class="item" data-exp><button class="row"><span class="chev"></span><span class="rname">'+esc(f.label)+'</span><span class="rmeta">'+overlay+'<span class="lab '+setupToneClass(f.status==='satisfied'?'improving':f.status==='contradicted'?'failed':f.status)+'">'+esc(statusLabel[f.status]||f.status)+'</span></span></button>'+
@@ -1181,7 +1191,7 @@ function openDetail(tk){ var s=STOCKS.find(function(x){return x.ticker===tk;}); 
     [['Action',verdictAction(c)],['Position size',s.action.size],['Add trigger',s.action.add],['Invalidation / stop',s.action.stop],['Entry logic',s.action.entry],['Review',s.action.review]]
     .map(function(a){return '<div class="acard"><div class="l">'+a[0]+'</div><div class="v">'+esc(a[1])+'</div></div>';}).join('')+'</div>';
   var mathSec='<div class="sub-h">How the '+Math.round(c.prelim)+' was computed</div>'+scoreMathHTML(s,c);
-  var scorecard='<div class="sub-h">Scorecard - click a category for its arithmetic, then any item for expected vs actual, formula, source and date</div>'+(s.categories||s.cats).map(catHTML).join('');
+  var scorecard='<div class="sub-h">Scorecard - each existing category shows scored quantitative factors and separate non-quantifiable context</div>'+(s.categories||s.cats).map(function(cat){return catHTML(cat,s);}).join('');
   $('#d-body').innerHTML=hero+businessHTML(s)+growthQualificationHTML(s)+debtDirectionHTML(s)+mathSec+scorecard+demandMomentumHTML(s)+setupHTML(s)+targetPlanHTML(s)+valHTML(s)+growthEntryHTML(s)+contextHTML(s)+situationHTML(s)+newsHTML(s)+watchHTML(s)+action;
   openDrawer('#detail');
 }

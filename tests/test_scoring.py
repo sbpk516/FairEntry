@@ -253,6 +253,15 @@ def test_named_policy_and_expansion_evidence_keep_their_own_rows():
     assert factors["policy_impact"]["status"] == "satisfied"
     assert factors["investment_expansion"]["source"] == "Company filing"
     assert factors["investment_expansion"]["status"] == "partial"
+    context = mapped["qualitative_context"]
+    assert set(context["categories"]) == {
+        "quality", "survival", "growth", "valuation", "confirmation", "catalysts", "risk"
+    }
+    assert context["score_effect"] == 0
+    assert context["verdict_effect"] == "none"
+    assert {row["id"] for row in context["categories"]["catalysts"]} >= {
+        "policy_impact", "investment_expansion"
+    }
 
 
 def test_score_preserves_country():
