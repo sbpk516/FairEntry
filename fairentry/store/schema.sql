@@ -95,6 +95,17 @@ CREATE TABLE IF NOT EXISTS paper_portfolio (
   notes       TEXT
 );
 
+-- One-shot delivery ledger.  Event keys include the recommendation/position
+-- identity so scheduled refreshes do not resend the same alert.
+CREATE TABLE IF NOT EXISTS notification_events (
+  event_type  TEXT NOT NULL,
+  ticker      TEXT NOT NULL,
+  strategy    TEXT NOT NULL DEFAULT '',
+  event_key   TEXT NOT NULL,
+  created_at  TEXT NOT NULL,
+  PRIMARY KEY (event_type, ticker, strategy, event_key)
+);
+
 -- prospective backtest ledger: one signal snapshot per ticker/strategy/day.
 -- Later backtests can join this to future metrics_history price snapshots.
 CREATE TABLE IF NOT EXISTS signal_events (

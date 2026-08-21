@@ -62,13 +62,19 @@ def main():
                                      "opened": track["opened"], "closed": track["closed"],
                                      "signals": track.get("signals", 0)}
         path = write_board(board)
-        from fairentry.alerts import email_wma_alerts
+        from fairentry.alerts import email_trading_alerts, email_wma_alerts
         wma_alerts = board["meta"].get("wma_alerts", [])
         try:
             emailed = email_wma_alerts(wma_alerts)
         except Exception as exc:
             emailed = False
             print(f"200 WMA email failed: {exc}")
+        try:
+            trading_emailed = email_trading_alerts(track.get("new_buys", []),
+                                                   track.get("near_30", []))
+        except Exception as exc:
+            trading_emailed = {"new_buys": False, "near_30": False}
+            print(f"Trading alert email failed: {exc}")
     if board["meta"].get("reasoning"):
         print("Reasoning:", board["meta"]["reasoning"])
     print(f"Tracking: {track['tracked']} tracked, {track.get('signals', 0)} signal snapshots, "
@@ -78,6 +84,10 @@ def main():
         print(f"  ALERT {a['ticker']} ({a['strategy']}): {a['from']} -> {a['to']} "
               f"(score {a['score_from']} -> {a['score_to']})")
     print(f"200 WMA alerts: {len(wma_alerts)}" + (" (email sent)" if emailed else ""))
+    print(f"New Buy alerts: {len(track.get('new_buys', []))}" +
+          (" (email sent)" if trading_emailed["new_buys"] else ""))
+    print(f"Near +30% alerts: {len(track.get('near_30', []))}" +
+          (" (email sent)" if trading_emailed["near_30"] else ""))
     from collections import Counter
     v = Counter(s["verdict"] if "verdict" in s else "" for s in [])  # verdict is recomputed in UI
     print(f"Exported {board['meta']['count']} stocks -> {path}")

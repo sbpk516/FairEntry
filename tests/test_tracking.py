@@ -34,6 +34,32 @@ def test_record_writes_one_signal_per_ticker_strategy_day(tmp_path):
         assert rows[0]["price"] == 104
 
 
+def test_record_emits_new_buy_and_near_30_only_once(tmp_path):
+    with Store(tmp_path / "test.db") as store:
+        store.set_score_result("TEST", "quality_growth", 74, 76, "Buy", {})
+        first = record(store, _board(price=100, verdict="Buy", score=76))
+        assert [row["ticker"] for row in first["new_buys"]] == ["TEST"]
+        assert first["near_30"] == []
+
+        second = record(store, _board(price=125, verdict="Buy", score=76))
+        assert second["new_buys"] == []
+        assert second["near_30"][0]["gain_pct"] == 25.0
+        assert second["near_30"][0]["target_price"] == 130.0
+
+        third = record(store, _board(price=128, verdict="Buy", score=76))
+        assert third["new_buys"] == []
+        assert third["near_30"] == []
+
+
+def test_record_emits_new_buy_when_verdict_improves(tmp_path):
+    with Store(tmp_path / "test.db") as store:
+        store.set_score_result("TEST", "quality_growth", 60, 60, "Watch", {})
+        assert record(store, _board(verdict="Watch", score=60))["new_buys"] == []
+        store.set_score_result("TEST", "quality_growth", 74, 76, "Buy", {})
+        result = record(store, _board(verdict="Buy", score=76))
+        assert result["new_buys"][0]["from"] == "Watch"
+
+
 def test_backtest_uses_signal_events(tmp_path):
     with Store(tmp_path / "test.db") as store:
         store.set_metric("TEST", "price", 100, "test", fetched_at="2026-01-01T00:00:00+00:00")

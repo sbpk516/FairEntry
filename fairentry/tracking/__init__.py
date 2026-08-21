@@ -22,7 +22,8 @@ def _now():
 def record(store, board: dict) -> dict:
     now = _now()
     signal_date = now[:10]
-    alerts, opened, closed, signals = [], 0, 0, 0
+    alerts, new_buys, near_30 = [], [], []
+    opened, closed, signals = 0, 0, 0
     price_by = {s["ticker"]: s.get("price") for s in board.get("stocks", [])}
     action_by = {s["ticker"]: s.get("action", {}).get("action", "") for s in board.get("stocks", [])}
     board_by = {s["ticker"]: s for s in board.get("stocks", [])}
@@ -58,6 +59,17 @@ def record(store, board: dict) -> dict:
                                    "from": prev["verdict"], "to": verdict,
                                    "score_from": round(prev["score"] or 0, 1),
                                    "score_to": round(score or 0, 1)})
+                if verdict == "Buy" and prev["verdict"] != "Buy":
+                    event_key = f"{prev['verdict']}->{verdict}:{signal_date}"
+                    inserted = store.con.execute(
+                        "INSERT OR IGNORE INTO notification_events"
+                        "(event_type,ticker,strategy,event_key,created_at) VALUES(?,?,?,?,?)",
+                        ("new_buy", tkr, strat, event_key, now)).rowcount
+                    if inserted:
+                        new_buys.append({"ticker": tkr, "company": stock.get("company"),
+                                         "strategy": strat, "price": price_by.get(tkr),
+                                         "score": round(score or 0, 1), "from": prev["verdict"],
+                                         "to": verdict})
                 store.con.execute(
                     "UPDATE recommendations SET verdict=?, action=?, score=?, last_seen=? "
                     "WHERE ticker=? AND strategy=?",
@@ -67,6 +79,18 @@ def record(store, board: dict) -> dict:
                     "INSERT INTO recommendations(ticker,strategy,verdict,action,score,first_seen,last_seen) "
                     "VALUES(?,?,?,?,?,?,?)",
                     (tkr, strat, verdict, action_by.get(tkr, ""), score, now, now))
+                # A newly discovered stock is a new candidate only when it first
+                # enters the tracked universe as Buy.
+                if verdict == "Buy":
+                    inserted = store.con.execute(
+                        "INSERT OR IGNORE INTO notification_events"
+                        "(event_type,ticker,strategy,event_key,created_at) VALUES(?,?,?,?,?)",
+                        ("new_buy", tkr, strat, f"first:{signal_date}", now)).rowcount
+                    if inserted:
+                        new_buys.append({"ticker": tkr, "company": stock.get("company"),
+                                         "strategy": strat, "price": price_by.get(tkr),
+                                         "score": round(score or 0, 1), "from": None,
+                                         "to": verdict})
 
             # paper portfolio: open on first Buy, close on Avoid
             held = store.con.execute(
@@ -81,9 +105,34 @@ def record(store, board: dict) -> dict:
                     "UPDATE paper_portfolio SET status=?, notes=? WHERE ticker=?",
                     ("closed", "closed on Avoid", tkr))
                 closed += 1
+
+            # +25% is the defined "close to +30%" threshold.  Notify once per
+            # paper-position entry, including a jump that has already crossed 30%.
+            position = store.con.execute(
+                "SELECT entered_at,entry_price,status FROM paper_portfolio WHERE ticker=?",
+                (tkr,)).fetchone()
+            price = price_by.get(tkr)
+            if (position and position["status"] == "open"
+                    and isinstance(position["entry_price"], (int, float))
+                    and position["entry_price"] > 0 and isinstance(price, (int, float))):
+                gain = (price / position["entry_price"] - 1) * 100
+                if gain >= 25:
+                    event_key = position["entered_at"] or "unknown-entry"
+                    inserted = store.con.execute(
+                        "INSERT OR IGNORE INTO notification_events"
+                        "(event_type,ticker,strategy,event_key,created_at) VALUES(?,?,?,?,?)",
+                        ("near_30_target", tkr, strat, event_key, now)).rowcount
+                    if inserted:
+                        near_30.append({"ticker": tkr, "company": stock.get("company"),
+                                        "strategy": strat, "price": round(price, 2),
+                                        "entry_price": round(position["entry_price"], 2),
+                                        "gain_pct": round(gain, 1),
+                                        "target_price": round(position["entry_price"] * 1.30, 2)})
             break   # one strategy row per ticker is enough for tracking
     store.commit()
-    return {"tracked": len(price_by), "signals": signals, "alerts": alerts, "opened": opened, "closed": closed}
+    return {"tracked": len(price_by), "signals": signals, "alerts": alerts,
+            "new_buys": new_buys, "near_30": near_30,
+            "opened": opened, "closed": closed}
 
 
 def open_positions(store) -> list[dict]:

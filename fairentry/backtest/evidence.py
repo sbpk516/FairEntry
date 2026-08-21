@@ -1036,6 +1036,7 @@ def _return_attainment_view(
                 "hit_rate_pct": round(hits / total * 100, 1) if total else None,
                 "hit_rate_ci90": _wilson_ci(hits, total),
                 "median_days_to_hit": round(statistics.median(days), 1) if days else None,
+                "average_days_to_hit": round(statistics.mean(days), 1) if days else None,
                 "p25_days_to_hit": round(_percentile(days, .25), 1) if days else None,
                 "p75_days_to_hit": round(_percentile(days, .75), 1) if days else None,
                 "unique_issuers": len({
@@ -1063,6 +1064,9 @@ def summarize_buy_return_achievement(
     fixed_one_year = _return_attainment_view(
         episodes, (30,), (365,)
     )["matrix"]["30"]["365"]
+    fixed_25_one_year = _return_attainment_view(
+        episodes, (25,), (365,)
+    )["matrix"]["25"]["365"]
     practical_rows = [row["practical_target"] for row in details
                       if row.get("practical_target")
                       and row["practical_target"].get("status")
@@ -1113,6 +1117,7 @@ def summarize_buy_return_achievement(
             "signals": _return_attainment_view(buys, thresholds, horizons),
         },
         "primary_success_contract": {
+            "fixed_25_within_one_year": fixed_25_one_year,
             "fixed_30_within_one_year": fixed_one_year,
             "fixed_30_timing": {
                 key: sum(row.get("fixed_30_status") == key for row in details)
