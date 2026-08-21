@@ -10,7 +10,7 @@ from . import cache
 from .provider import get_provider
 from ..adapters.finnhub import fetch_news
 
-PROMPT_VERSION = "v6"   # v6 adds source-linked policy and investment evidence
+PROMPT_VERSION = "v7"   # v7 adds a non-scoring impact/confidence attention overlay
 
 _SYS = ("You are a disciplined value+growth equity analyst. Think like a careful "
         "investor, not a hype machine. A government policy, contract, or expansion is "
@@ -30,16 +30,24 @@ _WATCHLIST_SCHEMA = (
     "why (short: what tracking it tells you about THIS name's thesis specifically)})")
 
 _BREAKOUT_EVIDENCE_SCHEMA = (
-    "breakout_evidence (array of up to 5 objects. Always include one object with id "
+    "breakout_evidence (array of up to 8 objects. Always include one object with id "
     "management_execution and group management, one with id catalyst_visibility and group "
     "catalyst, one with id policy_impact and group catalyst, and one with id "
-    "investment_expansion and group management; use status unknown when supplied facts/"
+    "investment_expansion and group management, one with id earnings_review and group "
+    "earnings, one with id operational_disruption and group operations, and one with id "
+    "external_events and group external; use status unknown when supplied facts/"
     "headlines do not support a decision. Policy evidence must name the specific government "
     "action and who announced it. Investment evidence must name the expansion, contract, "
     "capacity, or acquisition and explain the measurable business path. Each object: "
     "{id (short stable snake_case), "
-    "label, group (one of: catalyst, management, investor_behavior, contradiction), "
-    "status (one of: satisfied, partial, failed, contradicted, unknown), evidence "
+    "label, group (one of: catalyst, management, earnings, operations, external, "
+    "investor_behavior, contradiction), "
+    "status (one of: satisfied, partial, failed, contradicted, unknown), "
+    "direction (one of: positive, negative, mixed, uncertain), impact (one of: low, "
+    "medium, high, critical), confidence (one of: low, medium, high), time_horizon "
+    "(short string), event_status (one of: rumor, proposed, announced, confirmed, "
+    "occurring, unknown), affected_area (one of: revenue, margins, cash, operations, "
+    "valuation, financing, sector, unknown), recommended_response (short string), evidence "
     "(specific metric, event, or headline supplied in this prompt; never invent evidence), "
     "source (metric name or supplied headline source), date (supplied date or '')}), ")
 

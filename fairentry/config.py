@@ -30,6 +30,10 @@ COMPUTED_METRICS = {
     "breakout_price_score", "breakout_volume_score", "relative_strength_score",
     "trend_regime_score", "margin_trend_score",  # breakout_v2 trace metrics
     "growth_qualified",  # stable+deeply undervalued OR meaningfully improving
+    # Structured information-only observations. They are populated by sourced
+    # research, never fetched as numeric scoring fields.
+    "earnings_transcript_context", "government_policy_context",
+    "operational_disruption_context", "external_event_context",
 }
 
 VALID_CADENCES = {"twice_daily", "daily", "weekly", "filing_based", "event_based"}

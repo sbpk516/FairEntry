@@ -585,3 +585,26 @@ def test_quality_exposes_current_proxy():
                      "target_price": {"value": 20, "source": "seed_const", "fetched_at": "2024-01-01"}})
     assert q["counts"]["current_proxy"] == 1
     assert any(f["field"] == "target_price" and f["quality"] == "current_proxy" for f in q["fields"])
+
+
+def test_target_failure_reasons_use_controlled_evidence_backed_phrases():
+    from fairentry.backtest.evidence import _target_failure_reasons
+
+    failed = {
+        "categories": [
+            {"id": "valuation", "score": 25}, {"id": "growth", "score": 30},
+            {"id": "survival", "score": 80},
+        ],
+        "outcome": {"targets": {"practical": {"upside_pct": 85}}, "horizons": {}},
+    }
+    reasons = _target_failure_reasons(failed)
+    codes = {row["code"] for row in reasons}
+    assert {"valuation_too_high", "growth_below_expectations", "target_overly_optimistic"} <= codes
+    assert all(row["phrase"] and row["category"] for row in reasons)
+
+
+def test_target_failure_reason_is_honest_when_cause_is_not_proven():
+    from fairentry.backtest.evidence import _target_failure_reasons
+
+    reasons = _target_failure_reasons({"categories": [], "outcome": {"horizons": {}}})
+    assert [row["code"] for row in reasons] == ["cause_not_verified"]

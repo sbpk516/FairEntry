@@ -17,6 +17,7 @@ from ..scoring.engine import sector_medians, score_ticker
 from ..scoring.targets import build_target_plan
 from ..screeners import REGISTRY as SCREENERS
 from ..backtest.universe import deduplicate_issuers
+from ..qualitative import normalize_observation
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 OUT = ROOT / "web" / "data" / "board.json"
@@ -355,6 +356,12 @@ def _map(rec, strategies, strategy_key):
              "a specific government action from a named source with a direct path to affect this company or sector"),
             ("investment_expansion", "Investment and Expansion", "management",
              "a dated expansion, contract, capacity investment, or acquisition with a measurable path to future revenue or profit"),
+            ("earnings_review", "Earnings, Guidance and Transcript Review", "earnings",
+             "dated results and guidance compared with expectations and management's prior commitments; unknown when no transcript evidence is supplied"),
+            ("operational_disruption", "Operational Disruption", "operations",
+             "specific shutdown, shortage, regulatory or technology-transition evidence with an identified business effect"),
+            ("external_events", "External Events", "external",
+             "specific company exposure to a natural disaster, war, pandemic or geopolitical event"),
         )
 
         reserved_ids = {row[0] for row in standard_qualitative}
@@ -413,6 +420,11 @@ def _map(rec, strategies, strategy_key):
                 "observed_at": ev.get("date", ""),
                 "calculation_version": "thesis_v6",
                 "modifier_effect": "Decision effect: none",
+                **normalize_observation(
+                    ev, category=("risk" if subgroup in {"contradiction", "operations", "external"}
+                                  else "growth" if subgroup == "earnings" else "catalysts"),
+                    subcategory=subgroup,
+                ),
             })
         breakout["factors"] = (breakout.get("factors") or []) + qualitative
         statuses = ("satisfied", "partial", "failed", "contradicted", "unknown")

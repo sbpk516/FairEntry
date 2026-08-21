@@ -558,6 +558,66 @@ _FIXED_MISS_CATEGORIES = (
     (30, "close_but_short_of_target", "Came close, but never closed at or above the target"),
 )
 
+# Controlled vocabulary for causal research.  A phrase is attached to a failed
+# target only when this replay contains supporting evidence; event-driven causes
+# remain available as research codes but are never guessed from price action.
+TARGET_FAILURE_REASON_CATALOG = (
+    {"code": "growth_below_expectations", "phrase": "Growth slowed relative to expectations", "category": "growth"},
+    {"code": "earnings_or_guidance_disappointment", "phrase": "Earnings or guidance disappointed", "category": "growth"},
+    {"code": "valuation_too_high", "phrase": "Valuation was previously too high", "category": "valuation"},
+    {"code": "dilution_debt_or_holder_selling", "phrase": "Share dilution, debt, or major-holder selling created pressure", "category": "survival"},
+    {"code": "operational_or_technology_disruption", "phrase": "Shutdown, component shortage, regulatory issue, or technology transition", "category": "risk"},
+    {"code": "insufficient_cash_runway", "phrase": "Cash was insufficient relative to burn, liabilities, or required investment", "category": "survival"},
+    {"code": "sector_multiple_compression", "phrase": "Sector-wide change reduced valuation multiples", "category": "valuation"},
+    {"code": "adverse_government_policy", "phrase": "Adverse government policy", "category": "catalysts"},
+    {"code": "external_event", "phrase": "Natural disaster, war, pandemic, or other external event", "category": "risk"},
+    {"code": "target_overly_optimistic", "phrase": "Target price was overly optimistic", "category": "valuation"},
+    {"code": "company_specific_underperformance", "phrase": "Company-specific underperformance versus the benchmark", "category": "confirmation"},
+    {"code": "cause_not_verified", "phrase": "Cause not verified from available point-in-time evidence", "category": "risk"},
+)
+
+
+def _category_score(row: dict, category_id: str):
+    for category in row.get("categories") or []:
+        if category.get("id") == category_id:
+            value = category.get("score")
+            return value if isinstance(value, (int, float)) else None
+    return None
+
+
+def _target_failure_reasons(row: dict, *, horizon_days: int = 1095) -> list[dict]:
+    """Assign only evidence-supported phrases to a confirmed failed target."""
+    catalog = {item["code"]: item for item in TARGET_FAILURE_REASON_CATALOG}
+    found = []
+
+    def add(code, evidence):
+        if code not in {item["code"] for item in found}:
+            found.append({**catalog[code], "evidence": evidence, "evidence_status": "observed"})
+
+    valuation = _category_score(row, "valuation")
+    growth = _category_score(row, "growth")
+    survival = _category_score(row, "survival")
+    if isinstance(valuation, (int, float)) and valuation < 40:
+        add("valuation_too_high", f"Frozen Valuation category score was {valuation:.1f}/100.")
+    if isinstance(growth, (int, float)) and growth < 40:
+        add("growth_below_expectations", f"Frozen Growth category score was {growth:.1f}/100.")
+    if isinstance(survival, (int, float)) and survival < 40:
+        add("dilution_debt_or_holder_selling", f"Frozen Financial Survival category score was {survival:.1f}/100.")
+    market = _benchmark_context(row, horizon_days)
+    if market:
+        benchmark = market.get("benchmark_return_pct")
+        alpha = market.get("alpha_pct")
+        if isinstance(benchmark, (int, float)) and benchmark <= -10:
+            add("sector_multiple_compression", f"Broad benchmark return was {benchmark:.1f}% over the same period; sector attribution still needs review.")
+        if isinstance(alpha, (int, float)) and alpha <= -10:
+            add("company_specific_underperformance", f"The stock trailed the benchmark by {abs(alpha):.1f} percentage points.")
+    practical = ((row.get("outcome") or {}).get("targets") or {}).get("practical") or {}
+    if isinstance(practical.get("upside_pct"), (int, float)) and practical["upside_pct"] > 70:
+        add("target_overly_optimistic", f"The frozen target required a {practical['upside_pct']:.1f}% gain.")
+    if not found:
+        add("cause_not_verified", "The replay proves the miss, but does not contain reliable causal event data.")
+    return found
+
 
 def _fixed_miss_category(max_gain: float | None) -> tuple[str, str] | None:
     """Bucket a confirmed miss by how far the price actually got, so misses
@@ -857,6 +917,11 @@ def _buy_episode_roots(observations: list[dict], max_gap_days: int) -> list[dict
             practical_summary["result_reason"] = _practical_goal_reason(
                 practical_summary, terminal
             )
+        target_failed = (
+            fixed_status in {"never_within_three_years", "closed_early_failure"}
+            or bool(practical_summary and practical_summary.get("status") == "expired")
+        )
+        failure_reasons = _target_failure_reasons(root) if target_failed else []
         root["episode"] = {
             "issuer_key": root.get("issuer_key"),
             "ticker": root.get("ticker"),
@@ -887,6 +952,7 @@ def _buy_episode_roots(observations: list[dict], max_gap_days: int) -> list[dict
             ),
             "fixed_30_reason": fixed_reason,
             "fixed_30_miss_category": fixed_reason.get("category"),
+            "target_failure_reasons": failure_reasons,
             "fixed_30_evaluation": fixed_evaluation,
             "practical_target": practical_summary,
             "terminal_event": terminal,
@@ -1039,6 +1105,18 @@ def summarize_buy_return_achievement(
                     key: sum(row.get("fixed_30_miss_category") == key for row in details)
                     for key in ("stayed_at_or_below_entry", "modest_gain_short_of_target",
                                 "close_but_short_of_target", "near_target_no_qualifying_close")
+                },
+            },
+            "target_failure_reason_analysis": {
+                "basis": "Controlled reasons appear only on Buy episodes with a confirmed failed fixed or Practical Target. Event causes are never inferred without point-in-time evidence.",
+                "catalog": list(TARGET_FAILURE_REASON_CATALOG),
+                "counts": {
+                    item["code"]: sum(
+                        any(reason.get("code") == item["code"]
+                            for reason in (row.get("target_failure_reasons") or []))
+                        for row in details
+                    )
+                    for item in TARGET_FAILURE_REASON_CATALOG
                 },
             },
             "practical_target_with_compounding_deadline": {
