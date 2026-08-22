@@ -8,12 +8,13 @@ from fairentry.backtest.harness import run
 from fairentry.tracking import record
 
 
-def _board(price=100, verdict="Buy", score=76):
+def _board(price=100, verdict="Buy", score=76, vetoes=None, practical_target=None):
     return {"stocks": [{
         "ticker": "TEST", "company": "Test Co", "sector": "Technology", "country": "USA",
         "price": price, "score": score, "verdict": verdict,
         "strategy": ["growth"], "labels": [["Quality: strong", "good"]],
-        "soft_gates": [], "vetoes": [],
+        "soft_gates": [], "vetoes": vetoes or [],
+        "targets": {"practical": practical_target or {}},
         "action": {"action": "Buy Now"},
     }]}
 
@@ -58,6 +59,32 @@ def test_record_emits_new_buy_when_verdict_improves(tmp_path):
         store.set_score_result("TEST", "quality_growth", 74, 76, "Buy", {})
         result = record(store, _board(verdict="Buy", score=76))
         assert result["new_buys"][0]["from"] == "Watch"
+
+
+def test_record_emits_exit_review_for_downgrade_only_once_per_day(tmp_path):
+    with Store(tmp_path / "test.db") as store:
+        store.set_score_result("TEST", "quality_growth", 74, 76, "Buy", {})
+        record(store, _board())
+        store.set_score_result("TEST", "quality_growth", 68, 68, "Watch", {})
+        result = record(store, _board(verdict="Watch", score=68))
+        reasons = [row["reason"] for row in result["exit_reviews"]]
+        assert any("Verdict changed Buy" in reason for reason in reasons)
+        assert any("Score dropped" in reason for reason in reasons)
+        assert record(store, _board(verdict="Watch", score=68))["exit_reviews"] == []
+
+
+def test_record_emits_target_and_veto_reviews_once_per_position(tmp_path):
+    with Store(tmp_path / "test.db") as store:
+        store.set_score_result("TEST", "quality_growth", 74, 76, "Buy", {})
+        record(store, _board(practical_target={"price": 120}))
+        result = record(store, _board(price=120, vetoes=["accounting_veto"],
+                                      practical_target={"price": 120}))
+        reasons = [row["reason"] for row in result["exit_reviews"]]
+        assert any("hard veto" in reason for reason in reasons)
+        assert any("Practical Target $120.00 was reached" in reason for reason in reasons)
+        repeated = record(store, _board(price=121, vetoes=["accounting_veto"],
+                                        practical_target={"price": 120}))
+        assert repeated["exit_reviews"] == []
 
 
 def test_backtest_uses_signal_events(tmp_path):

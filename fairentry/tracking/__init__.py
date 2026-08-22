@@ -9,6 +9,7 @@ score_results (deterministic verdict — reproducible), writes the recommendatio
 from __future__ import annotations
 
 import json
+import hashlib
 from datetime import datetime, timezone
 
 _RANK = {"Buy": 0, "Watch": 1, "Avoid": 2}
@@ -22,7 +23,7 @@ def _now():
 def record(store, board: dict) -> dict:
     now = _now()
     signal_date = now[:10]
-    alerts, new_buys, near_30 = [], [], []
+    alerts, new_buys, near_30, exit_reviews = [], [], [], []
     opened, closed, signals = 0, 0, 0
     price_by = {s["ticker"]: s.get("price") for s in board.get("stocks", [])}
     action_by = {s["ticker"]: s.get("action", {}).get("action", "") for s in board.get("stocks", [])}
@@ -51,6 +52,7 @@ def record(store, board: dict) -> dict:
             prev = store.con.execute(
                 "SELECT verdict, score FROM recommendations WHERE ticker=? AND strategy=?",
                 (tkr, strat)).fetchone()
+            review_reasons = []
             if prev:
                 worse = _RANK.get(verdict, 1) > _RANK.get(prev["verdict"], 1)
                 dropped = (prev["score"] or 0) - (score or 0) >= _DROP_ALERT
@@ -59,6 +61,12 @@ def record(store, board: dict) -> dict:
                                    "from": prev["verdict"], "to": verdict,
                                    "score_from": round(prev["score"] or 0, 1),
                                    "score_to": round(score or 0, 1)})
+                    if worse:
+                        review_reasons.append({"code": "verdict_worsened",
+                                               "reason": f"Verdict changed {prev['verdict']} → {verdict}"})
+                    if dropped:
+                        review_reasons.append({"code": "score_drop",
+                                               "reason": f"Score dropped {prev['score'] or 0:.1f} → {score or 0:.1f}"})
                 if verdict == "Buy" and prev["verdict"] != "Buy":
                     event_key = f"{prev['verdict']}->{verdict}:{signal_date}"
                     inserted = store.con.execute(
@@ -94,17 +102,55 @@ def record(store, board: dict) -> dict:
 
             # paper portfolio: open on first Buy, close on Avoid
             held = store.con.execute(
-                "SELECT status FROM paper_portfolio WHERE ticker=?", (tkr,)).fetchone()
+                "SELECT entered_at,entry_price,status FROM paper_portfolio WHERE ticker=?",
+                (tkr,)).fetchone()
             if verdict == "Buy" and not held:
                 store.con.execute(
                     "INSERT INTO paper_portfolio(ticker,entered_at,entry_price,strategy,status,notes) "
                     "VALUES(?,?,?,?,?,?)", (tkr, now, price_by[tkr], strat, "open", "opened on Buy"))
                 opened += 1
             elif verdict == "Avoid" and held and held["status"] == "open":
+                review_reasons.append({"code": "avoid_verdict",
+                                       "reason": "Held stock changed to Avoid"})
                 store.con.execute(
                     "UPDATE paper_portfolio SET status=?, notes=? WHERE ticker=?",
                     ("closed", "closed on Avoid", tkr))
                 closed += 1
+
+            # One-time review events for a held position. Qualitative vetoes can
+            # prompt review, but do not create an automatic sell instruction.
+            if held and held["status"] == "open":
+                vetoes = stock.get("vetoes") or []
+                if vetoes:
+                    veto_key = hashlib.sha256(
+                        json.dumps(vetoes, sort_keys=True).encode("utf-8")).hexdigest()[:16]
+                    review_reasons.append({"code": f"hard_veto:{veto_key}",
+                                           "reason": "A hard veto is present: " + ", ".join(map(str, vetoes))})
+                practical = (stock.get("targets") or {}).get("practical") or {}
+                target_price = practical.get("price")
+                price = price_by.get(tkr)
+                if (isinstance(target_price, (int, float))
+                        and isinstance(held["entry_price"], (int, float))
+                        and target_price > held["entry_price"]
+                        and isinstance(price, (int, float)) and price >= target_price):
+                    review_reasons.append({"code": f"practical_target:{target_price:.2f}",
+                                           "reason": f"Practical Target ${target_price:.2f} was reached"})
+
+                for review in review_reasons:
+                    event_key = f"{held['entered_at']}:{review['code']}:{signal_date}"
+                    # Persistent conditions (veto/target) should fire only once
+                    # per position; transitions/drops may recur on a later date.
+                    if review["code"].startswith(("hard_veto:", "practical_target:")):
+                        event_key = f"{held['entered_at']}:{review['code']}"
+                    inserted = store.con.execute(
+                        "INSERT OR IGNORE INTO notification_events"
+                        "(event_type,ticker,strategy,event_key,created_at) VALUES(?,?,?,?,?)",
+                        ("exit_review", tkr, strat, event_key, now)).rowcount
+                    if inserted:
+                        exit_reviews.append({"ticker": tkr, "company": stock.get("company"),
+                                             "strategy": strat, "price": price_by.get(tkr),
+                                             "score": round(score or 0, 1), "verdict": verdict,
+                                             "reason": review["reason"]})
 
             # +25% is the defined "close to +30%" threshold.  Notify once per
             # paper-position entry, including a jump that has already crossed 30%.
@@ -131,7 +177,7 @@ def record(store, board: dict) -> dict:
             break   # one strategy row per ticker is enough for tracking
     store.commit()
     return {"tracked": len(price_by), "signals": signals, "alerts": alerts,
-            "new_buys": new_buys, "near_30": near_30,
+            "new_buys": new_buys, "near_30": near_30, "exit_reviews": exit_reviews,
             "opened": opened, "closed": closed}
 
 

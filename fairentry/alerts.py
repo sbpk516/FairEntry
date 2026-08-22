@@ -91,13 +91,15 @@ def send_test_email() -> bool:
     """Send a harmless delivery check using the configured provider."""
     return _send_email("FairEntry email notifications are active", [
         "Your FairEntry email connection is working.",
-        "Future messages will be sent for new Buy candidates and stocks reaching +25%.",
+        "Future messages will be sent for new Buy candidates, stocks reaching +25%, and exit/risk reviews.",
     ])
 
 
-def email_trading_alerts(new_buys: list[dict], near_30: list[dict]) -> dict:
-    """Send separate event emails for new Buy candidates and +25% milestones."""
-    sent = {"new_buys": False, "near_30": False}
+def email_trading_alerts(new_buys: list[dict], near_30: list[dict],
+                         exit_reviews: list[dict] | None = None) -> dict:
+    """Send separate emails for entry, target-proximity and exit-review events."""
+    exit_reviews = exit_reviews or []
+    sent = {"new_buys": False, "near_30": False, "exit_reviews": False}
     if new_buys:
         lines = ["New stocks entered the FairEntry Buy list:", ""]
         for item in new_buys:
@@ -114,4 +116,14 @@ def email_trading_alerts(new_buys: list[dict], near_30: list[dict]) -> dict:
                          f"+30% target ${item['target_price']:.2f}")
         sent["near_30"] = _send_email(
             f"FairEntry: {len(near_30)} stock(s) close to +30% target", lines)
+    if exit_reviews:
+        lines = ["These held stocks need an exit or risk review:", ""]
+        for item in exit_reviews:
+            price = (f"${item['price']:.2f}" if isinstance(item.get("price"), (int, float))
+                     else "price unavailable")
+            lines.append(f"{item['ticker']} - {item.get('company') or ''}: {price}; "
+                         f"{item.get('verdict')}; score {item.get('score')} — {item['reason']}")
+        lines += ["", "Review the evidence before deciding whether to hold, trim, or sell."]
+        sent["exit_reviews"] = _send_email(
+            f"FairEntry: {len(exit_reviews)} exit/review alert(s)", lines)
     return sent

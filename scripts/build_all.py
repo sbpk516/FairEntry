@@ -71,9 +71,11 @@ def main():
             print(f"200 WMA email failed: {exc}")
         try:
             trading_emailed = email_trading_alerts(track.get("new_buys", []),
-                                                   track.get("near_30", []))
+                                                   track.get("near_30", []),
+                                                   track.get("exit_reviews", []))
         except Exception as exc:
-            trading_emailed = {"new_buys": False, "near_30": False}
+            trading_emailed = {"new_buys": False, "near_30": False,
+                               "exit_reviews": False}
             print(f"Trading alert email failed: {exc}")
     if board["meta"].get("reasoning"):
         print("Reasoning:", board["meta"]["reasoning"])
@@ -88,6 +90,8 @@ def main():
           (" (email sent)" if trading_emailed["new_buys"] else ""))
     print(f"Near +30% alerts: {len(track.get('near_30', []))}" +
           (" (email sent)" if trading_emailed["near_30"] else ""))
+    print(f"Exit/review alerts: {len(track.get('exit_reviews', []))}" +
+          (" (email sent)" if trading_emailed["exit_reviews"] else ""))
     from collections import Counter
     v = Counter(s["verdict"] if "verdict" in s else "" for s in [])  # verdict is recomputed in UI
     print(f"Exported {board['meta']['count']} stocks -> {path}")
