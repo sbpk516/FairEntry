@@ -48,16 +48,25 @@ def fetch_quotes(tickers=None):
     These quotes are tracking-only and must never affect board scoring.
     """
     import yfinance as yf
+    names = sorted(set(tickers or []))
+    if not names:
+        return {}
     out = {}
-    for ticker in sorted(set(tickers or [])):
-        try:
-            obj = yf.Ticker(ticker)
-            price = obj.fast_info.get("last_price")
-            if not isinstance(price, (int, float)) or price <= 0:
-                hist = obj.history(period="5d", interval="1d", auto_adjust=False)
-                price = float(hist["Close"].dropna().iloc[-1]) if not hist.empty else None
-            if isinstance(price, (int, float)) and price > 0:
-                out[ticker] = round(float(price), 4)
-        except Exception:
-            continue
+    try:
+        # One bounded, threaded request avoids a slow request per historical
+        # recommendation as the retained tracking list grows.
+        data = yf.download(names, period="5d", interval="1d", auto_adjust=False,
+                           progress=False, threads=True, timeout=20)
+        closes = data.get("Close")
+        if closes is not None:
+            if len(names) == 1 and getattr(closes, "ndim", 1) == 1:
+                closes = closes.to_frame(name=names[0])
+            for ticker in names:
+                if ticker not in closes:
+                    continue
+                series = closes[ticker].dropna()
+                if not series.empty and float(series.iloc[-1]) > 0:
+                    out[ticker] = round(float(series.iloc[-1]), 4)
+    except Exception:
+        pass
     return out
