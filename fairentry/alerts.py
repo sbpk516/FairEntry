@@ -104,8 +104,10 @@ def email_trading_alerts(new_buys: list[dict], near_30: list[dict],
         lines = ["New stocks entered the FairEntry Buy list:", ""]
         for item in new_buys:
             previous = f"; previously {item['from']}" if item.get("from") else ""
+            confidence = f"; {item['confidence']}" if item.get("confidence") else ""
             lines.append(f"{item['ticker']} - {item.get('company') or ''}: "
-                         f"${item.get('price', 0):.2f}; score {item.get('score')}{previous}")
+                         f"${item.get('price', 0):.2f}; score {item.get('score')}"
+                         f"{confidence}{previous}")
         sent["new_buys"] = _send_email(
             f"FairEntry: {len(new_buys)} new Buy candidate(s)", lines)
     if near_30:

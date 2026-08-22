@@ -77,7 +77,8 @@ def record(store, board: dict) -> dict:
                         new_buys.append({"ticker": tkr, "company": stock.get("company"),
                                          "strategy": strat, "price": price_by.get(tkr),
                                          "score": round(score or 0, 1), "from": prev["verdict"],
-                                         "to": verdict})
+                                         "to": verdict,
+                                         "confidence": (stock.get("confidence_tier") or {}).get("label")})
                 store.con.execute(
                     "UPDATE recommendations SET verdict=?, action=?, score=?, last_seen=? "
                     "WHERE ticker=? AND strategy=?",
@@ -98,7 +99,8 @@ def record(store, board: dict) -> dict:
                         new_buys.append({"ticker": tkr, "company": stock.get("company"),
                                          "strategy": strat, "price": price_by.get(tkr),
                                          "score": round(score or 0, 1), "from": None,
-                                         "to": verdict})
+                                         "to": verdict,
+                                         "confidence": (stock.get("confidence_tier") or {}).get("label")})
 
             # paper portfolio: open on first Buy, close on Avoid
             held = store.con.execute(

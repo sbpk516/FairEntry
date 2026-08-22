@@ -68,7 +68,7 @@
   .iconbtn{ border:1px solid var(--line); background:var(--panel); color:var(--ink-soft); border-radius:9px;
     padding:8px 12px; font-size:13px; font-weight:600; display:inline-flex; gap:7px; align-items:center; }
   .iconbtn:hover{ border-color:var(--accent); color:var(--accent); }
-  #wmafilter.on{border-color:var(--buy);background:var(--buy-bg);color:var(--buy-text)}
+  #wmafilter.on,#highfilter.on{border-color:var(--buy);background:var(--buy-bg);color:var(--buy-text)}
 
   /* controls */
   .controls{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:14px 20px 6px; }
@@ -423,6 +423,7 @@
       <button data-v="Avoid">Avoid</button>
     </div>
     <button class="iconbtn" id="wmafilter" type="button" aria-pressed="false">Near 200 WMA</button>
+    <button class="iconbtn" id="highfilter" type="button" aria-pressed="false">High confidence</button>
     <select id="sort">
       <option value="score">Sort: Score</option>
       <option value="upside">Sort: Valuation upside</option>
@@ -496,6 +497,7 @@ function restoreS(){ try{ var raw=localStorage.getItem(SKEY); if(raw){ var o=JSO
   } } }catch(e){} }
 var MODE='all';
 var WMA_ONLY=false;
+var HIGH_ONLY=false;
 var META={};                                   // board.json meta (filled on load)
 var MODE_STRATEGY={deepvalue:'deep_value', growth:'quality_growth'};
 
@@ -700,6 +702,11 @@ function actionNuance(c){
   if(c.vetoed) return 'vetoed';
   if(c.capped) return 'would-be Buy - gated';
   return ''; }
+function confidenceBadge(s,c){
+  if(c.verdict!=='Buy'||!s.confidence_tier)return '';
+  var high=s.confidence_tier.id==='high_confidence';
+  return '<div style="margin-top:5px"><span class="lab '+(high?'good':'info')+'" title="Confidence overlay; does not change score or verdict">'+esc(high?'High-confidence candidate':'Standard Buy')+'</span></div>';
+}
 // Plain-English version of the AI's situation read (thesis.label).
 function thesisPlain(s){
   var l=(s.thesis.label||'').toLowerCase();
@@ -806,7 +813,7 @@ function tileHTML(s){ var c=compute(s), shown=c.displayVerdict||c.verdict, vk=c.
   var nuance=actionNuance(c);
   return '<div class="tile" data-t="'+esc(s.ticker)+'" role="button" tabindex="0" aria-label="'+esc(s.ticker+' '+s.company+' - '+shown)+'"><div class="vstripe st-'+vk+'"></div><div class="tile-in">'+
     '<div class="tile-top"><div class="tile-main"><div class="tick">'+esc(s.ticker)+'</div><div class="co">'+esc(s.company)+' - '+esc(s.sector)+'</div></div>'+
-    '<div class="verdict"><span class="vpill bg-'+vk+' v-'+vk+'">'+shown+'</span>'+(nuance?'<div class="action-lbl">'+esc(nuance)+'</div>':'')+'</div></div>'+
+    '<div class="verdict"><span class="vpill bg-'+vk+' v-'+vk+'">'+shown+'</span>'+(nuance?'<div class="action-lbl">'+esc(nuance)+'</div>':'')+confidenceBadge(s,c)+'</div></div>'+
     '<div class="card-facts"><div class="card-fact"><span class="k">Strategy</span><span class="v">'+esc(strategy)+'</span></div><div class="card-fact"><span class="k">Current price</span><span class="v">$'+esc(s.price)+'</span></div><div class="card-fact"><span class="k">Reasonable value range</span><span class="v">'+(low==null||high==null?'Not available':'$'+esc(low)+'–$'+esc(high))+'</span></div><div class="card-fact"><span class="k">Expected holding period</span><span class="v">'+esc(hold)+'</span></div></div>'+
     '<div class="card-evidence"><div class="card-evidence-box good"><h4>Three strongest reasons</h4>'+evidenceList(reasons,'Open details to inspect the available evidence.')+'</div><div class="card-evidence-box bad"><h4>Three largest risks</h4>'+evidenceList(risks,'No specific major risk was identified in the available data.')+'</div></div>'+
     '<div class="tile-actions"><button class="chartbtn" data-chart="'+esc(s.ticker)+'" type="button">Launch Chart</button><button class="addbtn" data-add="'+esc(s.ticker)+'" type="button">Add 100</button></div></div></div>'; }
@@ -816,7 +823,7 @@ function currentList(){
   var wmaTickers={}; (META.wma_alerts||[]).forEach(function(a){wmaTickers[a.ticker]=true;});
   var list=STOCKS.filter(function(s){ return MODE==='all' || s.strategy.indexOf(MODE)>=0; })
     .map(function(s){ return {s:s, c:compute(s)}; })
-    .filter(function(o){ if(WMA_ONLY&&!wmaTickers[o.s.ticker])return false; if(sec!=='all'&&o.s.sector!==sec)return false; if(vf!=='all'&&o.c.verdict!==vf)return false;
+    .filter(function(o){ if(WMA_ONLY&&!wmaTickers[o.s.ticker])return false; if(HIGH_ONLY&&!(o.c.verdict==='Buy'&&o.s.confidence_tier&&o.s.confidence_tier.id==='high_confidence'))return false; if(sec!=='all'&&o.s.sector!==sec)return false; if(vf!=='all'&&o.c.verdict!==vf)return false;
       if(q&&(o.s.ticker.toLowerCase().indexOf(q)<0&&o.s.company.toLowerCase().indexOf(q)<0))return false; return true; });
   var rank={Buy:0,Watch:1,Avoid:2};
   list.sort(function(a,b){ if(sort==='upside')return b.s.valuation.upside-a.s.valuation.upside;
@@ -827,7 +834,7 @@ function renderBoard(){ var list=currentList();
   renderActiveWeights();
   $('#board').innerHTML=list.map(function(o){return tileHTML(o.s);}).join('')||'<div style="color:var(--ink-faint);padding:30px">No stocks match.</div>';
   var byv={Buy:0,Watch:0,Avoid:0}; list.forEach(function(o){byv[o.c.verdict]++;});
-  $('#count').textContent=list.length+' shown'+(WMA_ONLY?' near 200 WMA':'')+' - '+byv.Buy+' Buy - '+byv.Watch+' Watch - '+byv.Avoid+' Avoid';
+  $('#count').textContent=list.length+' shown'+(WMA_ONLY?' near 200 WMA':'')+(HIGH_ONLY?' high confidence':'')+' - '+byv.Buy+' Buy - '+byv.Watch+' Watch - '+byv.Avoid+' Avoid';
 }
 function renderWmaAlerts(meta){
   var box=$('#wma-alerts'), alerts=meta.wma_alerts||[];
@@ -1177,6 +1184,14 @@ function valHTML(s){ var v=s.valuation, price=s.price;
     '</div>' : '';
   return '<div class="sub-h">Valuation &amp; entry</div><div class="vgauge">'+nums+line+legend+explain+methods+'</div>'; }
 
+function confidenceHTML(s,c){ var t=s.confidence_tier;if(!t||c.verdict!=='Buy')return '';
+  var high=t.id==='high_confidence',i=t.inputs||{},fin=i.financial_strength||{},growth=i.growth_score||{},eps=i.expected_eps_growth||{},h=t.historical_evidence||{};
+  return '<div class="sub-h">Investment confidence tier <span class="lab '+(high?'good':'info')+'">'+esc(t.label)+'</span></div><div class="bizbox"><div class="biztop"><div class="bizplain"><b>'+(high?'Passes the current high-confidence rule':'Does not pass the high-confidence overlay')+'</b><br><span class="meta">This overlay does not tune weights or change Buy / Watch / Avoid.</span></div><div class="bizexample">'+
+    'Financial Strength: <b>'+esc(fin.value==null?'n/a':fin.value)+'</b> / required '+esc(fin.minimum)+' — <span class="lab '+(fin.passes?'good':'bad')+'">'+(fin.passes?'passes':'does not pass')+'</span><br>'+
+    'Growth Score: <b>'+esc(growth.value==null?'n/a':growth.value)+'</b> — displayed, not required because it did not add historical precision.<br>'+
+    'Expected next-year EPS growth: <b>'+(eps.value_pct==null?'n/a':esc(eps.value_pct)+'%')+'</b> / provisional confirmation '+esc(eps.confirmation_threshold_pct)+'% — <span class="lab '+(eps.passes_provisional_confirmation?'good':'warn')+'">'+(eps.passes_provisional_confirmation?'provisional pass':'not confirmed')+'</span><br>'+
+    'Hard veto: <b>'+(i.no_hard_veto&&i.no_hard_veto.value?'none':'present')+'</b></div></div><div class="vg-explain">Historical evidence for the current Financial Strength rule: <b>'+esc(h.successes)+'/'+esc(h.completed_episodes)+' succeeded ('+esc(h.observed_success_rate_pct)+'%)</b>; 90% interval '+esc((h.confidence_interval_90_pct||[]).join('–'))+'%. This is historical evidence, not a guarantee. EPS remains information-only until point-in-time forecasts pass a walk-forward test.</div></div>'; }
+
 function openDetail(tk){ var s=STOCKS.find(function(x){return x.ticker===tk;}); if(!s)return; var c=compute(s), vk=c.verdict.toLowerCase();
   $('#d-title').innerHTML=esc(s.ticker)+' <span style="font-size:13px;color:var(--ink-faint);font-weight:500">'+esc(s.company)+'</span>';
   var vetoHTML=c.vetoed?'<div style="margin-top:10px"><span class="lab bad">VETO</span> '+s.vetoes.map(esc).join(' - ')+'</div>':'';
@@ -1192,7 +1207,7 @@ function openDetail(tk){ var s=STOCKS.find(function(x){return x.ticker===tk;}); 
     .map(function(a){return '<div class="acard"><div class="l">'+a[0]+'</div><div class="v">'+esc(a[1])+'</div></div>';}).join('')+'</div>';
   var mathSec='<div class="sub-h">How the '+Math.round(c.prelim)+' was computed</div>'+scoreMathHTML(s,c);
   var scorecard='<div class="sub-h">Scorecard - each existing category shows scored quantitative factors and separate non-quantifiable context</div>'+(s.categories||s.cats).map(function(cat){return catHTML(cat,s);}).join('');
-  $('#d-body').innerHTML=hero+businessHTML(s)+growthQualificationHTML(s)+debtDirectionHTML(s)+mathSec+scorecard+demandMomentumHTML(s)+setupHTML(s)+targetPlanHTML(s)+valHTML(s)+growthEntryHTML(s)+contextHTML(s)+situationHTML(s)+newsHTML(s)+watchHTML(s)+action;
+  $('#d-body').innerHTML=hero+confidenceHTML(s,c)+businessHTML(s)+growthQualificationHTML(s)+debtDirectionHTML(s)+mathSec+scorecard+demandMomentumHTML(s)+setupHTML(s)+targetPlanHTML(s)+valHTML(s)+growthEntryHTML(s)+contextHTML(s)+situationHTML(s)+newsHTML(s)+watchHTML(s)+action;
   openDrawer('#detail');
 }
 
@@ -1415,6 +1430,7 @@ $('#modes').addEventListener('click',function(e){ var b=e.target.closest('button
 $('#vfilter').addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b)return;
   $('#vfilter .on').classList.remove('on'); b.classList.add('on'); renderBoard(); });
 $('#wmafilter').addEventListener('click',function(){ WMA_ONLY=!WMA_ONLY; this.classList.toggle('on',WMA_ONLY); this.setAttribute('aria-pressed',WMA_ONLY?'true':'false'); renderBoard(); });
+$('#highfilter').addEventListener('click',function(){ HIGH_ONLY=!HIGH_ONLY; this.classList.toggle('on',HIGH_ONLY); this.setAttribute('aria-pressed',HIGH_ONLY?'true':'false'); renderBoard(); });
 $('#search').addEventListener('input',renderBoard);
 $('#sector').addEventListener('change',renderBoard);
 $('#sort').addEventListener('change',renderBoard);

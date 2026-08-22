@@ -449,6 +449,57 @@ def _map(rec, strategies, strategy_key):
         "policy": "Information only; displayed inside the existing category and excluded from scoring.",
         "categories": qualitative_by_category,
     }
+    financial_strength = _cat_score(rec, "survival")
+    growth_score = _cat_score(rec, "growth")
+    expected_eps_growth = _metric_value(rec, "eps_growth_next_y")
+    is_buy = rec.get("verdict") == "Buy"
+    no_hard_veto = not bool(rec.get("vetoes"))
+    high_confidence = bool(
+        is_buy and no_hard_veto
+        and isinstance(financial_strength, (int, float))
+        and financial_strength >= 70
+    )
+    confidence_tier = {
+        "id": ("high_confidence" if high_confidence else
+               "standard_buy" if is_buy else "not_applicable"),
+        "label": ("High-confidence candidate" if high_confidence else
+                  "Standard Buy" if is_buy else "Not a Buy candidate"),
+        "eligible": high_confidence,
+        "score_effect": 0,
+        "verdict_effect": "none",
+        "policy_version": "confidence_tier_v1",
+        "basis": (
+            "Buy verdict, Financial Strength at least 70, and no hard veto. "
+            "This tier is an overlay and does not tune weights or change the verdict."
+        ),
+        "historical_evidence": {
+            "completed_episodes": 51,
+            "successes": 42,
+            "failures": 9,
+            "observed_success_rate_pct": 82.4,
+            "confidence_interval_90_pct": [72.0, 89.4],
+            "target": "+30% within one year",
+        },
+        "inputs": {
+            "financial_strength": {"value": financial_strength, "minimum": 70,
+                                   "required": True,
+                                   "passes": isinstance(financial_strength, (int, float))
+                                   and financial_strength >= 70},
+            "growth_score": {"value": growth_score, "required": False,
+                             "reason": "The current Growth score did not improve historical precision when added to Financial Strength."},
+            "expected_eps_growth": {
+                "value_pct": expected_eps_growth, "confirmation_threshold_pct": 15,
+                "passes_provisional_confirmation": (
+                    isinstance(expected_eps_growth, (int, float))
+                    and expected_eps_growth >= 15),
+                "decision_status": "information_only",
+                "required": False,
+                "reason": "Provisional until point-in-time forecast history passes walk-forward validation.",
+            },
+            "no_hard_veto": {"value": no_hard_veto, "required": True,
+                             "passes": no_hard_veto},
+        },
+    }
     display_verdict = ("Quant Buy" if rec["verdict"] == "Buy" and not th else rec["verdict"])
     rec["display_verdict"] = display_verdict
     # Growth-entry plan (for Quality Growth names): fair-price cases + entry zone
@@ -503,6 +554,7 @@ def _map(rec, strategies, strategy_key):
         "score": rec["score"], "verdict": rec["verdict"],
         "display_verdict": display_verdict,
         "model_verdict": rec["verdict"],
+        "confidence_tier": confidence_tier,
         "base_score": rec["base_score"], "thesis_modifier": rec["thesis_modifier"],
         "preliminary": rec["preliminary"], "coverage_pct": rec.get("coverage_pct"),
         "coverage_confidence": rec.get("coverage_confidence"),
@@ -795,6 +847,13 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
                      # AI/news has no score modifier.
                      "strategy_presets": cfg.defaults.get("strategy_presets", {}),
                      "verdict_bands": cfg.verdict_bands,
+                     "confidence_policy": {
+                         "version": "confidence_tier_v1",
+                         "high_confidence_rule": "Buy AND Financial Strength >= 70 AND no hard veto",
+                         "weight_changes": False,
+                         "verdict_changes": False,
+                         "eps_confirmation": "Expected next-year EPS growth >= 15% is provisional and information-only",
+                     },
                      "thesis_modifier": [],
                      "factor_contract": [
                          {"category": cid, "category_label": category["label"],
