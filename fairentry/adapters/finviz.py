@@ -77,6 +77,8 @@ def fetch(cfg, field_ids, tickers=None, force=False):
             raw = r.get(f.get("raw_path", ""))
             if f["id"] == "market_cap":
                 vals[f["id"]] = cap
+            elif f["id"] == "avg_dollar_volume":
+                vals[f["id"]] = advol
             elif f.get("unit") in ("text", "enum"):
                 vals[f["id"]] = (raw or "").strip() or None
             else:

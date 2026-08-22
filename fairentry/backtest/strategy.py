@@ -26,7 +26,7 @@ class BacktestStrategy:
     universe_top_n: int = 1000
     market_cap_min_usd: float = 300_000_000
     price_min_usd: float = 1
-    avg_dollar_volume_min_usd: float = 20_000_000
+    avg_dollar_volume_min_usd: float = 10_000_000
     minimum_coverage_pct: float = 50.0
     horizons_days: tuple[int, ...] = (30, 60, 90, 180, 365)
     target_models: tuple[str, ...] = ("practical", "fundamental", "technical", "blended",
@@ -140,7 +140,7 @@ def load_strategy(path: str | Path | None = None) -> BacktestStrategy:
         universe_top_n=int(raw.get("universe", {}).get("top_n", 1000)),
         market_cap_min_usd=float(raw.get("universe", {}).get("market_cap_min_usd", 300_000_000)),
         price_min_usd=float(raw.get("universe", {}).get("price_min_usd", 1)),
-        avg_dollar_volume_min_usd=float(raw.get("universe", {}).get("avg_dollar_volume_min_usd", 20_000_000)),
+        avg_dollar_volume_min_usd=float(raw.get("universe", {}).get("avg_dollar_volume_min_usd", 10_000_000)),
         minimum_coverage_pct=float(raw.get("data_quality", {}).get("minimum_coverage_pct", 50)),
         horizons_days=tuple(raw.get("horizons_days", [30, 60, 90, 180, 365])),
         target_models=tuple(raw.get("target", {}).get("models", ["practical", "fundamental", "technical", "blended",

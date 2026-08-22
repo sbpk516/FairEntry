@@ -307,6 +307,11 @@ def _row_metrics(row: dict, asof: str, spy_3m: float | None,
     conversion = _fcf_currency_conversion(row)
     values = {
         "price": (row.get("close"), "sharadar_sep"),
+        "avg_dollar_volume": (
+            float(row["close"]) * float(row["avgvol50"])
+            if row.get("close") is not None and row.get("avgvol50") is not None else None,
+            "sharadar_sep_50d_average",
+        ),
         "gross_margin": (_pct(row.get("grossmargin")), "sharadar_sf1_art"),
         "oper_margin": (
             _pct(row.get("ros"))
@@ -1058,6 +1063,10 @@ def run_sfa_rolling(
                 "delisted_exit": delisted_exit,
                 "terminal_event": terminal,
                 "raw_close": round(p0row["close"], 2),
+                "avg_dollar_volume": round(
+                    float(item["raw"]["close"]) * float(item["raw"]["avgvol50"]), 2
+                ) if item["raw"].get("close") is not None
+                and item["raw"].get("avgvol50") is not None else None,
                 "_entry_closeadj": p0row["closeadj"],
                 "verdict": rec["verdict"],
                 "score": rec["score"],

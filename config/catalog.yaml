@@ -19,6 +19,7 @@ version: 1
 fields:
   # ---- price / flow (fast) --------------------------------------------------
   - {id: price,            entity: security, source: Finviz, adapter: finviz, cadence: twice_daily, unit: usd,   raw_path: Price,            freshness_limit_h: 8,  required_for: [valuation, market_confirmation], cost_tier: cheap}
+  - {id: avg_dollar_volume, entity: security, source: Finviz, adapter: finviz, cadence: twice_daily, unit: usd, raw_path: "Average Volume", freshness_limit_h: 8, required_for: [market_confirmation], cost_tier: cheap}
   - {id: rel_volume,       entity: security, source: Finviz, adapter: finviz, cadence: twice_daily, unit: ratio, raw_path: "Relative Volume", freshness_limit_h: 8, required_for: [market_confirmation], cost_tier: cheap}
   - {id: perf_year,        entity: security, source: Finviz, adapter: finviz, cadence: twice_daily, unit: pct,   raw_path: "Performance (Year)", freshness_limit_h: 8, required_for: [market_confirmation], cost_tier: cheap}
   - {id: sma50,            entity: security, source: Finviz, adapter: finviz, cadence: twice_daily, unit: pct,   raw_path: "50-Day Simple Moving Average", freshness_limit_h: 8, required_for: [market_confirmation], cost_tier: cheap}

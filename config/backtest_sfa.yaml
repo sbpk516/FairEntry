@@ -7,7 +7,7 @@ universe:
   top_n: 1000
   market_cap_min_usd: 300000000
   price_min_usd: 1
-  avg_dollar_volume_min_usd: 20000000
+  avg_dollar_volume_min_usd: 10000000
 execution:
   entry: next_close
   target_hit: close

@@ -104,6 +104,7 @@ def public_artifact(result: dict, detail_limit: int = 2000) -> dict:
             observation.pop(key, None)
         observation.pop("raw_close", None)
         observation.pop("security_id", None)
+        observation.pop("avg_dollar_volume", None)
         observation.get("outcome", {}).pop("path", None)
         observation["categories"] = [
             {k: category.get(k) for k in ("id", "label", "weight", "score", "coverage")}

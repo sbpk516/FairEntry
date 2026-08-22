@@ -11,4 +11,4 @@ sectors:
 universe_filter:
   market_cap_min_usd: 300_000_000     # $300M
   price_min_usd: 1
-  avg_dollar_volume_min: 20_000_000   # ~$20M/day
+  avg_dollar_volume_min: 10_000_000   # hard floor; $20M+ is positive liquidity quality
