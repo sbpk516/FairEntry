@@ -43,6 +43,9 @@ def test_queue_contains_only_unresearched_failures_and_preserves_state(tmp_path)
     }
     assert result["items"][0]["status"] == "research_in_progress"
     assert result["items"][0]["attempts"] == 2
+    assert result["policy"]["pipeline"] == "retrospective_failure_diagnosis"
+    assert result["policy"]["predictive_use_forbidden"] is True
+    assert result["items"][0]["required_output"]["entry_date_warning_hypothesis"]
 
 
 def test_verified_findings_append_without_overwriting_existing_research(tmp_path):

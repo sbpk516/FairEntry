@@ -1,4 +1,4 @@
-"""Append-only research queue for newly failed one-year Buy episodes.
+"""Append-only retrospective diagnosis for failed one-year Buy episodes.
 
 The backtest stays deterministic.  It identifies research candidates, while a
 separate research pass can add verified findings to the controlled registry.
@@ -33,7 +33,12 @@ def build_research_queue(
     research_path: Path = DEFAULT_RESEARCH,
     queue_path: Path = DEFAULT_QUEUE,
 ) -> dict:
-    """Write a stable queue containing only failures without saved research."""
+    """Write failures for the LLM's retrospective-diagnosis role only.
+
+    Later evidence is permitted to explain the miss, but this queue is never a
+    predictive input.  A separate point-in-time pipeline tests whether an entry-
+    date warning could have avoided a failure.
+    """
     registry = (_read(Path(research_path), {}).get("entries") or {})
     prior = _read(Path(queue_path), {})
     prior_rows = {row.get("episode_key"): row for row in prior.get("items") or []}
@@ -61,17 +66,43 @@ def build_research_queue(
             "status": old.get("status") or "pending_research",
             "attempts": int(old.get("attempts") or 0),
             "last_attempted_at": old.get("last_attempted_at"),
-            "research_scope": "Use authoritative sources published during or soon after the one-year evaluation window; avoid hindsight.",
+            "pipeline": "retrospective_failure_diagnosis",
+            "research_scope": (
+                "Use authoritative evidence published during or soon after the one-year "
+                "evaluation window to explain the completed miss. Later evidence is allowed "
+                "for diagnosis but must never be copied into an entry-date predictive rule."
+            ),
+            "required_output": {
+                "primary_cause_code": "one controlled failure-reason code",
+                "secondary_cause_code": "optional controlled failure-reason code",
+                "one_line_reason": "maximum 360 characters",
+                "sources": "at least one authoritative HTTPS source",
+                "entry_date_warning_hypothesis": (
+                    "optional hypothesis only; it must be tested separately using data "
+                    "available on or before the first Buy date"
+                ),
+            },
         })
     result = {
-        "version": 1,
+        "version": 2,
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "policy": {
+            "pipeline": "retrospective_failure_diagnosis",
             "append_only": True,
             "existing_research_overwritten": False,
             "score_impact": "none",
+            "verdict_impact": "none",
+            "later_evidence_allowed": True,
+            "predictive_use_forbidden": True,
             "allowed_statuses": ["pending_research", "research_in_progress", "cause_not_verified"],
         },
+        "llm_instruction": (
+            "Explain why each completed +30%-within-one-year Buy episode failed. "
+            "Normalize primary and optional secondary causes and cite authoritative sources. "
+            "You may use later evidence only for diagnosis. Do not claim that a later event "
+            "was knowable on the Buy date, do not alter scores, and send any proposed early "
+            "warning to the separate predictive-rule researcher."
+        ),
         "summary": {
             "failed_episodes": failed,
             "covered_by_existing_research": covered,

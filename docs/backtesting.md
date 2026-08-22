@@ -330,3 +330,19 @@ coverage, identical stock/SPY execution dates, round-trip costs, terminal-event
 censoring, multi-horizon evidence through approximately 18 months, and separate
 chronological tuning for Deep Value and Quality Growth. Run the complete local
 validation with `./scripts/run_sfa_validation.ps1`.
+
+## Controlled LLM research cycle
+
+Failure explanation and predictive-rule testing are deliberately separate:
+
+- `python scripts/failure_research.py queue --backtest web/data/backtest-sfa.json`
+  creates the retrospective diagnosis queue. Later evidence may explain a miss,
+  but every finding remains non-scoring.
+- `python scripts/research_cycle.py --backtest data/sharadar/reports/backtest-sfa-full.json`
+  tests entry-date-only rules from `config/predictive_rules.json` on chronological
+  development, validation and final-test periods.
+
+The deterministic runner rejects outcome fields, reports +20%, +25% and +30%
+attainment through three years, checks sample size and drawdown, and never edits
+production scores or weights. An eligible rule still requires explicit human
+promotion. Every normal SFA replay now regenerates both research contracts.

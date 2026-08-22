@@ -49,5 +49,10 @@ tuning:
     growth: [25, 45]
     valuation: [12, 30]
     confirmation: [10, 25]
+research_cycle:
+  failure_diagnosis: retrospective_later_evidence_allowed_no_score_effect
+  predictive_rules: point_in_time_only_chronological_development_validation_test
+  promotion: manual_only
+  rules: config/predictive_rules.json
 portfolio:
   max_positions: 20

@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "policy": "Candidate filters only. They do not change scores, verdicts, or production weights.",
+  "rules": [
+    {
+      "id": "financial_strength",
+      "label": "Financial strength",
+      "hypothesis": "A strong balance sheet may give the business enough time to realize its valuation.",
+      "conditions": [
+        {"field": "category.survival", "op": ">=", "value": 70},
+        {"field": "no_hard_veto", "op": "==", "value": true}
+      ]
+    },
+    {
+      "id": "durable_growth",
+      "label": "Financial strength plus durable growth",
+      "hypothesis": "Strong finances and high point-in-time growth may reduce growth-disappointment failures.",
+      "conditions": [
+        {"field": "category.survival", "op": ">=", "value": 70},
+        {"field": "category.growth", "op": ">=", "value": 70},
+        {"field": "growth_qualified", "op": "==", "value": true},
+        {"field": "no_hard_veto", "op": "==", "value": true}
+      ]
+    },
+    {
+      "id": "durable_growth_fair_entry",
+      "label": "Durable growth at a reasonable entry",
+      "hypothesis": "Growth must be paired with valuation and market confirmation to support a one-year re-rating.",
+      "conditions": [
+        {"field": "category.survival", "op": ">=", "value": 70},
+        {"field": "category.growth", "op": ">=", "value": 70},
+        {"field": "category.valuation", "op": ">=", "value": 65},
+        {"field": "category.confirmation", "op": ">=", "value": 40},
+        {"field": "no_hard_veto", "op": "==", "value": true}
+      ]
+    },
+    {
+      "id": "forward_eps_confirmation",
+      "label": "Durable growth with forward-EPS confirmation",
+      "hypothesis": "Expected EPS growth may confirm that reported growth is expected to continue.",
+      "conditions": [
+        {"field": "category.survival", "op": ">=", "value": 70},
+        {"field": "category.growth", "op": ">=", "value": 70},
+        {"field": "metric.eps_growth_next_y", "op": ">=", "value": 15},
+        {"field": "no_hard_veto", "op": "==", "value": true}
+      ]
+    }
+  ]
+}

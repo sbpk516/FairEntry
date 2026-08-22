@@ -14,6 +14,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from fairentry.backtest.sfa_replay import run_sfa_rolling
 from fairentry.backtest.sfa_tune import policy_from_strategy, tune_sfa_observations
+from fairentry.backtest.research_cycle import run_predictive_rule_research
+from fairentry.backtest.failure_research import build_research_queue
 from fairentry.backtest.strategy import load_strategy
 from fairentry.config import load_config
 from fairentry.sharadar import SharadarWarehouse
@@ -171,6 +173,14 @@ def main():
     args = ap.parse_args()
     if args.publish_private:
         result = json.loads(Path(args.publish_private).read_text(encoding="utf-8"))
+        if result.get("ok") and not result.get("research_cycle"):
+            result["research_cycle"] = run_predictive_rule_research(
+                result.get("observations", []),
+                step_days=int(result.get("step_days") or 30),
+            )
+        if result.get("buy_return_achievement"):
+            queue = build_research_queue(result)
+            result["failure_research_queue"] = queue["summary"]
         path = Path(args.json_out)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
@@ -211,6 +221,13 @@ def main():
             policy=policy_from_strategy(strategy),
             progress=lambda row: print(json.dumps({"tuning_progress": row}), flush=True),
         )
+    if result.get("ok") and not args.no_evidence:
+        result["research_cycle"] = run_predictive_rule_research(
+            result.get("observations", []),
+            step_days=int(result.get("step_days") or args.step),
+        )
+        queue = build_research_queue(result)
+        result["failure_research_queue"] = queue["summary"]
     private_path = Path(args.private_json_out)
     private_path.parent.mkdir(parents=True, exist_ok=True)
     private_path.write_text(json.dumps(result, separators=(",", ":")), encoding="utf-8")
