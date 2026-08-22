@@ -45,6 +45,9 @@ def refresh(cfg, store, run_id=None, wma_tickers=None, sec_tickers=None, verbose
                 if val is not None:
                     store.set_metric(tkr, fid, val, "finviz")
                     n += 1
+        # Only replace membership after the complete Finviz fetch and writes
+        # succeed. A source failure therefore cannot empty the active board.
+        store.replace_universe("finviz", (s["ticker"] for s in securities))
         store.commit()
         store.log_fetch(run_id, "finviz", True, len(securities), time.time() - t0)
         summary["sources"]["finviz"] = {"ok": True, "tickers": len(securities), "values": n}

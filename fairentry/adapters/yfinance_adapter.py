@@ -40,3 +40,24 @@ def fetch(cfg, field_ids, tickers=None):
         if cached:
             metrics[t] = {k: v for k, v in cached.items() if k in field_ids}
     return metrics
+
+
+def fetch_quotes(tickers=None):
+    """Independent current quotes for held/previously recommended names.
+
+    These quotes are tracking-only and must never affect board scoring.
+    """
+    import yfinance as yf
+    out = {}
+    for ticker in sorted(set(tickers or [])):
+        try:
+            obj = yf.Ticker(ticker)
+            price = obj.fast_info.get("last_price")
+            if not isinstance(price, (int, float)) or price <= 0:
+                hist = obj.history(period="5d", interval="1d", auto_adjust=False)
+                price = float(hist["Close"].dropna().iloc[-1]) if not hist.empty else None
+            if isinstance(price, (int, float)) and price > 0:
+                out[ticker] = round(float(price), 4)
+        except Exception:
+            continue
+    return out

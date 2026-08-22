@@ -101,7 +101,7 @@ def medians_from(cfg, pairs) -> dict:
 def sector_medians(cfg, store) -> dict:
     """Sector medians from the CURRENT snapshot (live scoring)."""
     return medians_from(cfg, ((sec["sector"], store.metrics_for(sec["ticker"]))
-                              for sec in store.securities()))
+                              for sec in store.active_securities()))
 
 
 def _safe_eval(expr, ns):

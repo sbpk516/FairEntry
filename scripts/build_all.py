@@ -23,7 +23,7 @@ def _candidates(cfg, store, cap):
     expensive SEC/yfinance enrichment."""
     cand = set()
     for mod in SCREENERS.values():
-        for s in store.securities():
+        for s in store.active_securities():
             ok, _ = mod.passes(store.metrics_for(s["ticker"]))
             if ok:
                 cand.add(s["ticker"])
@@ -32,7 +32,7 @@ def _candidates(cfg, store, cap):
         return v if isinstance(v, (int, float)) else 0
     representatives, _ = deduplicate_issuers([
         {"sec": security, "metrics": store.metrics_for(security["ticker"])}
-        for security in store.securities() if security["ticker"] in cand
+        for security in store.active_securities() if security["ticker"] in cand
     ])
     cand = [item["sec"]["ticker"] for item in representatives]
     return sorted(cand, key=capval, reverse=True)[:cap] if cap else sorted(cand)
@@ -54,6 +54,10 @@ def main():
             cand = _candidates(cfg, store, args.enrich_cap)
             print(f"Enriching {len(cand)} candidates (SEC forensic + 200wma; cached)…")
             refresh(cfg, store, sec_tickers=cand, wma_tickers=cand)
+        from fairentry.tracking import refresh_tracking_quotes
+        quote_refresh = refresh_tracking_quotes(store)
+        print(f"Tracking quotes: {quote_refresh['refreshed']}/{quote_refresh['requested']} refreshed "
+              "from independent source")
         print("Screening + scoring…" + (" + reasoning shortlist" if args.reason else ""))
         board = build_board(cfg, store, reason=args.reason)
         from fairentry.tracking import record as track_record

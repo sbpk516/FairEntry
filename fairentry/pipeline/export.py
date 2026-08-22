@@ -720,10 +720,37 @@ def _within(d, ref, days):
         return True
 
 
+def _fresh_price(metric, limit_hours=8, now=None):
+    """Return whether a live-decision price is present and inside its TTL."""
+    if not isinstance(metric, dict) or not isinstance(metric.get("value"), (int, float)):
+        return False, "Price unavailable"
+    try:
+        fetched = datetime.fromisoformat(str(metric.get("fetched_at", "")).replace("Z", "+00:00"))
+        if fetched.tzinfo is None:
+            fetched = fetched.replace(tzinfo=timezone.utc)
+        age_h = ((now or datetime.now(timezone.utc)) - fetched.astimezone(timezone.utc)).total_seconds() / 3600
+    except (TypeError, ValueError):
+        return False, "Price timestamp unavailable"
+    if age_h > limit_hours:
+        return False, f"Price unavailable/stale ({age_h:.1f}h old; limit {limit_hours:g}h)"
+    return True, None
+
+
 def build_board(cfg, store, settings=None, reason=False) -> dict:
     settings = settings or {"margin_of_safety_pct": 15, "target_upside_pct": 30}
     med = sector_medians(cfg, store)
-    secs = {x["ticker"]: x for x in store.securities()}
+    secs = {x["ticker"]: x for x in store.active_securities()}
+    price_limit_h = float(cfg.field("price").get("freshness_limit_h", 8))
+    price_issues = []
+    for ticker in list(secs):
+        metric = store.metrics_for(ticker).get("price")
+        fresh, issue = _fresh_price(metric, price_limit_h)
+        if not fresh:
+            price_issues.append({"ticker": ticker, "status": "Price unavailable/stale",
+                                 "reason": issue})
+            # A stale/missing execution price can never enter screeners, scoring,
+            # a Buy verdict, or the high-confidence overlay.
+            del secs[ticker]
     revisions = _estimate_revisions(store)
     for t, sc in revisions.items():
         store.set_metric(t, "estimate_revision_score", sc, "computed")
@@ -840,6 +867,11 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
                      "ai_review": ai_review,
                      "wma_alerts": proximity_alerts,
                      "wma_alert_threshold_pct": threshold,
+                     "price_freshness": {
+                         "limit_hours": price_limit_h,
+                         "excluded_count": len(price_issues),
+                         "issues": price_issues,
+                     },
                      "preset_profiles": cfg.scoring.get("preset_profiles", {}),
                      "presets": cfg.scoring.get("presets", {}),
                      "default_weights": {cid: c["weight"] for cid, c in cfg.categories.items()},

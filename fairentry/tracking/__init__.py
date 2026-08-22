@@ -20,6 +20,26 @@ def _now():
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+def tracked_tickers(store) -> list[str]:
+    """Names that remain monitored even after leaving the active universe."""
+    rows = store.con.execute(
+        "SELECT ticker FROM recommendations UNION "
+        "SELECT ticker FROM paper_portfolio WHERE status='open'").fetchall()
+    return sorted({r["ticker"] for r in rows})
+
+
+def refresh_tracking_quotes(store) -> dict:
+    """Refresh tracking-only prices from an independent quote provider."""
+    from ..adapters.yfinance_adapter import fetch_quotes
+    tickers = tracked_tickers(store)
+    quotes = fetch_quotes(tickers)
+    fetched_at = _now()
+    for ticker, price in quotes.items():
+        store.set_metric(ticker, "tracking_price", price, "yfinance_tracking", fetched_at)
+    store.commit()
+    return {"requested": len(tickers), "refreshed": len(quotes), "prices": quotes}
+
+
 def record(store, board: dict) -> dict:
     now = _now()
     signal_date = now[:10]
@@ -28,10 +48,51 @@ def record(store, board: dict) -> dict:
     price_by = {s["ticker"]: s.get("price") for s in board.get("stocks", [])}
     action_by = {s["ticker"]: s.get("action", {}).get("action", "") for s in board.get("stocks", [])}
     board_by = {s["ticker"]: s for s in board.get("stocks", [])}
+    tracking_only = set()
+
+    # Preserve price monitoring for open positions that are no longer eligible
+    # for the active Finviz board. This cannot create or upgrade a verdict.
+    for position in open_positions(store):
+        ticker = position["ticker"]
+        if ticker in price_by:
+            continue
+        metric = store.metrics_for(ticker).get("tracking_price", {})
+        price = metric.get("value") if isinstance(metric, dict) else None
+        if isinstance(price, (int, float)):
+            price_by[ticker] = price
+            tracking_only.add(ticker)
+            action_by[ticker] = "Tracking only"
+            board_by[ticker] = {"ticker": ticker, "company": ticker,
+                                "price_status": "Independent tracking quote"}
 
     for tkr in price_by:
-        for r in store.con.execute(
-                "SELECT strategy, verdict, preliminary FROM score_results WHERE ticker=?", (tkr,)):
+        if tkr in tracking_only:
+            position = store.con.execute(
+                "SELECT entered_at,entry_price,status,strategy FROM paper_portfolio WHERE ticker=?",
+                (tkr,)).fetchone()
+            price = price_by[tkr]
+            if (position and position["status"] == "open"
+                    and isinstance(position["entry_price"], (int, float))
+                    and position["entry_price"] > 0):
+                gain = (price / position["entry_price"] - 1) * 100
+                if gain >= 25:
+                    strategy = position["strategy"] or "tracking"
+                    event_key = position["entered_at"] or "unknown-entry"
+                    inserted = store.con.execute(
+                        "INSERT OR IGNORE INTO notification_events"
+                        "(event_type,ticker,strategy,event_key,created_at) VALUES(?,?,?,?,?)",
+                        ("near_30_target", tkr, strategy, event_key, now)).rowcount
+                    if inserted:
+                        near_30.append({"ticker": tkr, "company": tkr,
+                                        "strategy": strategy, "price": round(price, 2),
+                                        "entry_price": round(position["entry_price"], 2),
+                                        "gain_pct": round(gain, 1),
+                                        "target_price": round(position["entry_price"] * 1.30, 2),
+                                        "quote_source": "yfinance_tracking"})
+            continue
+        score_rows = list(store.con.execute(
+            "SELECT strategy, verdict, preliminary FROM score_results WHERE ticker=?", (tkr,)))
+        for r in score_rows:
             strat, verdict, score = r["strategy"], r["verdict"], r["preliminary"]
             stock = board_by.get(tkr, {})
             store.con.execute(

@@ -52,6 +52,22 @@ def test_record_emits_new_buy_and_near_30_only_once(tmp_path):
         assert third["near_30"] == []
 
 
+def test_inactive_open_position_uses_independent_tracking_quote(tmp_path):
+    with Store(tmp_path / "test.db") as store:
+        store.set_score_result("TEST", "quality_growth", 74, 76, "Buy", {})
+        record(store, _board(price=100))
+        store.set_metric("TEST", "tracking_price", 125, "yfinance_tracking")
+
+        # TEST is absent from the active board, but its open position remains
+        # monitored by the independent tracking quote.
+        result = record(store, {"stocks": []})
+        assert result["near_30"][0]["ticker"] == "TEST"
+        assert result["near_30"][0]["gain_pct"] == 25.0
+        # A quote-only monitor must not manufacture an active recommendation
+        # signal and distort the backtest.
+        assert store.con.execute("SELECT COUNT(*) FROM signal_events").fetchone()[0] == 1
+
+
 def test_record_emits_new_buy_when_verdict_improves(tmp_path):
     with Store(tmp_path / "test.db") as store:
         store.set_score_result("TEST", "quality_growth", 60, 60, "Watch", {})

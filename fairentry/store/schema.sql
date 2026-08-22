@@ -95,6 +95,22 @@ CREATE TABLE IF NOT EXISTS paper_portfolio (
   notes       TEXT
 );
 
+-- The latest successfully screened universe for each defining source.  This is
+-- deliberately separate from securities: removing a name from today's active
+-- universe must never erase its metrics, signals, or backtest history.
+CREATE TABLE IF NOT EXISTS universe_membership (
+  source       TEXT NOT NULL,
+  ticker       TEXT NOT NULL,
+  refreshed_at TEXT NOT NULL,
+  PRIMARY KEY (source, ticker)
+);
+CREATE INDEX IF NOT EXISTS ix_universe_ticker ON universe_membership(ticker);
+CREATE TABLE IF NOT EXISTS universe_refresh (
+  source       TEXT PRIMARY KEY,
+  refreshed_at TEXT NOT NULL,
+  member_count INTEGER NOT NULL
+);
+
 -- One-shot delivery ledger.  Event keys include the recommendation/position
 -- identity so scheduled refreshes do not resend the same alert.
 CREATE TABLE IF NOT EXISTS notification_events (

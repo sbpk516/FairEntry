@@ -832,7 +832,9 @@ function currentList(){
 }
 function renderBoard(){ var list=currentList();
   renderActiveWeights();
-  $('#board').innerHTML=list.map(function(o){return tileHTML(o.s);}).join('')||'<div style="color:var(--ink-faint);padding:30px">No stocks match.</div>';
+  var pf=META.price_freshness||{}, warning=pf.excluded_count?
+    '<div class="notice warn" style="margin-bottom:14px"><b>Price unavailable/stale:</b> '+esc(pf.excluded_count)+' stock(s) hidden from active scoring. No Buy or High-confidence status is issued beyond the '+esc(pf.limit_hours)+'-hour price limit.</div>':'';
+  $('#board').innerHTML=warning+(list.map(function(o){return tileHTML(o.s);}).join('')||'<div style="color:var(--ink-faint);padding:30px">No stocks match.</div>');
   var byv={Buy:0,Watch:0,Avoid:0}; list.forEach(function(o){byv[o.c.verdict]++;});
   $('#count').textContent=list.length+' shown'+(WMA_ONLY?' near 200 WMA':'')+(HIGH_ONLY?' high confidence':'')+' - '+byv.Buy+' Buy - '+byv.Watch+' Watch - '+byv.Avoid+' Avoid';
 }

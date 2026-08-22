@@ -53,6 +53,44 @@ class Store:
             args = tuple(sectors)
         return [dict(r) for r in self.con.execute(q, args)]
 
+    def replace_universe(self, source: str, tickers, refreshed_at=None):
+        """Atomically mark the members from a successful source refresh.
+
+        Historical securities and metrics are intentionally left untouched.
+        """
+        refreshed_at = refreshed_at or _now()
+        members = sorted({str(t).strip() for t in tickers if str(t).strip()})
+        with self.con:
+            self.con.execute("DELETE FROM universe_membership WHERE source=?", (source,))
+            self.con.executemany(
+                "INSERT INTO universe_membership(source,ticker,refreshed_at) VALUES(?,?,?)",
+                ((source, ticker, refreshed_at) for ticker in members))
+            self.con.execute(
+                "INSERT INTO universe_refresh(source,refreshed_at,member_count) VALUES(?,?,?) "
+                "ON CONFLICT(source) DO UPDATE SET refreshed_at=excluded.refreshed_at, "
+                "member_count=excluded.member_count",
+                (source, refreshed_at, len(members)))
+
+    def active_securities(self, source="finviz", sectors=None) -> list[dict]:
+        """Current source universe, with a migration-safe legacy fallback."""
+        has_snapshot = self.con.execute(
+            "SELECT 1 FROM universe_refresh WHERE source=?", (source,)).fetchone()
+        if not has_snapshot:
+            return self.securities(sectors)
+        q = ("SELECT s.* FROM securities s JOIN universe_membership u "
+             "ON u.ticker=s.ticker WHERE u.source=?")
+        args = [source]
+        if sectors:
+            q += " AND s.sector IN (%s)" % ",".join("?" * len(sectors))
+            args.extend(sectors)
+        return [dict(r) for r in self.con.execute(q, tuple(args))]
+
+    def universe_refreshed_at(self, source="finviz"):
+        row = self.con.execute(
+            "SELECT refreshed_at FROM universe_refresh WHERE source=?",
+            (source,)).fetchone()
+        return row["refreshed_at"] if row else None
+
     # -- metrics ---------------------------------------------------------------
     def set_metric(self, ticker, field_id, value, source, fetched_at=None):
         fetched_at = fetched_at or _now()

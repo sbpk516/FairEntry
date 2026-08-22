@@ -7,7 +7,33 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from fairentry.config import load_config
 from fairentry.store import Store
 from fairentry.scoring.engine import sector_medians, score_ticker
-from fairentry.pipeline.export import demand_momentum, build_board, _preset_weights
+from fairentry.pipeline.export import demand_momentum, build_board, _preset_weights, _fresh_price
+
+
+def test_price_freshness_gate_rejects_price_older_than_eight_hours():
+    fresh, reason = _fresh_price(
+        {"value": 23.57, "fetched_at": "2026-08-21T23:00:00+00:00"},
+        limit_hours=8,
+        now=__import__("datetime").datetime(2026, 8, 22, 12, 0,
+                                               tzinfo=__import__("datetime").timezone.utc),
+    )
+    assert fresh is False
+    assert "stale" in reason.lower()
+
+
+def test_current_universe_replacement_preserves_historical_security(tmp_path):
+    with Store(tmp_path / "universe.db") as store:
+        store.upsert_security("OLD", "Old Co", "Technology")
+        store.upsert_security("NEW", "New Co", "Technology")
+        store.set_metric("OLD", "price", 10, "finviz")
+        store.replace_universe("finviz", ["OLD"])
+        assert [s["ticker"] for s in store.active_securities()] == ["OLD"]
+        store.replace_universe("finviz", ["NEW"])
+        assert [s["ticker"] for s in store.active_securities()] == ["NEW"]
+        assert {s["ticker"] for s in store.securities()} == {"OLD", "NEW"}
+        assert store.metrics_for("OLD")["price"]["value"] == 10
+        store.replace_universe("finviz", [])
+        assert store.active_securities() == []
 
 
 def _m(**kw):
