@@ -423,7 +423,7 @@
       <button data-v="Avoid">Avoid</button>
     </div>
     <button class="iconbtn" id="wmafilter" type="button" aria-pressed="false">Near 200 WMA</button>
-    <button class="iconbtn" id="highfilter" type="button" aria-pressed="false">High confidence</button>
+    <button class="iconbtn" id="highfilter" type="button" aria-pressed="false" disabled title="The previous rule did not reproduce in the expanded point-in-time replay.">High confidence · not validated</button>
     <select id="sort">
       <option value="score">Sort: Score</option>
       <option value="upside">Sort: Valuation upside</option>
@@ -705,7 +705,7 @@ function actionNuance(c){
 function confidenceBadge(s,c){
   if(c.verdict!=='Buy'||!s.confidence_tier)return '';
   var high=s.confidence_tier.id==='high_confidence';
-  return '<div style="margin-top:5px"><span class="lab '+(high?'good':'info')+'" title="Confidence overlay; does not change score or verdict">'+esc(high?'High-confidence candidate':'Standard Buy')+'</span></div>';
+  return '<div style="margin-top:5px"><span class="lab '+(high?'good':'info')+'" title="Information-only overlay; does not change score or verdict">'+esc(s.confidence_tier.label||'Standard Buy')+'</span></div>';
 }
 // Plain-English version of the AI's situation read (thesis.label).
 function thesisPlain(s){
@@ -1188,11 +1188,11 @@ function valHTML(s){ var v=s.valuation, price=s.price;
 
 function confidenceHTML(s,c){ var t=s.confidence_tier;if(!t||c.verdict!=='Buy')return '';
   var high=t.id==='high_confidence',i=t.inputs||{},fin=i.financial_strength||{},growth=i.growth_score||{},eps=i.expected_eps_growth||{},h=t.historical_evidence||{};
-  return '<div class="sub-h">Investment confidence tier <span class="lab '+(high?'good':'info')+'">'+esc(t.label)+'</span></div><div class="bizbox"><div class="biztop"><div class="bizplain"><b>'+(high?'Passes the current high-confidence rule':'Does not pass the high-confidence overlay')+'</b><br><span class="meta">This overlay does not tune weights or change Buy / Watch / Avoid.</span></div><div class="bizexample">'+
+  return '<div class="sub-h">Investment confidence validation <span class="lab '+(high?'good':'info')+'">'+esc(t.label)+'</span></div><div class="bizbox"><div class="biztop"><div class="bizplain"><b>'+(high?'Passes a validated high-confidence rule':'No validated High-confidence designation')+'</b><br><span class="meta">The Financial Strength overlay is information only and does not tune weights or change Buy / Watch / Avoid.</span></div><div class="bizexample">'+
     'Financial Strength: <b>'+esc(fin.value==null?'n/a':fin.value)+'</b> / required '+esc(fin.minimum)+' — <span class="lab '+(fin.passes?'good':'bad')+'">'+(fin.passes?'passes':'does not pass')+'</span><br>'+
     'Growth Score: <b>'+esc(growth.value==null?'n/a':growth.value)+'</b> — displayed, not required because it did not add historical precision.<br>'+
     'Expected next-year EPS growth: <b>'+(eps.value_pct==null?'n/a':esc(eps.value_pct)+'%')+'</b> / provisional confirmation '+esc(eps.confirmation_threshold_pct)+'% — <span class="lab '+(eps.passes_provisional_confirmation?'good':'warn')+'">'+(eps.passes_provisional_confirmation?'provisional pass':'not confirmed')+'</span><br>'+
-    'Hard veto: <b>'+(i.no_hard_veto&&i.no_hard_veto.value?'none':'present')+'</b></div></div><div class="vg-explain">Historical evidence for the current Financial Strength rule: <b>'+esc(h.successes)+'/'+esc(h.completed_episodes)+' succeeded ('+esc(h.observed_success_rate_pct)+'%)</b>; 90% interval '+esc((h.confidence_interval_90_pct||[]).join('–'))+'%. This is historical evidence, not a guarantee. EPS remains information-only until point-in-time forecasts pass a walk-forward test.</div></div>'; }
+    'Hard veto: <b>'+(i.no_hard_veto&&i.no_hard_veto.value?'none':'present')+'</b></div></div><div class="vg-explain"><b>Expanded replay result: not validated as High-confidence.</b> '+esc(h.successes)+'/'+esc(h.completed_episodes)+' succeeded ('+esc(h.observed_success_rate_pct)+'%), versus '+esc(h.comparison_all_buy_rate_pct)+'% for all Buys; 90% interval '+esc((h.confidence_interval_90_pct||[]).join('–'))+'%. The earlier 42/51 result did not reproduce. EPS remains information-only.</div></div>'; }
 
 function openDetail(tk){ var s=STOCKS.find(function(x){return x.ticker===tk;}); if(!s)return; var c=compute(s), vk=c.verdict.toLowerCase();
   $('#d-title').innerHTML=esc(s.ticker)+' <span style="font-size:13px;color:var(--ink-faint);font-weight:500">'+esc(s.company)+'</span>';

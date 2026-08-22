@@ -98,10 +98,12 @@ def test_context_is_present_but_does_not_change_the_verdict():
     tier = stock["confidence_tier"]
     financial = next(c["score"] for c in stock["categories"] if c["id"] == "survival")
     expected_high = stock["verdict"] == "Buy" and financial >= 70 and not stock["vetoes"]
-    assert tier["eligible"] is expected_high
-    assert tier["id"] == ("high_confidence" if expected_high else
+    assert tier["eligible"] is False
+    assert tier["passes_financial_strength_rule"] is expected_high
+    assert tier["id"] == ("financial_strength_qualified" if expected_high else
                            "standard_buy" if stock["verdict"] == "Buy" else "not_applicable")
     assert tier["score_effect"] == 0
     assert tier["verdict_effect"] == "none"
     assert tier["inputs"]["expected_eps_growth"]["decision_status"] == "information_only"
+    assert tier["historical_evidence"]["validated"] is False
     assert board["meta"]["confidence_policy"]["weight_changes"] is False

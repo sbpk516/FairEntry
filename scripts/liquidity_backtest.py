@@ -42,7 +42,7 @@ def main():
         result = run_sfa_rolling(
             warehouse, load_config(), hold_days=30, step_days=args.step,
             warmup_days=300, min_names=20, bootstrap=args.bootstrap,
-            strategy=strategy, include_evidence=True,
+            strategy=strategy, include_evidence=False,
             progress=lambda row: print(json.dumps({"progress": row}), flush=True),
         )
     if not result.get("ok"):

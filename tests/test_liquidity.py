@@ -1,10 +1,12 @@
 from fairentry.backtest.liquidity import compare_liquidity_thresholds
 
 
-def _row(ticker, volume, hit=None, drawdown=-10, verdict="Buy"):
+def _row(ticker, volume, hit=None, drawdown=-10, verdict="Buy", strength=75, vetoes=None,
+         decision_date="2020-01-01"):
     return {
         "ticker": ticker, "security_id": ticker, "avg_dollar_volume": volume,
-        "verdict": verdict,
+        "verdict": verdict, "vetoes": vetoes or [], "decision_date": decision_date,
+        "categories": [{"id": "survival", "score": strength}],
         "_tuning_outcome": {
             "first_hit_secondary_days": hit, "last_observed_days": 365,
             "terminal_days": None, "max_drawdown_pct": drawdown,
@@ -25,4 +27,18 @@ def test_liquidity_comparison_counts_success_failure_and_drawdown():
     assert five["worst_max_drawdown_pct"] == -25
     assert ten["unique_buy_stocks"] == 2
     assert twenty["success_rate_pct"] == 100.0
+    assert five["high_confidence"]["completed_episodes"] == 3
+    assert five["high_confidence"]["success_rate_pct"] == 66.7
+    assert five["high_confidence"]["success_rate_ci90_pct"] is not None
     assert report["bid_ask_spread_status"] == "unavailable"
+
+
+def test_high_confidence_requires_strength_and_no_veto():
+    report = compare_liquidity_thresholds([
+        _row("PASS", 20_000_000, hit=100),
+        _row("WEAK", 20_000_000, hit=100, strength=69),
+        _row("VETO", 20_000_000, hit=100, vetoes=["hard"]),
+    ])
+    high = report["rows"][3]["high_confidence"]
+    assert high["episodes"] == 1
+    assert high["success_rate_pct"] == 100.0

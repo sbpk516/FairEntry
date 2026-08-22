@@ -454,31 +454,36 @@ def _map(rec, strategies, strategy_key):
     expected_eps_growth = _metric_value(rec, "eps_growth_next_y")
     is_buy = rec.get("verdict") == "Buy"
     no_hard_veto = not bool(rec.get("vetoes"))
-    high_confidence = bool(
+    financial_strength_qualified = bool(
         is_buy and no_hard_veto
         and isinstance(financial_strength, (int, float))
         and financial_strength >= 70
     )
     confidence_tier = {
-        "id": ("high_confidence" if high_confidence else
+        "id": ("financial_strength_qualified" if financial_strength_qualified else
                "standard_buy" if is_buy else "not_applicable"),
-        "label": ("High-confidence candidate" if high_confidence else
+        "label": ("Financial-strength qualified Buy" if financial_strength_qualified else
                   "Standard Buy" if is_buy else "Not a Buy candidate"),
-        "eligible": high_confidence,
+        "eligible": False,
+        "passes_financial_strength_rule": financial_strength_qualified,
         "score_effect": 0,
         "verdict_effect": "none",
-        "policy_version": "confidence_tier_v1",
+        "policy_version": "confidence_tier_v2_revalidated",
         "basis": (
             "Buy verdict, Financial Strength at least 70, and no hard veto. "
-            "This tier is an overlay and does not tune weights or change the verdict."
+            "The full point-in-time replay did not validate this as High-confidence; "
+            "it remains information-only and does not change the verdict."
         ),
         "historical_evidence": {
-            "completed_episodes": 51,
-            "successes": 42,
-            "failures": 9,
-            "observed_success_rate_pct": 82.4,
-            "confidence_interval_90_pct": [72.0, 89.4],
+            "completed_episodes": 278,
+            "successes": 123,
+            "failures": 155,
+            "observed_success_rate_pct": 44.2,
+            "confidence_interval_90_pct": [39.4, 49.2],
             "target": "+30% within one year",
+            "comparison_all_buy_rate_pct": 43.0,
+            "validated": False,
+            "replay": "112 quarterly point-in-time cohorts, 1998-2026, $10M floor",
         },
         "inputs": {
             "financial_strength": {"value": financial_strength, "minimum": 70,
@@ -880,8 +885,10 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
                      "strategy_presets": cfg.defaults.get("strategy_presets", {}),
                      "verdict_bands": cfg.verdict_bands,
                      "confidence_policy": {
-                         "version": "confidence_tier_v1",
-                         "high_confidence_rule": "Buy AND Financial Strength >= 70 AND no hard veto",
+                         "version": "confidence_tier_v2_revalidated",
+                         "high_confidence_rule": None,
+                         "tested_rule": "Buy AND Financial Strength >= 70 AND no hard veto",
+                         "validation_result": "not validated (44.2% vs 43.0% for all Buy episodes)",
                          "weight_changes": False,
                          "verdict_changes": False,
                          "eps_confirmation": "Expected next-year EPS growth >= 15% is provisional and information-only",
