@@ -346,3 +346,19 @@ The deterministic runner rejects outcome fields, reports +20%, +25% and +30%
 attainment through three years, checks sample size and drawdown, and never edits
 production scores or weights. An eligible rule still requires explicit human
 promotion. Every normal SFA replay now regenerates both research contracts.
+
+## Factor explorer
+
+Run `python scripts/factor_explorer.py --public-attach web/data/backtest-sfa.json`
+to compare completed +30%-within-one-year successes and failures using only
+information available on each original Buy date. The first factor families are
+revenue-growth deceleration, operating-margin direction, free-cash-flow margin,
+P/E relative to revenue growth, relative strength and trend regime. Licensed
+fundamental amounts remain private; the UI receives only derived aggregate
+distributions and walk-forward results.
+
+The explorer uses rolling chronological folds. Thresholds are learned from all
+older folds and evaluated on the next unseen fold. Its changing thresholds are
+research hypotheses only: it cannot edit production scoring, weights, verdicts
+or configuration. A stable result may nominate a separate, frozen rule for the
+controlled validation cycle, but promotion remains explicit and manual.

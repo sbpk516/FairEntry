@@ -302,6 +302,7 @@ def test_public_artifact_redacts_reconstructable_vendor_values():
                 "country": float("nan"),
                 "_tuning_outcome": {"first_hit_primary_days": 30},
                 "security_id": "vendor-permanent-id",
+                "research_factors": {"fcf_margin_pct": 42},
                 "categories": [{"items": [{"actual": 42}]}],
                 "data_quality": {"grade": "point_in_time", "fields": [{"value": 42}]},
                 "outcome": {"path": [["2020-01-01", 10]], "horizons": {}},
@@ -316,6 +317,7 @@ def test_public_artifact_redacts_reconstructable_vendor_values():
     row = clean["observations"][0]
     assert "raw_close" not in row
     assert "security_id" not in row
+    assert "research_factors" not in row
     assert "_tuning_outcome" not in row
     assert "path" not in row["outcome"]
     assert "items" not in row["categories"][0]

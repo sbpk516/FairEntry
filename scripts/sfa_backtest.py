@@ -16,6 +16,10 @@ from fairentry.backtest.sfa_replay import run_sfa_rolling
 from fairentry.backtest.sfa_tune import policy_from_strategy, tune_sfa_observations
 from fairentry.backtest.research_cycle import run_predictive_rule_research
 from fairentry.backtest.failure_research import build_research_queue
+from fairentry.backtest.factor_explorer import (
+    attach_warehouse_factors,
+    run_factor_explorer,
+)
 from fairentry.backtest.strategy import load_strategy
 from fairentry.config import load_config
 from fairentry.sharadar import SharadarWarehouse
@@ -107,6 +111,7 @@ def public_artifact(result: dict, detail_limit: int = 2000) -> dict:
         observation.pop("raw_close", None)
         observation.pop("security_id", None)
         observation.pop("avg_dollar_volume", None)
+        observation.pop("research_factors", None)
         observation.get("outcome", {}).pop("path", None)
         observation["categories"] = [
             {k: category.get(k) for k in ("id", "label", "weight", "score", "coverage")}
@@ -173,6 +178,16 @@ def main():
     args = ap.parse_args()
     if args.publish_private:
         result = json.loads(Path(args.publish_private).read_text(encoding="utf-8"))
+        if result.get("ok") and not result.get("factor_explorer"):
+            with SharadarWarehouse(args.warehouse, read_only=True) as warehouse:
+                enrichment = attach_warehouse_factors(
+                    result.get("observations", []), warehouse.con
+                )
+            result["factor_explorer"] = run_factor_explorer(
+                result.get("observations", []),
+                step_days=int(result.get("step_days") or 30),
+            )
+            result["factor_explorer"]["enrichment"] = enrichment
         if result.get("ok") and not result.get("research_cycle"):
             result["research_cycle"] = run_predictive_rule_research(
                 result.get("observations", []),
@@ -209,6 +224,15 @@ def main():
             include_evidence=not args.no_evidence,
             progress=lambda row: print(json.dumps({"progress": row}), flush=True),
         )
+        if result.get("ok") and not args.no_evidence:
+            enrichment = attach_warehouse_factors(
+                result.get("observations", []), warehouse.con
+            )
+            result["factor_explorer"] = run_factor_explorer(
+                result.get("observations", []),
+                step_days=int(result.get("step_days") or args.step),
+            )
+            result["factor_explorer"]["enrichment"] = enrichment
     result["artifact"] = {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "generator": "scripts/sfa_backtest.py",

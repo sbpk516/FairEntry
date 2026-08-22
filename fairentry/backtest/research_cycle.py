@@ -81,6 +81,8 @@ def factor_value(row: dict, field: str):
         return _number((row.get("valuation") or {}).get(field.split(".", 1)[1]))
     if field.startswith("debt."):
         return _number((row.get("debt_direction") or {}).get(field.split(".", 1)[1]))
+    if field.startswith("research."):
+        return _number((row.get("research_factors") or {}).get(field.split(".", 1)[1]))
     if field in {"score", "avg_dollar_volume"}:
         return _number(row.get(field))
     if field in {"regime", "sector", "strategy_key"}:
@@ -109,7 +111,8 @@ def validate_rules(rules: list[dict]) -> list[dict]:
             # Resolve the namespace now, without needing a real observation.
             if not (field in {"no_hard_veto", "growth_qualified", "score",
                               "avg_dollar_volume", "regime", "sector", "strategy_key"}
-                    or field.startswith(("category.", "metric.", "valuation.", "debt."))):
+                    or field.startswith(("category.", "metric.", "valuation.", "debt.",
+                                         "research."))):
                 raise ValueError(f"{rule_id}: unsupported predictive field: {field}")
         clean.append({
             "id": rule_id,
