@@ -58,7 +58,8 @@ def _send_email(subject: str, lines: list[str]) -> bool:
         request = urllib.request.Request(
             "https://api.resend.com/emails", data=payload, method="POST",
             headers={"Authorization": f"Bearer {api_key}",
-                     "Content-Type": "application/json"})
+                     "Content-Type": "application/json",
+                     "User-Agent": "FairEntry/1.0"})
         try:
             with urllib.request.urlopen(request, timeout=20) as response:
                 return 200 <= response.status < 300
