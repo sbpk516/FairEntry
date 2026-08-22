@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 import smtplib
+import urllib.error
 import urllib.request
 from email.message import EmailMessage
 
@@ -58,8 +59,12 @@ def _send_email(subject: str, lines: list[str]) -> bool:
             "https://api.resend.com/emails", data=payload, method="POST",
             headers={"Authorization": f"Bearer {api_key}",
                      "Content-Type": "application/json"})
-        with urllib.request.urlopen(request, timeout=20) as response:
-            return 200 <= response.status < 300
+        try:
+            with urllib.request.urlopen(request, timeout=20) as response:
+                return 200 <= response.status < 300
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode("utf-8", errors="replace")
+            raise RuntimeError(f"Resend rejected the email ({exc.code}): {detail}") from exc
     host = os.environ.get("SMTP_HOST")
     if not recipient or not host:
         return False
