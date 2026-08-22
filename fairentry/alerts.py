@@ -1,8 +1,10 @@
 """Actionable alerts for shortlisted stocks near their 200-week average."""
 from __future__ import annotations
 
+import json
 import os
 import smtplib
+import urllib.request
 from email.message import EmailMessage
 
 
@@ -31,45 +33,40 @@ def wma_alerts(stocks: list[dict], metrics_by_ticker: dict, threshold_pct: float
 
 
 def email_wma_alerts(alerts: list[dict]) -> bool:
-    """Email the alert list when SMTP environment variables are configured."""
-    recipient, host = os.environ.get("WMA_ALERT_EMAIL"), os.environ.get("SMTP_HOST")
-    if not alerts or not recipient or not host:
+    """Email the alert list through Resend, or SMTP as a fallback."""
+    if not alerts:
         return False
-    sender = os.environ.get("SMTP_FROM") or os.environ.get("SMTP_USER") or recipient
-    message = EmailMessage()
-    message["Subject"] = f"FairEntry: {len(alerts)} stock(s) near the 200 WMA"
-    message["From"], message["To"] = sender, recipient
     lines = ["Shortlisted Buy/Watch stocks near their 200-week moving average:", ""]
     for item in alerts:
         side = "above" if item["distance_pct"] >= 0 else "below"
         lines.append(f"{item['ticker']} ({item['verdict']}): ${item['price']:.2f}; "
                      f"200 WMA ${item['wma_200']:.2f}; {abs(item['distance_pct']):.1f}% {side}")
-    message.set_content("\n".join(lines) + "\n\nFor personal research only, not investment advice.")
-    port = int(os.environ.get("SMTP_PORT", "587"))
-    user, password = os.environ.get("SMTP_USER"), os.environ.get("SMTP_PASSWORD")
-    if os.environ.get("SMTP_SSL", "").lower() in {"1", "true", "yes"}:
-        server = smtplib.SMTP_SSL(host, port, timeout=20)
-    else:
-        server = smtplib.SMTP(host, port, timeout=20)
-        server.starttls()
-    with server:
-        if user and password:
-            server.login(user, password)
-        server.send_message(message)
-    return True
+    return _send_email(f"FairEntry: {len(alerts)} stock(s) near the 200 WMA", lines)
 
 
 def _send_email(subject: str, lines: list[str]) -> bool:
-    """Send one FairEntry event email using the shared SMTP configuration."""
+    """Send through Resend when configured, otherwise use SMTP."""
     recipient = (os.environ.get("FAIRENTRY_ALERT_EMAIL")
                  or os.environ.get("WMA_ALERT_EMAIL"))
+    api_key = os.environ.get("RESEND_API_KEY")
+    body = "\n".join(lines) + "\n\nFor personal research only, not investment advice."
+    if recipient and api_key:
+        sender = os.environ.get("RESEND_FROM_EMAIL", "FairEntry <onboarding@resend.dev>")
+        payload = json.dumps({"from": sender, "to": [recipient],
+                              "subject": subject, "text": body}).encode("utf-8")
+        request = urllib.request.Request(
+            "https://api.resend.com/emails", data=payload, method="POST",
+            headers={"Authorization": f"Bearer {api_key}",
+                     "Content-Type": "application/json"})
+        with urllib.request.urlopen(request, timeout=20) as response:
+            return 200 <= response.status < 300
     host = os.environ.get("SMTP_HOST")
     if not recipient or not host:
         return False
     sender = os.environ.get("SMTP_FROM") or os.environ.get("SMTP_USER") or recipient
     message = EmailMessage()
     message["Subject"], message["From"], message["To"] = subject, sender, recipient
-    message.set_content("\n".join(lines) + "\n\nFor personal research only, not investment advice.")
+    message.set_content(body)
     port = int(os.environ.get("SMTP_PORT", "587"))
     user, password = os.environ.get("SMTP_USER"), os.environ.get("SMTP_PASSWORD")
     if os.environ.get("SMTP_SSL", "").lower() in {"1", "true", "yes"}:
@@ -82,6 +79,14 @@ def _send_email(subject: str, lines: list[str]) -> bool:
             server.login(user, password)
         server.send_message(message)
     return True
+
+
+def send_test_email() -> bool:
+    """Send a harmless delivery check using the configured provider."""
+    return _send_email("FairEntry email notifications are active", [
+        "Your FairEntry email connection is working.",
+        "Future messages will be sent for new Buy candidates and stocks reaching +25%.",
+    ])
 
 
 def email_trading_alerts(new_buys: list[dict], near_30: list[dict]) -> dict:

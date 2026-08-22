@@ -1,0 +1,22 @@
+name: FairEntry — test email
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    env:
+      FAIRENTRY_ALERT_EMAIL: nalpill516@gmail.com
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      RESEND_FROM_EMAIL: "FairEntry <onboarding@resend.dev>"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Send delivery test
+        run: python -c "from fairentry.alerts import send_test_email; assert send_test_email(), 'Email was not sent'"

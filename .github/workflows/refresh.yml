@@ -40,6 +40,8 @@ jobs:
       SEC_CONTACT_EMAIL: ${{ secrets.SEC_CONTACT_EMAIL }}
       WMA_ALERT_EMAIL: ${{ secrets.WMA_ALERT_EMAIL }}
       FAIRENTRY_ALERT_EMAIL: nalpill516@gmail.com
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      RESEND_FROM_EMAIL: "FairEntry <onboarding@resend.dev>"
       SMTP_HOST: ${{ secrets.SMTP_HOST }}
       SMTP_PORT: ${{ secrets.SMTP_PORT }}
       SMTP_USER: ${{ secrets.SMTP_USER }}
