@@ -358,7 +358,16 @@ fundamental amounts remain private; the UI receives only derived aggregate
 distributions and walk-forward results.
 
 The explorer uses rolling chronological folds. Thresholds are learned from all
-older folds and evaluated on the next unseen fold. Its changing thresholds are
-research hypotheses only: it cannot edit production scoring, weights, verdicts
-or configuration. A stable result may nominate a separate, frozen rule for the
-controlled validation cycle, but promotion remains explicit and manual.
+older folds, must reproduce on a second older validation slice, and are then
+evaluated on the next unseen fold. It tests revenue and earnings consistency,
+growth stability, margins, cash flow, several valuation measures, dilution,
+debt direction, market and sector conditions, and entry timing. Pre-declared
+economic combinations are tested instead of brute-forcing every possible pair.
+
+Historical analyst-estimate revisions and next-year EPS estimates are explicitly
+reported as unavailable because the licensed replay does not contain complete
+point-in-time series for them. They remain non-quantifiable information with no
+score effect. The explorer's changing thresholds are research hypotheses only:
+it cannot edit production scoring, weights, verdicts or configuration. A stable
+result may nominate a separate, frozen rule for the controlled validation cycle,
+but promotion remains explicit and manual.
