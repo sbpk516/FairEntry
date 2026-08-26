@@ -12,7 +12,8 @@ from pathlib import Path
 from ..analytics.breakout_setup import build_context as build_breakout_setup
 from ..analytics.chart_history import write_chart_files
 from ..analytics.demand_momentum import build_context as build_demand_momentum
-from ..alerts import wma_alerts
+from ..analytics.valuation_context import build_valuation_context
+from ..alerts import strong_business_wma_candidates, wma_alerts
 from ..scoring.engine import sector_medians, score_ticker
 from ..scoring.targets import build_target_plan
 from ..screeners import REGISTRY as SCREENERS
@@ -588,12 +589,15 @@ def _map(rec, strategies, strategy_key):
                       "excluded_methods": fv.get("excluded_methods", []),
                       "dispersion_pct": fv.get("dispersion_pct"),
                       "method_agreement_pct": fv.get("method_agreement_pct"),
+                      "method_agreement": fv.get("method_agreement"),
                       "confidence": fv.get("valuation_confidence"),
                       "warnings": fv.get("warnings", [])},
+        "valuation_context": rec.get("_valuation_context"),
         "growth_entry": growth_entry,
         "target_plan": rec.get("_target_plan"),
         "demand_momentum": rec.get("_demand_momentum"),
         "breakout_setup": breakout,
+        "entry_exit_evidence": rec.get("_entry_exit_evidence"),
         "qualitative_context": rec["qualitative_context"],
         "vetoes": [v["reason"] for v in rec["vetoes"]],
         "context_warnings": rec.get("context_warnings", []),
@@ -815,7 +819,11 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
         smf = mt.get("thirteenf_flow", {})
         rec["_sm_flow"] = smf.get("value") if isinstance(smf, dict) else None
         rec["_context"] = demand_momentum(mt)   # informational only — not scored
+        rec["_valuation_context"] = build_valuation_context(secs[t], mt)
         rec["_breakout_setup"] = breakout_context.get(t)
+        rec["_entry_exit_evidence"] = (
+            (breakout_context.get(t) or {}).get("entry_exit_evidence")
+        )
         recs.append(rec)
 
     reasoning_summary = {}
@@ -837,6 +845,9 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
                                rec["preliminary"], rec["verdict"], rec)
         rec["_demand_momentum"] = demand_context.get(rec["ticker"])
         rec["_breakout_setup"] = breakout_context.get(rec["ticker"])
+        rec["_entry_exit_evidence"] = (
+            (breakout_context.get(rec["ticker"]) or {}).get("entry_exit_evidence")
+        )
         stocks.append(_map(rec, rec["_strategies"], rec["_primary"]))
     store.commit()
 
@@ -860,6 +871,9 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
     stocks.sort(key=lambda r: -(r["cats"] and sum(c["score"] for c in r["cats"]) or 0))
     threshold = float(cfg.defaults.get("wma_alert_threshold_pct", 3.0))
     proximity_alerts = wma_alerts(stocks, metrics_by_ticker, threshold)
+    strong_wma_candidates = strong_business_wma_candidates(
+        stocks, metrics_by_ticker, threshold
+    )
     return {"meta": {"generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                      "sectors": [s["id"] for s in cfg.enabled_sectors],
                      "config_version": cfg.scoring.get("version"), "count": len(stocks),
@@ -871,6 +885,11 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
                      "reasoning": reasoning_summary,
                      "ai_review": ai_review,
                      "wma_alerts": proximity_alerts,
+                     "strong_business_wma_candidates": strong_wma_candidates,
+                     "strong_business_wma_rule": (
+                         "Business Quality >=70, Financial Strength >=70, "
+                         "Growth >=70, no tested veto; research-only"
+                     ),
                      "wma_alert_threshold_pct": threshold,
                      "price_freshness": {
                          "limit_hours": price_limit_h,

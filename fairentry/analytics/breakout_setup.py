@@ -11,8 +11,9 @@ from datetime import datetime, timezone
 
 from ..adapters.cache_lite import cache_get, cache_put
 from .demand_momentum import _MARKET, _PERIODS, _SECTOR_ETF, _ret, _series
+from .entry_exit_evidence import build_entry_exit_evidence
 
-_CACHE_NS = "breakout_setup_v2"
+_CACHE_NS = "breakout_setup_v3"
 _TTL_DAYS = 1
 
 
@@ -342,6 +343,8 @@ def _price_series(records: list[tuple[dict, dict]]) -> dict:
         for ticker in needed:
             series[ticker] = {
                 "close": _series(frame, ticker, "Close"),
+                "high": _series(frame, ticker, "High"),
+                "low": _series(frame, ticker, "Low"),
                 "volume": _series(frame, ticker, "Volume"),
                 "as_of": (frame.index[-1].date().isoformat()
                           if getattr(frame, "index", None) is not None and len(frame.index) else None),
@@ -464,6 +467,8 @@ def build_context(store, records: list[tuple[dict, dict]]) -> dict:
         fund_label = _fundamental_label([rev_label, gross_label, oper_label])
         stock_series = price_series.get(ticker) or {}
         closes = stock_series.get("close") or []
+        highs = stock_series.get("high") or []
+        lows = stock_series.get("low") or []
         volumes = stock_series.get("volume") or []
         sector_closes = (price_series.get(sector_etf) or {}).get("close") or []
         spy_closes = (price_series.get(_MARKET) or {}).get("close") or []
@@ -519,6 +524,10 @@ def build_context(store, records: list[tuple[dict, dict]]) -> dict:
         overall = _decision_label(strategy, fund_label, sr, volume_ratio, relative_alpha,
                                   scoring_metrics["trend_regime_score"], sector["label"],
                                   business_support)
+        entry_exit_evidence = build_entry_exit_evidence(
+            closes, volumes, sector_closes, spy_closes,
+            highs=highs, lows=lows, observed_at=stock_series.get("as_of"),
+        )
         out[ticker] = {
             "context_only": False,
             "not_scored": False,
@@ -546,6 +555,7 @@ def build_context(store, records: list[tuple[dict, dict]]) -> dict:
                 "days_to_cover_note": "Not available from the current free-data pipeline.",
             },
             "sector_trend": sector,
+            "entry_exit_evidence": entry_exit_evidence,
             "note": "The listed quantitative factor metrics feed existing Growth/Market Confirmation categories. The label is a rule outcome, not a second score.",
         }
     return out

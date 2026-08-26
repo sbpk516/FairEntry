@@ -797,30 +797,38 @@ function contextChips(s){ var c=s.context||{};
   if(s.demand_momentum&&s.demand_momentum.tone){
     parts.push('<span class="ctag '+dmToneClass(s.demand_momentum.tone)+'">Read - Price demand '+esc(s.demand_momentum.tone)+esc(dmShort(s.demand_momentum))+'</span>');
   }
+  if(s.entry_exit_evidence&&s.entry_exit_evidence.entry_alignment){
+    var ee=s.entry_exit_evidence, entryTone=(ee.entry_alignment==='supportive'||ee.entry_alignment==='constructive')?'good':ee.entry_alignment==='cautionary'?'bad':'warn';
+    parts.push('<span class="ctag '+entryTone+'">Evidence - Entry '+esc(ee.entry_alignment)+' · Exit pressure '+esc(ee.exit_pressure||'unknown')+'</span>');
+  }
   if(s.breakout_setup&&s.breakout_setup.overall){
     parts.push('<span class="ctag breakout-scored clickable '+setupToneClass(s.breakout_setup.overall)+'" role="button" tabindex="0" data-breakout="'+esc(s.breakout_setup.overall)+'" data-ticker="'+esc(s.ticker)+'">Score evidence - Breakout '+esc(s.breakout_setup.overall)+'</span>');
   }
   if(!parts.length) return '';
-  return '<div class="ctx-row" title="Demand chips are context-only. Breakout factors are traceable inputs to the existing score.">'+parts.join('')+'</div>';
+  return '<div class="ctx-row" title="Entry/exit and demand evidence are context-only. Breakout factors are traceable inputs to the existing score.">'+parts.join('')+'</div>';
 }
 function tileHTML(s){ var c=compute(s), shown=c.displayVerdict||c.verdict, vk=c.verdict.toLowerCase();
   var cs=s.card_summary||{}, deep=(s.strategy||[]).indexOf('deepvalue')>=0,
     strategy=cs.strategy||(deep?'Deep Value':'Quality Growth'),
     hold=cs.holding_period||(deep?'1–3 years':'2–5 years'),
     low=s.valuation&&s.valuation.low, high=s.valuation&&s.valuation.high,
-    reasons=(cs.strongest_reasons||[]).slice(0,3), risks=(cs.largest_risks||[]).slice(0,3);
+    reasons=(cs.strongest_reasons||[]).slice(0,3), risks=(cs.largest_risks||[]).slice(0,3),
+    vc=s.valuation_context||{}, experimental=(c.verdict==='Buy'&&vc.experimental_context_score!=null?'<div class="ctx-row" title="Separate experimental context only; not backtested and no effect on the official score."><span class="ctag warn">NOT BACKTESTED valuation context '+esc(Number(vc.experimental_context_score).toFixed(1))+'/100</span></div>':''),
+    va=(s.valuation||{}).method_agreement||{}, vaTone=va.status==='pass'?'good':va.status==='caution'?'warn':'info',
+    agreementChip=(c.verdict==='Buy'&&va.status?'<div class="ctx-row" title="Backtested shadow evidence only; 0 points and no effect on Buy/Watch/Avoid."><span class="ctag '+vaTone+'">Valuation agreement: '+esc(va.status==='pass'?'Pass':va.status==='caution'?'Caution':'Insufficient evidence')+' · '+esc(va.method_count)+' methods'+(va.dispersion_pct==null?'':' · '+esc(va.dispersion_pct)+'% spread')+'</span></div>':'');
   function evidenceList(items,empty){return items.length?'<ul>'+items.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>':'<div class="meta">'+esc(empty)+'</div>';}
   var nuance=actionNuance(c);
   return '<div class="tile" data-t="'+esc(s.ticker)+'" role="button" tabindex="0" aria-label="'+esc(s.ticker+' '+s.company+' - '+shown)+'"><div class="vstripe st-'+vk+'"></div><div class="tile-in">'+
     '<div class="tile-top"><div class="tile-main"><div class="tick">'+esc(s.ticker)+'</div><div class="co">'+esc(s.company)+' - '+esc(s.sector)+'</div></div>'+
     '<div class="verdict"><span class="vpill bg-'+vk+' v-'+vk+'">'+shown+'</span>'+(nuance?'<div class="action-lbl">'+esc(nuance)+'</div>':'')+confidenceBadge(s,c)+'</div></div>'+
     '<div class="card-facts"><div class="card-fact"><span class="k">Strategy</span><span class="v">'+esc(strategy)+'</span></div><div class="card-fact"><span class="k">Current price</span><span class="v">$'+esc(s.price)+'</span></div><div class="card-fact"><span class="k">Reasonable value range</span><span class="v">'+(low==null||high==null?'Not available':'$'+esc(low)+'–$'+esc(high))+'</span></div><div class="card-fact"><span class="k">Expected holding period</span><span class="v">'+esc(hold)+'</span></div></div>'+
-    '<div class="card-evidence"><div class="card-evidence-box good"><h4>Three strongest reasons</h4>'+evidenceList(reasons,'Open details to inspect the available evidence.')+'</div><div class="card-evidence-box bad"><h4>Three largest risks</h4>'+evidenceList(risks,'No specific major risk was identified in the available data.')+'</div></div>'+
+    '<div class="card-evidence"><div class="card-evidence-box good"><h4>Three strongest reasons</h4>'+evidenceList(reasons,'Open details to inspect the available evidence.')+'</div><div class="card-evidence-box bad"><h4>Three largest risks</h4>'+evidenceList(risks,'No specific major risk was identified in the available data.')+'</div></div>'+agreementChip+experimental+
     '<div class="tile-actions"><button class="chartbtn" data-chart="'+esc(s.ticker)+'" type="button">Launch Chart</button><button class="addbtn" data-add="'+esc(s.ticker)+'" type="button">Add 100</button></div></div></div>'; }
 
 function currentList(){
   var q=$('#search').value.trim().toLowerCase(), sec=$('#sector').value, vf=$('#vfilter .on').dataset.v, sort=$('#sort').value;
   var wmaTickers={}; (META.wma_alerts||[]).forEach(function(a){wmaTickers[a.ticker]=true;});
+  (META.strong_business_wma_candidates||[]).forEach(function(a){wmaTickers[a.ticker]=true;});
   var list=STOCKS.filter(function(s){ return MODE==='all' || s.strategy.indexOf(MODE)>=0; })
     .map(function(s){ return {s:s, c:compute(s)}; })
     .filter(function(o){ if(WMA_ONLY&&!wmaTickers[o.s.ticker])return false; if(HIGH_ONLY&&!(o.c.verdict==='Buy'&&o.s.confidence_tier&&o.s.confidence_tier.id==='high_confidence'))return false; if(sec!=='all'&&o.s.sector!==sec)return false; if(vf!=='all'&&o.c.verdict!==vf)return false;
@@ -839,11 +847,14 @@ function renderBoard(){ var list=currentList();
   $('#count').textContent=list.length+' shown'+(WMA_ONLY?' near 200 WMA':'')+(HIGH_ONLY?' high confidence':'')+' - '+byv.Buy+' Buy - '+byv.Watch+' Watch - '+byv.Avoid+' Avoid';
 }
 function renderWmaAlerts(meta){
-  var box=$('#wma-alerts'), alerts=meta.wma_alerts||[];
-  if(!alerts.length){ box.className='wma-alerts'; box.innerHTML=''; return; }
+  var box=$('#wma-alerts'), alerts=meta.wma_alerts||[], strong=meta.strong_business_wma_candidates||[];
+  if(!alerts.length&&!strong.length){ box.className='wma-alerts'; box.innerHTML=''; return; }
   box.className='wma-alerts on';
-  box.innerHTML='<b>Near 200-week moving average</b> (within '+esc(meta.wma_alert_threshold_pct)+'%): '+
-    alerts.map(function(a){ var side=a.distance_pct>=0?'above':'below'; return '<span><b>'+esc(a.ticker)+'</b> '+esc(a.verdict)+' - $'+esc(a.price)+' / WMA $'+esc(a.wma_200)+' ('+Math.abs(a.distance_pct)+'% '+side+')</span>'; }).join('');
+  var general=alerts.length?'<div><b>Buy/Watch near 200-week moving average</b> (within '+esc(meta.wma_alert_threshold_pct)+'%): '+
+    alerts.map(function(a){ var side=a.distance_pct>=0?'above':'below'; return '<span><b>'+esc(a.ticker)+'</b> '+esc(a.verdict)+' - $'+esc(a.price)+' / WMA $'+esc(a.wma_200)+' ('+Math.abs(a.distance_pct)+'% '+side+')</span>'; }).join('')+'</div>':'';
+  var qualified=strong.length?'<div><b>Strong-business 200-week research candidates</b> — not automatic Buys: '+
+    strong.map(function(a){var side=a.distance_pct>=0?'above':'below';return '<span><b>'+esc(a.ticker)+'</b> '+esc(a.verdict)+' - Q '+esc(a.quality_score)+' / FS '+esc(a.financial_strength_score)+' / G '+esc(a.growth_score)+' - '+Math.abs(a.distance_pct)+'% '+side+'</span>';}).join('')+'</div>':'';
+  box.innerHTML=general+qualified;
 }
 function today(){ return new Date().toISOString().slice(0,10); }
 function portfolioLoad(){ try{return JSON.parse(localStorage.getItem(PORTKEY)||'[]');}catch(e){return [];} }
@@ -1074,6 +1085,26 @@ function demandMomentumHTML(s){
     '</div></div></div>';
 }
 function fmtBool(x){ return x==null?'n/a':(x?'yes':'no'); }
+function entryExitEvidenceHTML(s){
+  var e=s.entry_exit_evidence;if(!e)return '';
+  function tone(state){return state==='supportive'||state==='constructive'||state==='low'?'good':state==='cautionary'||state==='elevated'?'bad':state==='unavailable'?'info':'warn';}
+  function field(label,value){return '<span class="k">'+esc(label)+'</span><span class="v">'+esc(value==null||value===''?'Not specified':value)+'</span>';}
+  var families=(e.families||[]).map(function(f){
+    var observations=(f.observations||[]).map(function(o){
+      var value=o.value==null?'n/a':Number(o.value).toFixed(2)+(o.unit==='%'?'%':o.unit==='x'?'x':o.unit==='percentage points'?' pp':o.unit==='percentile'?'th percentile':'');
+      return '<div class="item" data-exp><button class="row"><span class="chev"></span><span class="rname">'+esc(o.label)+'</span><span class="rmeta"><span class="lab '+tone(o.reading)+'">'+esc(o.reading||'context')+'</span> <span class="tnum">'+esc(value)+'</span></span></button><div class="detail"><div class="detail-in"><div class="metricbox"><div class="ea">'+
+        field('Current value',value)+field('Indicator reading',o.reading||'context')+field('Lookback',o.lookback)+field('Formula',o.formula)+field('Supportive when',o.supportive_when)+field('Cautionary when',o.cautionary_when)+field('What it means',o.evidence)+field('Data source',o.source)+field('Backtestable',o.backtestable===false?'No':'Yes — replay with data truncated at the historical observation date')+field('Decision effect','Information only · '+esc(o.score_effect==null?0:o.score_effect)+' points · no verdict or automatic trade effect')+
+        '</div></div></div></div></div>';
+    }).join('');
+    return '<div class="cat" data-exp><button class="row"><span class="chev"></span><span class="rname">'+esc(f.label)+'</span><span class="rmeta"><span class="lab '+tone(f.state)+'">'+esc(f.state)+'</span> <span class="lab info">'+esc(f.impact)+' impact · '+esc(f.confidence)+' confidence</span></span></button><div class="detail"><div class="detail-in"><div class="metricbox" style="margin-bottom:8px"><div class="ea">'+field('Family result',f.state)+field('Decision rule',f.decision_rule)+field('Indicator agreement',(f.supportive_observations||0)+' supportive · '+(f.cautionary_observations||0)+' cautionary · '+(f.available_observations||0)+' available')+field('Confidence',f.confidence)+field('Impact label',f.impact)+field('Correlation control',f.agreement_role||'This family contributes at most one agreement vote.')+field('Explanation',f.explanation)+'</div></div>'+observations+'</div></div></div>';
+  }).join('');
+  var a=e.agreement||{};
+  var rules=e.decision_rules||{}, inputs=(e.data_inputs||[]).join(' · ');
+  var lineage='<div class="cat" data-exp><button class="row"><span class="chev"></span><span class="rname">How the overall evidence result was decided</span><span class="rmeta"><span class="lab info">transparent rules &amp; data</span></span></button><div class="detail"><div class="detail-in"><div class="metricbox"><div class="ea">'+field('Entry-alignment rule',rules.entry_alignment)+field('Exit-pressure rule',rules.exit_pressure)+field('Correlation control',rules.correlation_control)+field('Available families',(a.available_families||[]).join(', ')||'None')+field('Supportive families',(a.supportive_families||[]).join(', ')||'None')+field('Cautionary families',(a.cautionary_families||[]).join(', ')||'None')+field('Data inputs',inputs)+field('As-of date',e.observed_at||'Unavailable')+field('Calculation version',e.version||'Unavailable')+field('Backtest method',e.backtestability)+field('Effect on FairEntry decision','0 points · no score, verdict, Buy/Sell gate, or automatic trade effect')+'</div></div></div></div></div>';
+  return '<div class="sub-h">Entry &amp; exit market evidence <span style="font-weight:400;color:var(--ink-faint);font-size:12px">(replayable · information only · not scored)</span></div><div class="dm-box">'+
+    '<div class="dm-head"><span class="lab '+tone(e.entry_alignment)+'">Entry '+esc(e.entry_alignment||'unavailable')+'</span><span class="lab '+tone(e.exit_pressure)+'">Exit pressure '+esc(e.exit_pressure||'unavailable')+'</span><div class="dm-summary">'+esc(a.supportive_count||0)+' supportive and '+esc(a.cautionary_count||0)+' cautionary families out of '+esc(a.available_count||0)+' available. Correlated measurements are grouped into one vote per family.</div><span class="dm-note">0 points</span></div>'+lineage+families+
+    '<div style="font-size:11.5px;color:var(--ink-faint);padding:10px 14px;border-top:1px solid var(--line-soft);line-height:1.45">'+esc(e.policy||'')+' Observed '+esc(e.observed_at||'date unavailable')+'.</div></div>';
+}
 function setupHTML(s){
   var b=s.breakout_setup; if(!b) return '';
   var counts=b.counts||{}, strategy=b.strategy==='quality_growth'?'Quality Growth':'Deep Value';
@@ -1166,6 +1197,10 @@ function valHTML(s){ var v=s.valuation, price=s.price;
     (upside>=0?'<b>'+upside+'% upside</b> to fair value':'<b>'+Math.abs(upside)+'% above</b> fair value')+
     '. At your '+S.mos+'% margin of safety you\'d buy below <b>$'+buyBelow+'</b>, so today it is <b>'+zoneWord+'</b>.</div>';
   var testedMethods=(v.methods||[]).filter(function(m){return (m.decision_status||'tested')==='tested';});
+  var agreement=v.method_agreement||{}, agreementTone=agreement.status==='pass'?'good':agreement.status==='caution'?'warn':'info';
+  var agreementEvidence=agreement.historical_evidence||{}, fullEvidence=agreementEvidence.full_sample||{}, unseenEvidence=agreementEvidence.final_unseen_sample||{};
+  var excluded=(agreement.excluded_methods||[]).map(function(m){return esc(m.name||m.key)+': '+esc(m.reason);}).join('<br>');
+  var agreementBox=agreement.status?'<div class="vmeth-box" style="margin-top:14px"><div class="vmeth-what"><span class="lab '+agreementTone+'">'+esc(agreement.label)+'</span> <span class="lab info">BACKTESTED SHADOW · 0 POINTS</span></div><div class="vmeth-formula">Retained methods: '+esc((agreement.methods||[]).join(', ')||'none')+' · Spread: '+esc(agreement.dispersion_pct==null?'n/a':agreement.dispersion_pct+'%')+' / maximum '+esc((agreement.thresholds||{}).maximum_dispersion_pct)+'% · Challenger upside: '+esc(agreement.upside_pct==null?'n/a':agreement.upside_pct+'%')+' / required +'+esc((agreement.thresholds||{}).minimum_upside_pct)+'%</div><div class="vmeth-why"><b>Current result:</b> '+esc(agreement.explanation||'')+'</div>'+(excluded?'<div class="vmeth-watch"><b>Excluded methods:</b><br>'+excluded+'</div>':'')+'<div class="vmeth-watch"><b>Historical evidence:</b> '+esc(fullEvidence.successes)+'/'+esc(fullEvidence.completed)+' ('+esc(fullEvidence.success_rate_pct)+'%) versus '+esc(fullEvidence.baseline_pct)+'% baseline. Final unseen: '+esc(unseenEvidence.successes)+'/'+esc(unseenEvidence.completed)+' ('+esc(unseenEvidence.success_rate_pct)+'%) versus '+esc(unseenEvidence.baseline_pct)+'%. This is visible evidence only and does not change the official score or recommendation.</div></div>':'';
   var methods = (v.methods&&v.methods.length)?
     '<div style="margin-top:18px"><div class="vmeth-head">Fair value - '+testedMethods.length+' tested method(s) set the median $'+v.base+
       ' <span class="hint">click a method for its formula &amp; why it works</span></div>'+
@@ -1183,8 +1218,18 @@ function valHTML(s){ var v=s.valuation, price=s.price;
           '</div></div></div></div>'; }).join('')+
       '<div class="vmeth-median"><b>Base fair value</b> = the <b>median</b> of the '+testedMethods.length+' historically replayable method(s) = <b>$'+v.base+'</b>. Information-only methods are shown but excluded. The spread '+
         '<b>$'+v.low+'"$'+v.high+'</b> shows how much the methods agree - a tight spread means higher confidence.</div>'+
-    '</div>' : '';
+      agreementBox+'</div>' : agreementBox;
   return '<div class="sub-h">Valuation &amp; entry</div><div class="vgauge">'+nums+line+legend+explain+methods+'</div>'; }
+
+function valuationContextHTML(s){
+  var c=s.valuation_context;if(!c)return '';
+  var score=c.experimental_context_score, scoreText=score==null?'Unavailable':Number(score).toFixed(1)+'/100';
+  var rows=(c.factors||[]).map(function(f){
+    var factorScore=f.experimental_score==null?'No experimental score':Number(f.experimental_score).toFixed(1)+'/100 experimental';
+    return '<div class="item" data-exp><button class="row"><span class="chev"></span><span class="rname">'+esc(f.label)+'</span><span class="rmeta"><span class="lab warn">'+esc(f.status)+'</span> <span class="tnum">'+esc(factorScore)+'</span></span></button><div class="detail"><div class="detail-in"><div class="metricbox"><div class="ea"><span class="k">Observed value</span><span class="v">'+esc(f.value==null?'Unavailable':f.value)+'</span><span class="k">Experimental score</span><span class="v">'+esc(factorScore)+'</span><span class="k">Reason</span><span class="v">'+esc(f.reason||'')+'</span><span class="k">Formula</span><span class="v">'+esc(f.formula||'Not calculated')+'</span><span class="k">Source</span><span class="v">'+esc(f.source||'Unavailable')+'</span><span class="k">Official decision effect</span><span class="v">None · 0 points · no Buy/Watch/Avoid or trade effect</span></div></div></div></div></div>';
+  }).join('');
+  return '<div class="sub-h">Experimental valuation context <span class="lab bad">NOT BACKTESTED</span></div><div class="dm-box"><div class="dm-head"><span class="lab warn">'+esc(c.experimental_context_label||'unavailable')+'</span><div class="dm-summary"><b>'+esc(scoreText)+'</b> separate experimental context score. '+esc(c.warning||'')+'</div><span class="dm-note">0 official points</span></div>'+rows+'<div style="font-size:11.5px;color:var(--ink-faint);padding:10px 14px;border-top:1px solid var(--line-soft);line-height:1.45">This panel is intentionally isolated from the historically tested FairEntry score and recommendation.</div></div>';
+}
 
 function confidenceHTML(s,c){ var t=s.confidence_tier;if(!t||c.verdict!=='Buy')return '';
   var high=t.id==='high_confidence',i=t.inputs||{},fin=i.financial_strength||{},growth=i.growth_score||{},eps=i.expected_eps_growth||{},h=t.historical_evidence||{};
@@ -1209,7 +1254,7 @@ function openDetail(tk){ var s=STOCKS.find(function(x){return x.ticker===tk;}); 
     .map(function(a){return '<div class="acard"><div class="l">'+a[0]+'</div><div class="v">'+esc(a[1])+'</div></div>';}).join('')+'</div>';
   var mathSec='<div class="sub-h">How the '+Math.round(c.prelim)+' was computed</div>'+scoreMathHTML(s,c);
   var scorecard='<div class="sub-h">Scorecard - each existing category shows scored quantitative factors and separate non-quantifiable context</div>'+(s.categories||s.cats).map(function(cat){return catHTML(cat,s);}).join('');
-  $('#d-body').innerHTML=hero+confidenceHTML(s,c)+businessHTML(s)+growthQualificationHTML(s)+debtDirectionHTML(s)+mathSec+scorecard+demandMomentumHTML(s)+setupHTML(s)+targetPlanHTML(s)+valHTML(s)+growthEntryHTML(s)+contextHTML(s)+situationHTML(s)+newsHTML(s)+watchHTML(s)+action;
+  $('#d-body').innerHTML=hero+confidenceHTML(s,c)+businessHTML(s)+growthQualificationHTML(s)+debtDirectionHTML(s)+mathSec+scorecard+demandMomentumHTML(s)+entryExitEvidenceHTML(s)+setupHTML(s)+targetPlanHTML(s)+valHTML(s)+valuationContextHTML(s)+growthEntryHTML(s)+contextHTML(s)+situationHTML(s)+newsHTML(s)+watchHTML(s)+action;
   openDrawer('#detail');
 }
 

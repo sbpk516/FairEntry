@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import statistics
 
+from .valuation_agreement import evaluate_method_agreement
+
 
 def _num(metrics, key):
     value = metrics.get(key, {})
@@ -19,7 +21,8 @@ def _num(metrics, key):
 
 
 def fair_value(metrics: dict, mos_pct: float = 15.0,
-               sector_med: dict | None = None) -> dict:
+               sector_med: dict | None = None, *, sector: str | None = None,
+               industry: str | None = None) -> dict:
     sector_med = sector_med or {}
     price = _num(metrics, "price")
     unknown = {
@@ -33,6 +36,7 @@ def fair_value(metrics: dict, mos_pct: float = 15.0,
         "methods": [],
         "method_count": 0,
         "context_method_count": 0,
+        "method_agreement": None,
         "margin_of_safety_pct": mos_pct,
     }
     if not price or price <= 0:
@@ -109,9 +113,17 @@ def fair_value(metrics: dict, mos_pct: float = 15.0,
         )
 
     decision_methods = [m for m in methods if m["decision_status"] == "tested"]
+    agreement = evaluate_method_agreement(
+        methods,
+        price,
+        sector=sector,
+        industry=industry,
+        roe_pct=_num(metrics, "roe"),
+    )
     if not decision_methods:
         unknown["methods"] = methods
         unknown["context_method_count"] = len(methods)
+        unknown["method_agreement"] = agreement
         return unknown
 
     fair_prices = sorted(m["fair"] for m in decision_methods)
@@ -137,5 +149,6 @@ def fair_value(metrics: dict, mos_pct: float = 15.0,
         "methods": methods,
         "method_count": len(decision_methods),
         "context_method_count": len(methods) - len(decision_methods),
+        "method_agreement": agreement,
         "margin_of_safety_pct": mos_pct,
     }

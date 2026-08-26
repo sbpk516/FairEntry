@@ -424,3 +424,49 @@ def test_fair_value_expensive_label():
     fv = fair_value(metrics, sector_med=sector_med)
     assert fv["valuation_label"] == "expensive"
     assert fv["upside_pct"] < 0
+
+
+def test_method_agreement_is_a_zero_effect_shadow_pass():
+    metrics = {
+        "price": {"value": 100},
+        "ps_ratio": {"value": 2},
+        "pfcf_ratio": {"value": 12},
+        "pb_ratio": {"value": 1},
+        "roe": {"value": 18},
+    }
+    sector_med = {"ps_ratio": 3, "pb_ratio": 1.5}
+    fv = fair_value(
+        metrics, sector_med=sector_med,
+        sector="Financial Services", industry="Banks - Regional",
+    )
+    agreement = fv["method_agreement"]
+    assert agreement["passes"] is True
+    assert agreement["status"] == "pass"
+    assert agreement["method_count"] == 3
+    assert agreement["dispersion_pct"] <= 75
+    assert agreement["score_effect"] == 0
+    assert agreement["verdict_effect"] == "none"
+    # The original production fair-value calculation is still the baseline.
+    assert fv["method_count"] == 3
+    assert fv["fair_base"] == 150
+
+
+def test_method_agreement_excludes_book_for_intangible_business():
+    metrics = {
+        "price": {"value": 100},
+        "ps_ratio": {"value": 2},
+        "pfcf_ratio": {"value": 12},
+        "pb_ratio": {"value": 1},
+        "roe": {"value": 30},
+    }
+    sector_med = {"ps_ratio": 3, "pb_ratio": 4}
+    fv = fair_value(
+        metrics, sector_med=sector_med,
+        sector="Technology", industry="Software - Infrastructure",
+    )
+    agreement = fv["method_agreement"]
+    assert agreement["methods"] == ["peer_ps", "fcf"]
+    assert agreement["excluded_methods"][0]["key"] == "book"
+    # Shadow filtering must not rewrite the official baseline range.
+    assert fv["method_count"] == 3
+    assert fv["fair_high"] == 400

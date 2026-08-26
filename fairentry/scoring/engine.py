@@ -124,7 +124,10 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
     prov = {k: v for k, v in metrics_raw.items()}
 
     med = medians.get(sec["sector"], {})
-    fv = fair_value(metrics_raw, mos, med)
+    fv = fair_value(
+        metrics_raw, mos, med,
+        sector=sec.get("sector"), industry=sec.get("industry"),
+    )
     growth_check = growth_qualification(flat, fv)
     flat.update({"intrinsic_gap_pct": fv["intrinsic_gap_pct"],
                  "upside_pct": fv["upside_pct"], "valuation_label": fv["valuation_label"],

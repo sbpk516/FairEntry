@@ -1,6 +1,6 @@
 import json
 
-from fairentry.alerts import _send_email, wma_alerts
+from fairentry.alerts import _send_email, strong_business_wma_candidates, wma_alerts
 
 
 def test_wma_alerts_only_include_shortlisted_names_inside_threshold():
@@ -19,6 +19,31 @@ def test_wma_alerts_only_include_shortlisted_names_inside_threshold():
     alerts = wma_alerts(stocks, metrics, threshold_pct=3.0)
     assert [a["ticker"] for a in alerts] == ["BUY", "WATCH"]
     assert alerts[0]["wma_200"] == 100.0
+
+
+def test_strong_business_wma_candidates_do_not_require_a_buy_verdict():
+    categories = [
+        {"id": "quality", "score": 80},
+        {"id": "survival", "score": 75},
+        {"id": "growth", "score": 90},
+    ]
+    stocks = [
+        {"ticker": "STRONG", "company": "Strong Co", "verdict": "Watch",
+         "price": 101.0, "categories": categories, "vetoes": []},
+        {"ticker": "WEAK", "company": "Weak Co", "verdict": "Buy",
+         "price": 100.0, "categories": [{**c, "score": 40} for c in categories],
+         "vetoes": []},
+    ]
+    metrics = {
+        "STRONG": {"sma_200week": {"value": 100.0}},
+        "WEAK": {"sma_200week": {"value": 100.0}},
+    }
+
+    rows = strong_business_wma_candidates(stocks, metrics, threshold_pct=3.0)
+
+    assert [row["ticker"] for row in rows] == ["STRONG"]
+    assert rows[0]["verdict"] == "Watch"
+    assert rows[0]["production_effect"] == "none"
 
 
 def test_send_email_prefers_resend(monkeypatch):

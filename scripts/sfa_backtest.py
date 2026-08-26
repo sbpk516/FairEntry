@@ -20,6 +20,14 @@ from fairentry.backtest.factor_explorer import (
     attach_warehouse_factors,
     run_factor_explorer,
 )
+from fairentry.backtest.wma200_research import (
+    attach_wma200_factors,
+    run_wma200_research,
+)
+from fairentry.backtest.valuation_research import (
+    attach_valuation_factors,
+    run_valuation_research,
+)
 from fairentry.backtest.strategy import load_strategy
 from fairentry.config import load_config
 from fairentry.sharadar import SharadarWarehouse
@@ -178,16 +186,33 @@ def main():
     args = ap.parse_args()
     if args.publish_private:
         result = json.loads(Path(args.publish_private).read_text(encoding="utf-8"))
-        if result.get("ok") and not result.get("factor_explorer"):
+        if result.get("ok"):
             with SharadarWarehouse(args.warehouse, read_only=True) as warehouse:
-                enrichment = attach_warehouse_factors(
+                if not result.get("factor_explorer"):
+                    enrichment = attach_warehouse_factors(
+                        result.get("observations", []), warehouse.con
+                    )
+                    result["factor_explorer"] = run_factor_explorer(
+                        result.get("observations", []),
+                        step_days=int(result.get("step_days") or 30),
+                    )
+                    result["factor_explorer"]["enrichment"] = enrichment
+                valuation_enrichment = attach_valuation_factors(
                     result.get("observations", []), warehouse.con
                 )
-            result["factor_explorer"] = run_factor_explorer(
+                result["valuation_research"] = run_valuation_research(
+                    result.get("observations", []),
+                    step_days=int(result.get("step_days") or 30),
+                )
+                result["valuation_research"]["enrichment"] = valuation_enrichment
+                wma_enrichment = attach_wma200_factors(
+                    result.get("observations", []), warehouse.con
+                )
+            result["wma200_research"] = run_wma200_research(
                 result.get("observations", []),
                 step_days=int(result.get("step_days") or 30),
             )
-            result["factor_explorer"]["enrichment"] = enrichment
+            result["wma200_research"]["enrichment"] = wma_enrichment
         if result.get("ok") and not result.get("research_cycle"):
             result["research_cycle"] = run_predictive_rule_research(
                 result.get("observations", []),
@@ -233,6 +258,22 @@ def main():
                 step_days=int(result.get("step_days") or args.step),
             )
             result["factor_explorer"]["enrichment"] = enrichment
+            valuation_enrichment = attach_valuation_factors(
+                result.get("observations", []), warehouse.con
+            )
+            result["valuation_research"] = run_valuation_research(
+                result.get("observations", []),
+                step_days=int(result.get("step_days") or args.step),
+            )
+            result["valuation_research"]["enrichment"] = valuation_enrichment
+            wma_enrichment = attach_wma200_factors(
+                result.get("observations", []), warehouse.con
+            )
+            result["wma200_research"] = run_wma200_research(
+                result.get("observations", []),
+                step_days=int(result.get("step_days") or args.step),
+            )
+            result["wma200_research"]["enrichment"] = wma_enrichment
     result["artifact"] = {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "generator": "scripts/sfa_backtest.py",

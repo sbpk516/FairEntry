@@ -33,6 +33,49 @@ def wma_alerts(stocks: list[dict], metrics_by_ticker: dict, threshold_pct: float
     return sorted(alerts, key=lambda item: abs(item["distance_pct"]))
 
 
+def strong_business_wma_candidates(stocks: list[dict], metrics_by_ticker: dict,
+                                   threshold_pct: float = 3.0) -> list[dict]:
+    """Return research candidates with strong tested fundamentals near 200 WMA.
+
+    This deliberately ignores the current verdict: a fundamentally strong name
+    may be Watch/Avoid because valuation or price confirmation has not cleared.
+    The result is information-only and must never manufacture a Buy.
+    """
+    candidates = []
+    for stock in stocks:
+        scores = {
+            category.get("id"): category.get("score")
+            for category in stock.get("categories", [])
+        }
+        if any(not isinstance(scores.get(key), (int, float)) or scores[key] < 70
+               for key in ("quality", "survival", "growth")):
+            continue
+        if stock.get("vetoes"):
+            continue
+        metrics = metrics_by_ticker.get(stock.get("ticker"), {})
+        wma_metric = metrics.get("sma_200week") or {}
+        wma = wma_metric.get("value") if isinstance(wma_metric, dict) else wma_metric
+        price = stock.get("price")
+        if not isinstance(wma, (int, float)) or wma <= 0 or not isinstance(price, (int, float)):
+            continue
+        distance = (price / wma - 1) * 100
+        if abs(distance) > threshold_pct:
+            continue
+        candidates.append({
+            "ticker": stock["ticker"],
+            "company": stock.get("company"),
+            "verdict": stock.get("verdict"),
+            "price": round(price, 2),
+            "wma_200": round(wma, 2),
+            "distance_pct": round(distance, 1),
+            "quality_score": scores["quality"],
+            "financial_strength_score": scores["survival"],
+            "growth_score": scores["growth"],
+            "production_effect": "none",
+        })
+    return sorted(candidates, key=lambda item: abs(item["distance_pct"]))
+
+
 def email_wma_alerts(alerts: list[dict]) -> bool:
     """Email the alert list through Resend, or SMTP as a fallback."""
     if not alerts:
