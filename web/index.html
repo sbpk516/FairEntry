@@ -423,7 +423,7 @@
       <button data-v="Avoid">Avoid</button>
     </div>
     <button class="iconbtn" id="wmafilter" type="button" aria-pressed="false">Near 200 WMA</button>
-    <button class="iconbtn" id="highfilter" type="button" aria-pressed="false" disabled title="The previous rule did not reproduce in the expanded point-in-time replay.">High confidence · not validated</button>
+    <button class="iconbtn" id="highfilter" type="button" aria-pressed="false" title="Information-only research subset: Buy, Financial Strength at least 70, and no hard veto. The rule is not validated and does not change scores or verdicts.">High confidence · not validated</button>
     <select id="sort">
       <option value="score">Sort: Score</option>
       <option value="upside">Sort: Valuation upside</option>
@@ -707,6 +707,14 @@ function confidenceBadge(s,c){
   var high=s.confidence_tier.id==='high_confidence';
   return '<div style="margin-top:5px"><span class="lab '+(high?'good':'info')+'" title="Information-only overlay; does not change score or verdict">'+esc(s.confidence_tier.label||'Standard Buy')+'</span></div>';
 }
+function highConfidenceResearchMatch(s,c){
+  var tier=(s&&s.confidence_tier)||{};
+  return !!(c&&c.verdict==='Buy'&&(
+    tier.passes_financial_strength_rule===true||
+    tier.id==='financial_strength_qualified'||
+    tier.id==='high_confidence'
+  ));
+}
 // Plain-English version of the AI's situation read (thesis.label).
 function thesisPlain(s){
   var l=(s.thesis.label||'').toLowerCase();
@@ -840,7 +848,7 @@ function currentList(){
   (META.strong_business_wma_candidates||[]).forEach(function(a){wmaTickers[a.ticker]=true;});
   var list=STOCKS.filter(function(s){ return MODE==='all' || s.strategy.indexOf(MODE)>=0; })
     .map(function(s){ return {s:s, c:compute(s)}; })
-    .filter(function(o){ if(WMA_ONLY&&!wmaTickers[o.s.ticker])return false; if(HIGH_ONLY&&!(o.c.verdict==='Buy'&&o.s.confidence_tier&&o.s.confidence_tier.id==='high_confidence'))return false; if(sec!=='all'&&o.s.sector!==sec)return false; if(vf!=='all'&&o.c.verdict!==vf)return false;
+    .filter(function(o){ if(WMA_ONLY&&!wmaTickers[o.s.ticker])return false; if(HIGH_ONLY&&!highConfidenceResearchMatch(o.s,o.c))return false; if(sec!=='all'&&o.s.sector!==sec)return false; if(vf!=='all'&&o.c.verdict!==vf)return false;
       if(q&&(o.s.ticker.toLowerCase().indexOf(q)<0&&o.s.company.toLowerCase().indexOf(q)<0))return false; return true; });
   var rank={Buy:0,Watch:1,Avoid:2};
   list.sort(function(a,b){ if(sort==='upside')return b.s.valuation.upside-a.s.valuation.upside;
@@ -853,7 +861,7 @@ function renderBoard(){ var list=currentList();
     '<div class="notice warn" style="margin-bottom:14px"><b>Price unavailable/stale:</b> '+esc(pf.excluded_count)+' stock(s) hidden from active scoring. No Buy or High-confidence status is issued beyond the '+esc(pf.limit_hours)+'-hour price limit.</div>':'';
   $('#board').innerHTML=warning+(list.map(function(o){return tileHTML(o.s);}).join('')||'<div style="color:var(--ink-faint);padding:30px">No stocks match.</div>');
   var byv={Buy:0,Watch:0,Avoid:0}; list.forEach(function(o){byv[o.c.verdict]++;});
-  $('#count').textContent=list.length+' shown'+(WMA_ONLY?' near 200 WMA':'')+(HIGH_ONLY?' high confidence':'')+' - '+byv.Buy+' Buy - '+byv.Watch+' Watch - '+byv.Avoid+' Avoid';
+  $('#count').textContent=list.length+' shown'+(WMA_ONLY?' near 200 WMA':'')+(HIGH_ONLY?' high-confidence research (not validated)':'')+' - '+byv.Buy+' Buy - '+byv.Watch+' Watch - '+byv.Avoid+' Avoid';
 }
 function renderWmaAlerts(meta){
   var box=$('#wma-alerts'), alerts=meta.wma_alerts||[], strong=meta.strong_business_wma_candidates||[];
