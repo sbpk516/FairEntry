@@ -804,6 +804,12 @@ function contextChips(s){ var c=s.context||{};
   if(s.breakout_setup&&s.breakout_setup.overall){
     parts.push('<span class="ctag breakout-scored clickable '+setupToneClass(s.breakout_setup.overall)+'" role="button" tabindex="0" data-breakout="'+esc(s.breakout_setup.overall)+'" data-ticker="'+esc(s.ticker)+'">Score evidence - Breakout '+esc(s.breakout_setup.overall)+'</span>');
   }
+  var hc=s.high_conviction_research;
+  if(s.verdict==='Buy'&&hc){
+    var hcTone=hc.status==='candidate'?'good':hc.status==='quantitative_core_pass_research_incomplete'?'warn':'info';
+    var hcText=hc.status==='candidate'?'High-conviction research candidate':hc.status==='quantitative_core_pass_research_incomplete'?'High-conviction core passes · research incomplete':'High-conviction research: not qualified';
+    parts.push('<span class="ctag '+hcTone+'" title="Additional research label only · 0 points · no verdict effect">'+esc(hcText)+'</span>');
+  }
   if(!parts.length) return '';
   return '<div class="ctx-row" title="Entry/exit and demand evidence are context-only. Breakout factors are traceable inputs to the existing score.">'+parts.join('')+'</div>';
 }
@@ -815,14 +821,17 @@ function tileHTML(s){ var c=compute(s), shown=c.displayVerdict||c.verdict, vk=c.
     reasons=(cs.strongest_reasons||[]).slice(0,3), risks=(cs.largest_risks||[]).slice(0,3),
     vc=s.valuation_context||{}, experimental=(c.verdict==='Buy'&&vc.experimental_context_score!=null?'<div class="ctx-row" title="Separate experimental context only; not backtested and no effect on the official score."><span class="ctag warn">NOT BACKTESTED valuation context '+esc(Number(vc.experimental_context_score).toFixed(1))+'/100</span></div>':''),
     va=(s.valuation||{}).method_agreement||{}, vaTone=va.status==='pass'?'good':va.status==='caution'?'warn':'info',
-    agreementChip=(c.verdict==='Buy'&&va.status?'<div class="ctx-row" title="Backtested shadow evidence only; 0 points and no effect on Buy/Watch/Avoid."><span class="ctag '+vaTone+'">Valuation agreement: '+esc(va.status==='pass'?'Pass':va.status==='caution'?'Caution':'Insufficient evidence')+' · '+esc(va.method_count)+' methods'+(va.dispersion_pct==null?'':' · '+esc(va.dispersion_pct)+'% spread')+'</span></div>':'');
+    agreementChip=(c.verdict==='Buy'&&va.status?'<div class="ctx-row" title="Backtested shadow evidence only; 0 points and no effect on Buy/Watch/Avoid."><span class="ctag '+vaTone+'">Valuation agreement: '+esc(va.status==='pass'?'Pass':va.status==='caution'?'Caution':'Insufficient evidence')+' · '+esc(va.method_count)+' methods'+(va.dispersion_pct==null?'':' · '+esc(va.dispersion_pct)+'% spread')+'</span></div>':''),
+    hc=s.high_conviction_research||{}, hcTone=hc.status==='candidate'?'good':hc.status==='quantitative_core_pass_research_incomplete'?'warn':'info',
+    hcLabel=hc.status==='candidate'?'High-Conviction Research Candidate':hc.status==='quantitative_core_pass_research_incomplete'?'Quantitative core passes · research incomplete':'High-Conviction Research: not qualified',
+    hcChip=(c.verdict==='Buy'&&hc.status?'<div class="ctx-row" title="Additional research label only; 0 points and no verdict effect."><span class="ctag '+hcTone+'">'+esc(hcLabel)+' · 0 points</span></div>':'');
   function evidenceList(items,empty){return items.length?'<ul>'+items.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>':'<div class="meta">'+esc(empty)+'</div>';}
   var nuance=actionNuance(c);
   return '<div class="tile" data-t="'+esc(s.ticker)+'" role="button" tabindex="0" aria-label="'+esc(s.ticker+' '+s.company+' - '+shown)+'"><div class="vstripe st-'+vk+'"></div><div class="tile-in">'+
     '<div class="tile-top"><div class="tile-main"><div class="tick">'+esc(s.ticker)+'</div><div class="co">'+esc(s.company)+' - '+esc(s.sector)+'</div></div>'+
     '<div class="verdict"><span class="vpill bg-'+vk+' v-'+vk+'">'+shown+'</span>'+(nuance?'<div class="action-lbl">'+esc(nuance)+'</div>':'')+confidenceBadge(s,c)+'</div></div>'+
     '<div class="card-facts"><div class="card-fact"><span class="k">Strategy</span><span class="v">'+esc(strategy)+'</span></div><div class="card-fact"><span class="k">Current price</span><span class="v">$'+esc(s.price)+'</span></div><div class="card-fact"><span class="k">Reasonable value range</span><span class="v">'+(low==null||high==null?'Not available':'$'+esc(low)+'–$'+esc(high))+'</span></div><div class="card-fact"><span class="k">Expected holding period</span><span class="v">'+esc(hold)+'</span></div></div>'+
-    '<div class="card-evidence"><div class="card-evidence-box good"><h4>Three strongest reasons</h4>'+evidenceList(reasons,'Open details to inspect the available evidence.')+'</div><div class="card-evidence-box bad"><h4>Three largest risks</h4>'+evidenceList(risks,'No specific major risk was identified in the available data.')+'</div></div>'+agreementChip+experimental+
+    '<div class="card-evidence"><div class="card-evidence-box good"><h4>Three strongest reasons</h4>'+evidenceList(reasons,'Open details to inspect the available evidence.')+'</div><div class="card-evidence-box bad"><h4>Three largest risks</h4>'+evidenceList(risks,'No specific major risk was identified in the available data.')+'</div></div>'+agreementChip+hcChip+experimental+
     '<div class="tile-actions"><button class="chartbtn" data-chart="'+esc(s.ticker)+'" type="button">Launch Chart</button><button class="addbtn" data-add="'+esc(s.ticker)+'" type="button">Add 100</button></div></div></div>'; }
 
 function currentList(){
@@ -1105,6 +1114,32 @@ function entryExitEvidenceHTML(s){
     '<div class="dm-head"><span class="lab '+tone(e.entry_alignment)+'">Entry '+esc(e.entry_alignment||'unavailable')+'</span><span class="lab '+tone(e.exit_pressure)+'">Exit pressure '+esc(e.exit_pressure||'unavailable')+'</span><div class="dm-summary">'+esc(a.supportive_count||0)+' supportive and '+esc(a.cautionary_count||0)+' cautionary families out of '+esc(a.available_count||0)+' available. Correlated measurements are grouped into one vote per family.</div><span class="dm-note">0 points</span></div>'+lineage+families+
     '<div style="font-size:11.5px;color:var(--ink-faint);padding:10px 14px;border-top:1px solid var(--line-soft);line-height:1.45">'+esc(e.policy||'')+' Observed '+esc(e.observed_at||'date unavailable')+'.</div></div>';
 }
+
+function highConvictionResearchHTML(s){
+  var h=s.high_conviction_research;if(!h)return '';
+  function tone(state){return state==='pass'?'good':state==='fail'?'bad':'warn';}
+  var statusTone=h.status==='candidate'?'good':h.status==='quantitative_core_pass_research_incomplete'?'warn':'info';
+  var rows=(h.requirements||[]).map(function(r){
+    return '<div class="item" data-exp><button class="row"><span class="chev"></span><span class="rname">'+esc(r.label)+'</span><span class="rmeta"><span class="lab '+tone(r.state)+'">'+esc(r.state)+'</span> <span class="lab info">'+(r.backtestable?'backtestable':'not historically backtestable')+'</span></span></button><div class="detail"><div class="detail-in"><div class="metricbox"><div class="ea"><span class="k">Result</span><span class="v">'+esc(r.state)+'</span><span class="k">Reason</span><span class="v">'+esc(r.reason)+'</span><span class="k">Backtest status</span><span class="v">'+esc(r.backtestable?'Replayable input; combined rule still requires chronological validation.':'Displayed as qualitative research only because complete point-in-time history is unavailable.')+'</span><span class="k">Official decision effect</span><span class="v">0 points · no score, verdict, position-size, or automatic-trade effect</span></div></div></div></div></div>';
+  }).join('');
+  var complete=h.research_completeness||{}, bt=h.backtestability||{};
+  return '<div class="sub-h">High-Conviction Research overlay <span class="lab warn">additional · not scored</span></div><div class="dm-box"><div class="dm-head"><span class="lab '+statusTone+'">'+esc(h.label||h.status)+'</span><div class="dm-summary">'+esc(complete.completed||0)+' of '+esc(complete.required||0)+' required findings complete ('+esc(complete.pct||0)+'%). Quantitative core '+(h.quantitative_core_passes?'passes':'does not pass')+'.</div><span class="dm-note">0 points</span></div>'+rows+'<div style="font-size:11.5px;color:var(--ink-faint);padding:10px 14px;border-top:1px solid var(--line-soft);line-height:1.45"><b>Quantitative core:</b> '+esc(bt.quantitative_core||'')+' <b>Full label:</b> '+esc(bt.full_label||'')+' '+esc(h.policy||'')+'</div></div>';
+}
+
+function durabilityResearchHTML(s){
+  var d=s.business_durability, r=s.stress_resilience;if(!d&&!r)return '';
+  function tone(state){return state==='strong'||state==='stable'||state==='acceptable'||state==='supportive'?'good':state==='weak'||state==='cautionary'?'bad':'warn';}
+  var durability='';
+  if(d){
+    durability='<div class="cat" data-exp><button class="row"><span class="chev"></span><span class="rname">Business durability</span><span class="rmeta"><span class="lab '+tone(d.status)+'">'+esc(d.status)+'</span> <span class="lab info">replayable · 0 points</span></span></button><div class="detail"><div class="detail-in">'+(d.checks||[]).map(function(c){return '<div class="item" data-exp><button class="row"><span class="chev"></span><span class="rname">'+esc(c.label)+'</span><span class="rmeta"><span class="lab '+tone(c.state)+'">'+esc(c.state)+'</span></span></button><div class="detail"><div class="detail-in"><div class="metricbox"><div class="ea"><span class="k">Current evidence</span><span class="v">'+esc(c.actual)+'</span><span class="k">Candidate rule</span><span class="v">'+esc(c.rule)+'</span><span class="k">Source</span><span class="v">'+esc(c.source)+'</span><span class="k">Effect</span><span class="v">Backtestable research only · 0 points · no verdict effect</span></div></div></div></div></div>';}).join('')+'</div></div></div>';
+  }
+  var stress='';
+  if(r){
+    var x=r.summary||{};
+    stress='<div class="cat" data-exp><button class="row"><span class="chev"></span><span class="rname">Prior stress protection and recovery</span><span class="rmeta"><span class="lab '+tone(r.status)+'">'+esc(r.status)+'</span> <span class="lab info">'+esc(r.event_count||0)+' events · 0 points</span></span></button><div class="detail"><div class="detail-in"><div class="metricbox"><div class="ea"><span class="k">Median protection vs benchmark</span><span class="v">'+esc(x.median_relative_protection_pp==null?'n/a':x.median_relative_protection_pp+' pp')+'</span><span class="k">Recovered within one year</span><span class="v">'+esc(x.recovered_within_one_year_pct==null?'n/a':x.recovered_within_one_year_pct+'%')+'</span><span class="k">Median recovery time</span><span class="v">'+esc(x.median_recovery_days==null?'n/a':x.median_recovery_days+' trading days')+'</span><span class="k">Candidate rule</span><span class="v">'+esc(r.candidate_rule||'')+'</span><span class="k">Data limitation</span><span class="v">'+esc(r.data_note||'')+'</span><span class="k">Effect</span><span class="v">Backtestable research only · not validated · 0 points · no verdict effect</span></div></div></div></div></div>';
+  }
+  return '<div class="sub-h">Durability &amp; recovery research <span style="font-weight:400;color:var(--ink-faint);font-size:12px">(candidate rules · not scored)</span></div><div class="dm-box">'+durability+stress+'</div>';
+}
 function setupHTML(s){
   var b=s.breakout_setup; if(!b) return '';
   var counts=b.counts||{}, strategy=b.strategy==='quality_growth'?'Quality Growth':'Deep Value';
@@ -1254,7 +1289,7 @@ function openDetail(tk){ var s=STOCKS.find(function(x){return x.ticker===tk;}); 
     .map(function(a){return '<div class="acard"><div class="l">'+a[0]+'</div><div class="v">'+esc(a[1])+'</div></div>';}).join('')+'</div>';
   var mathSec='<div class="sub-h">How the '+Math.round(c.prelim)+' was computed</div>'+scoreMathHTML(s,c);
   var scorecard='<div class="sub-h">Scorecard - each existing category shows scored quantitative factors and separate non-quantifiable context</div>'+(s.categories||s.cats).map(function(cat){return catHTML(cat,s);}).join('');
-  $('#d-body').innerHTML=hero+confidenceHTML(s,c)+businessHTML(s)+growthQualificationHTML(s)+debtDirectionHTML(s)+mathSec+scorecard+demandMomentumHTML(s)+entryExitEvidenceHTML(s)+setupHTML(s)+targetPlanHTML(s)+valHTML(s)+valuationContextHTML(s)+growthEntryHTML(s)+contextHTML(s)+situationHTML(s)+newsHTML(s)+watchHTML(s)+action;
+  $('#d-body').innerHTML=hero+confidenceHTML(s,c)+highConvictionResearchHTML(s)+businessHTML(s)+durabilityResearchHTML(s)+growthQualificationHTML(s)+debtDirectionHTML(s)+mathSec+scorecard+demandMomentumHTML(s)+entryExitEvidenceHTML(s)+setupHTML(s)+targetPlanHTML(s)+valHTML(s)+valuationContextHTML(s)+growthEntryHTML(s)+contextHTML(s)+situationHTML(s)+newsHTML(s)+watchHTML(s)+action;
   openDrawer('#detail');
 }
 

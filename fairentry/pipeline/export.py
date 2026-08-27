@@ -12,6 +12,7 @@ from pathlib import Path
 from ..analytics.breakout_setup import build_context as build_breakout_setup
 from ..analytics.chart_history import write_chart_files
 from ..analytics.demand_momentum import build_context as build_demand_momentum
+from ..analytics.high_conviction import build_high_conviction_research
 from ..analytics.valuation_context import build_valuation_context
 from ..alerts import strong_business_wma_candidates, wma_alerts
 from ..scoring.engine import sector_medians, score_ticker
@@ -450,6 +451,14 @@ def _map(rec, strategies, strategy_key):
         "policy": "Information only; displayed inside the existing category and excluded from scoring.",
         "categories": qualitative_by_category,
     }
+    high_conviction = build_high_conviction_research(
+        verdict=rec.get("verdict"), price=rec.get("price"), vetoes=rec.get("vetoes"),
+        valuation_agreement=fv.get("method_agreement"),
+        business_durability=rec.get("_business_durability"),
+        stress_resilience=rec.get("_stress_resilience"),
+        entry_exit_evidence=rec.get("_entry_exit_evidence"),
+        qualitative_context=rec["qualitative_context"],
+    )
     financial_strength = _cat_score(rec, "survival")
     growth_score = _cat_score(rec, "growth")
     expected_eps_growth = _metric_value(rec, "eps_growth_next_y")
@@ -598,6 +607,9 @@ def _map(rec, strategies, strategy_key):
         "demand_momentum": rec.get("_demand_momentum"),
         "breakout_setup": breakout,
         "entry_exit_evidence": rec.get("_entry_exit_evidence"),
+        "business_durability": rec.get("_business_durability"),
+        "stress_resilience": rec.get("_stress_resilience"),
+        "high_conviction_research": high_conviction,
         "qualitative_context": rec["qualitative_context"],
         "vetoes": [v["reason"] for v in rec["vetoes"]],
         "context_warnings": rec.get("context_warnings", []),
@@ -824,6 +836,12 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
         rec["_entry_exit_evidence"] = (
             (breakout_context.get(t) or {}).get("entry_exit_evidence")
         )
+        rec["_business_durability"] = (
+            (breakout_context.get(t) or {}).get("business_durability")
+        )
+        rec["_stress_resilience"] = (
+            (breakout_context.get(t) or {}).get("stress_resilience")
+        )
         recs.append(rec)
 
     reasoning_summary = {}
@@ -847,6 +865,12 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
         rec["_breakout_setup"] = breakout_context.get(rec["ticker"])
         rec["_entry_exit_evidence"] = (
             (breakout_context.get(rec["ticker"]) or {}).get("entry_exit_evidence")
+        )
+        rec["_business_durability"] = (
+            (breakout_context.get(rec["ticker"]) or {}).get("business_durability")
+        )
+        rec["_stress_resilience"] = (
+            (breakout_context.get(rec["ticker"]) or {}).get("stress_resilience")
         )
         stocks.append(_map(rec, rec["_strategies"], rec["_primary"]))
     store.commit()

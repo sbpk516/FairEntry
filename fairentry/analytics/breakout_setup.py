@@ -10,10 +10,12 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from ..adapters.cache_lite import cache_get, cache_put
+from .business_durability import build_business_durability
 from .demand_momentum import _MARKET, _PERIODS, _SECTOR_ETF, _ret, _series
 from .entry_exit_evidence import build_entry_exit_evidence
+from .stress_resilience import build_stress_resilience
 
-_CACHE_NS = "breakout_setup_v3"
+_CACHE_NS = "breakout_setup_v4"
 _TTL_DAYS = 1
 
 
@@ -34,7 +36,7 @@ def _download_history(tickers: list[str]):
         import yfinance as yf
         return yf.download(
             tickers=tickers,
-            period="18mo",
+            period="5y",
             interval="1d",
             auto_adjust=True,
             progress=False,
@@ -326,7 +328,9 @@ def _history(store, field_id: str) -> dict[str, list[float]]:
 
 
 def _history_bundle(store) -> dict[str, dict[str, list[float]]]:
-    fields = ("rev_growth_qoq", "gross_margin", "oper_margin", "pfcf_ratio", "short_float")
+    fields = ("rev_growth_qoq", "gross_margin", "oper_margin", "pfcf_ratio", "short_float",
+              "roic", "debt_eq", "debt_to_assets_change_yoy_pp", "current_ratio",
+              "altman_z", "share_count_yoy")
     return {field: _history(store, field) for field in fields}
 
 
@@ -528,6 +532,11 @@ def build_context(store, records: list[tuple[dict, dict]]) -> dict:
             closes, volumes, sector_closes, spy_closes,
             highs=highs, lows=lows, observed_at=stock_series.get("as_of"),
         )
+        ticker_histories = {field: values.get(ticker, [])
+                            for field, values in histories.items()}
+        business_durability = build_business_durability(metrics, ticker_histories)
+        stress_resilience = build_stress_resilience(
+            closes, sector_closes, spy_closes, observed_at=stock_series.get("as_of"))
         out[ticker] = {
             "context_only": False,
             "not_scored": False,
@@ -556,6 +565,8 @@ def build_context(store, records: list[tuple[dict, dict]]) -> dict:
             },
             "sector_trend": sector,
             "entry_exit_evidence": entry_exit_evidence,
+            "business_durability": business_durability,
+            "stress_resilience": stress_resilience,
             "note": "The listed quantitative factor metrics feed existing Growth/Market Confirmation categories. The label is a rule outcome, not a second score.",
         }
     return out

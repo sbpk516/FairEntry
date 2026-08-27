@@ -20,6 +20,7 @@ from fairentry.backtest.factor_explorer import (
     attach_warehouse_factors,
     run_factor_explorer,
 )
+from fairentry.backtest.high_conviction_research import run_high_conviction_research
 from fairentry.backtest.wma200_research import (
     attach_wma200_factors,
     run_wma200_research,
@@ -205,6 +206,10 @@ def main():
                     step_days=int(result.get("step_days") or 30),
                 )
                 result["valuation_research"]["enrichment"] = valuation_enrichment
+                result["high_conviction_research"] = run_high_conviction_research(
+                    result.get("observations", []),
+                    step_days=int(result.get("step_days") or 30),
+                )
                 wma_enrichment = attach_wma200_factors(
                     result.get("observations", []), warehouse.con
                 )
@@ -266,6 +271,10 @@ def main():
                 step_days=int(result.get("step_days") or args.step),
             )
             result["valuation_research"]["enrichment"] = valuation_enrichment
+            result["high_conviction_research"] = run_high_conviction_research(
+                result.get("observations", []),
+                step_days=int(result.get("step_days") or args.step),
+            )
             wma_enrichment = attach_wma200_factors(
                 result.get("observations", []), warehouse.con
             )
