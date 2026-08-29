@@ -78,6 +78,8 @@ jobs:
       # theses are persisted, so later deterministic builds keep showing them.
       - name: Build (refresh -> screen -> score -> export)
         run: python scripts/build_all.py --refresh ${{ (github.event.inputs.reason == 'true' || github.event.schedule == '0 8 * * 1' || contains(github.event.head_commit.message, '[reason]')) && '--reason' || '' }}
+      - name: Verify latest official + Emerging universes
+        run: python scripts/validate_live_refresh.py --max-age-minutes 120
       - name: Build backtest report for UI
         run: |
           python scripts/seed_backtest.py --sec-history --limit 150

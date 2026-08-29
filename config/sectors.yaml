@@ -12,3 +12,33 @@ universe_filter:
   market_cap_min_usd: 300_000_000     # $300M
   price_min_usd: 1
   avg_dollar_volume_min: 10_000_000   # hard floor; $20M+ is positive liquidity quality
+
+# Research-only parallel screen across the $5M+ discovery universe. A name
+# below the official liquidity floor cannot receive an official verdict; any
+# overlap is labelled and remains a zero-point research observation here.
+emerging_candidates:
+  enabled: true
+  policy_version: emerging_research_v2
+  discovery_avg_dollar_volume_min: 5_000_000
+  official_avg_dollar_volume_min: 10_000_000
+  positive_liquidity_indicator_usd: 20_000_000
+  default_variant: balanced
+  default_liquidity_band: 5m_to_20m
+  variants:
+    broad:
+      minimum_business_quality: 50
+      minimum_financial_strength: 60
+      minimum_growth: 50
+      minimum_valuation_upside_pct: 20
+    balanced:
+      minimum_business_quality: 60
+      minimum_financial_strength: 60
+      minimum_growth: 50
+      minimum_valuation_upside_pct: 30
+      minimum_valuation_methods: 2
+    selective:
+      minimum_business_quality: 70
+      minimum_financial_strength: 70
+      minimum_growth: 60
+      minimum_valuation_upside_pct: 30
+      minimum_valuation_methods: 2

@@ -15,6 +15,7 @@ cp .env.example .env          # add FINVIZ_API_KEY (+ FINNHUB / DEEPSEEK later)
 python scripts/refresh.py             # pull the universe into data/fairentry.db
 python scripts/build_all.py           # screen -> score -> export web/data/board.json
 python scripts/build_all.py --refresh --reason   # full run incl. LLM reasoning
+python scripts/validate_live_refresh.py # fail if official/Emerging data is stale or inconsistent
 python scripts/backtest.py            # prospective signal backtest once signals mature
 python scripts/backtest.py --db data/backtest.db --rolling --json-out web/data/backtest.json
 python -m fairentry.mcp.stdio_server  # local MCP for Codex / Claude / ChatGPT clients
@@ -23,6 +24,7 @@ python -m fairentry.mcp.stdio_server  # local MCP for Codex / Claude / ChatGPT c
 python scripts/sharadar_snapshot.py --build-warehouse
 python scripts/build_sfa_features.py
 python scripts/sfa_backtest.py --step 30 --hold 30
+python scripts/emerging_candidate_backtest.py  # fixed Broad/Balanced/Selective replay
 
 # view the app
 cd web && python -m http.server 8795   # open http://localhost:8795
@@ -44,6 +46,23 @@ python scripts/backtest.py --db data/backtest.db --rolling --json-out web/data/b
 
 Findings require a concise reason and at least one HTTPS source. They are
 qualitative context only and never change the score or historical result.
+
+## Outside-universe monitoring
+
+Every successful Finviz refresh maintains two independent snapshots:
+
+- `finviz`: the official universe (currently at least $10M average daily dollar
+  volume). Only this universe can create scores, recommendations, positions,
+  and trading alerts.
+- `finviz_discovery`: all $5M+ names, separated into $5M-$10M, $10M-$20M and
+  $20M+ bands. Broad, Balanced and Selective research variants are shadow
+  evidence with zero official score or verdict effect.
+
+Current emerging state is stored in `emerging_candidates`; the append-only
+`emerging_candidate_events` table records every observation and lifecycle
+change, including `graduated_to_active` and `no_longer_qualified`. Previously
+recommended or owned stocks that later leave Finviz continue to receive
+tracking-only quotes from the independent Yahoo source.
 
 ## How it works
 

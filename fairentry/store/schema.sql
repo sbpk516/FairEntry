@@ -144,3 +144,43 @@ CREATE TABLE IF NOT EXISTS signal_events (
 );
 CREATE INDEX IF NOT EXISTS ix_signal_events_ticker ON signal_events(ticker, signal_date);
 CREATE INDEX IF NOT EXISTS ix_signal_events_verdict ON signal_events(signal_date, verdict, strategy);
+
+-- Research-only names observed immediately outside the official Finviz
+-- universe. Current state is convenient for the UI; the append-only event
+-- stream makes first detection, changes, exits, and later graduation auditable.
+CREATE TABLE IF NOT EXISTS emerging_candidates (
+  ticker                TEXT PRIMARY KEY,
+  status                TEXT NOT NULL,
+  strategy              TEXT,
+  company               TEXT,
+  sector                TEXT,
+  price                 REAL,
+  shadow_score          REAL,
+  shadow_verdict        TEXT,
+  financial_strength    REAL,
+  avg_dollar_volume     REAL,
+  first_seen            TEXT NOT NULL,
+  last_seen             TEXT NOT NULL,
+  active                INTEGER NOT NULL DEFAULT 1,
+  source                TEXT NOT NULL,
+  policy_version        TEXT NOT NULL,
+  evidence_json         TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_emerging_active ON emerging_candidates(active, status);
+
+CREATE TABLE IF NOT EXISTS emerging_candidate_events (
+  event_id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  observed_at           TEXT NOT NULL,
+  ticker                TEXT NOT NULL,
+  status                TEXT NOT NULL,
+  price                 REAL,
+  shadow_score          REAL,
+  shadow_verdict        TEXT,
+  financial_strength    REAL,
+  avg_dollar_volume     REAL,
+  source                TEXT NOT NULL,
+  policy_version        TEXT NOT NULL,
+  evidence_json         TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_emerging_events_ticker
+  ON emerging_candidate_events(ticker, observed_at);

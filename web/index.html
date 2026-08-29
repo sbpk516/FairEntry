@@ -404,6 +404,7 @@
       <button data-mode="all" class="on">All Stocks</button>
       <button data-mode="deepvalue">Deep Value</button>
       <button data-mode="growth">Quality Growth Entry</button>
+      <button data-mode="emerging">Emerging Candidates</button>
     </div>
     <span class="ai-status" id="ai-status"></span>
     <span class="spacer"></span>
@@ -416,6 +417,18 @@
   <div class="controls">
     <input id="search" placeholder="Search ticker or company">
     <select id="sector"><option value="all">All sectors</option></select>
+    <select id="emvariant" style="display:none" aria-label="Emerging research variant">
+      <option value="broad">Broad Discovery</option>
+      <option value="balanced" selected>Balanced Emerging</option>
+      <option value="selective">Selective Confirmation</option>
+    </select>
+    <select id="emliquidity" style="display:none" aria-label="Emerging liquidity band">
+      <option value="5m_to_20m" selected>$5M–$20M liquidity</option>
+      <option value="5m_to_10m">$5M–$10M · outside official</option>
+      <option value="10m_to_20m">$10M–$20M · developing</option>
+      <option value="20m_plus">$20M+ · established</option>
+      <option value="all">All $5M+ liquidity</option>
+    </select>
     <div class="seg" id="vfilter">
       <button data-v="all" class="on">All</button>
       <button data-v="Buy">Buy</button>
@@ -498,7 +511,11 @@ function restoreS(){ try{ var raw=localStorage.getItem(SKEY); if(raw){ var o=JSO
 var MODE='all';
 var WMA_ONLY=false;
 var HIGH_ONLY=false;
+var EM_VARIANT='balanced';
+var EM_LIQUIDITY='5m_to_20m';
 var META={};                                   // board.json meta (filled on load)
+var ACTIVE_STOCKS=[];
+var EMERGING_STOCKS=[];
 var MODE_STRATEGY={deepvalue:'deep_value', growth:'quality_growth'};
 
 // Mirror the backend's per-strategy scoring: unless the user has tuned weights
@@ -543,6 +560,12 @@ function activeWeightProfileName(){
 }
 function renderActiveWeights(){
   var box=$('#active-weights'); if(!box)return;
+  if(MODE==='emerging'){
+    var em=(META.emerging_candidates||{});
+    box.innerHTML='<div class="active-weights-top"><span class="active-weights-title">Early discovery and confirmation research</span><span class="active-weights-name">Emerging Candidate · NOT VALIDATED</span></div>'+
+      '<div class="active-weights-note">The displayed score and model verdict are shadow evidence only. They add 0 official points, change no Buy/Watch/Avoid verdict, open no position, and send no trading alert. Liquidity bands and research strictness are independent. Policy: '+esc(em.policy_version||'emerging_research_v2')+'.</div>';
+    return;
+  }
   var rows=effectiveWeights(S.weights), differs=rows.some(function(x){return Math.abs(x.input-x.effective)>.005;});
   box.innerHTML='<div class="active-weights-top"><span class="active-weights-title">Weights used for today\'s live decisions</span><span class="active-weights-name">'+esc(activeWeightProfileName())+'</span></div>'+
     '<div class="active-weight-list">'+rows.map(function(x){return '<span class="active-weight">'+esc(x.label)+' <b>'+x.effective.toFixed(2)+'%</b>'+(differs?' <small>(saved '+x.input+')</small>':'')+'</span>';}).join('')+'</div>'+
@@ -821,7 +844,8 @@ function contextChips(s){ var c=s.context||{};
   if(!parts.length) return '';
   return '<div class="ctx-row" title="Entry/exit and demand evidence are context-only. Breakout factors are traceable inputs to the existing score.">'+parts.join('')+'</div>';
 }
-function tileHTML(s){ var c=compute(s), shown=c.displayVerdict||c.verdict, vk=c.verdict.toLowerCase();
+function tileHTML(s){ var c=compute(s), em=s.emerging_candidate||null,
+  shown=em?em.label:(c.displayVerdict||c.verdict), vk=em?'watch':c.verdict.toLowerCase();
   var cs=s.card_summary||{}, deep=(s.strategy||[]).indexOf('deepvalue')>=0,
     strategy=cs.strategy||(deep?'Deep Value':'Quality Growth'),
     hold=cs.holding_period||(deep?'1–3 years':'2–5 years'),
@@ -832,23 +856,25 @@ function tileHTML(s){ var c=compute(s), shown=c.displayVerdict||c.verdict, vk=c.
     agreementChip=(c.verdict==='Buy'&&va.status?'<div class="ctx-row" title="Backtested shadow evidence only; 0 points and no effect on Buy/Watch/Avoid."><span class="ctag '+vaTone+'">Valuation agreement: '+esc(va.status==='pass'?'Pass':va.status==='caution'?'Caution':'Insufficient evidence')+' · '+esc(va.method_count)+' methods'+(va.dispersion_pct==null?'':' · '+esc(va.dispersion_pct)+'% spread')+'</span></div>':''),
     hc=s.high_conviction_research||{}, hcTone=hc.status==='candidate'?'good':hc.status==='quantitative_core_pass_research_incomplete'?'warn':'info',
     hcLabel=hc.status==='candidate'?'High-Conviction Research Candidate':hc.status==='quantitative_core_pass_research_incomplete'?'Quantitative core passes · research incomplete':'High-Conviction Research: not qualified',
-    hcChip=(c.verdict==='Buy'&&hc.status?'<div class="ctx-row" title="Additional research label only; 0 points and no verdict effect."><span class="ctag '+hcTone+'">'+esc(hcLabel)+' · 0 points</span></div>':'');
+    hcChip=(!em&&c.verdict==='Buy'&&hc.status?'<div class="ctx-row" title="Additional research label only; 0 points and no verdict effect."><span class="ctag '+hcTone+'">'+esc(hcLabel)+' · 0 points</span></div>':''),
+    emChip=em?'<div class="ctx-row"><span class="ctag warn">'+(em.in_official_universe?'Official universe · official verdict '+esc(em.official_verdict||'none'):'Outside official universe')+'</span><span class="ctag info">'+esc((em.highest_variant||'broad').replace(/_/g,' '))+' · '+esc((em.liquidity_band||'').replace(/_/g,' '))+'</span><span class="ctag info">Shadow model: '+esc(em.shadow_model_verdict)+' · '+esc(Math.round(em.shadow_score||0))+'/100</span><span class="ctag info">0 official points</span></div>':'';
   function evidenceList(items,empty){return items.length?'<ul>'+items.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>':'<div class="meta">'+esc(empty)+'</div>';}
-  var nuance=actionNuance(c);
+  var nuance=em?'research only':actionNuance(c);
   return '<div class="tile" data-t="'+esc(s.ticker)+'" role="button" tabindex="0" aria-label="'+esc(s.ticker+' '+s.company+' - '+shown)+'"><div class="vstripe st-'+vk+'"></div><div class="tile-in">'+
     '<div class="tile-top"><div class="tile-main"><div class="tick">'+esc(s.ticker)+'</div><div class="co">'+esc(s.company)+' - '+esc(s.sector)+'</div></div>'+
     '<div class="verdict"><span class="vpill bg-'+vk+' v-'+vk+'">'+shown+'</span>'+(nuance?'<div class="action-lbl">'+esc(nuance)+'</div>':'')+confidenceBadge(s,c)+'</div></div>'+
-    '<div class="card-facts"><div class="card-fact"><span class="k">Strategy</span><span class="v">'+esc(strategy)+'</span></div><div class="card-fact"><span class="k">Current price</span><span class="v">$'+esc(s.price)+'</span></div><div class="card-fact"><span class="k">Reasonable value range</span><span class="v">'+(low==null||high==null?'Not available':'$'+esc(low)+'–$'+esc(high))+'</span></div><div class="card-fact"><span class="k">Expected holding period</span><span class="v">'+esc(hold)+'</span></div></div>'+
-    '<div class="card-evidence"><div class="card-evidence-box good"><h4>Three strongest reasons</h4>'+evidenceList(reasons,'Open details to inspect the available evidence.')+'</div><div class="card-evidence-box bad"><h4>Three largest risks</h4>'+evidenceList(risks,'No specific major risk was identified in the available data.')+'</div></div>'+agreementChip+hcChip+experimental+
-    '<div class="tile-actions"><button class="chartbtn" data-chart="'+esc(s.ticker)+'" type="button">Launch Chart</button><button class="addbtn" data-add="'+esc(s.ticker)+'" type="button">Add 100</button></div></div></div>'; }
+    '<div class="card-facts"><div class="card-fact"><span class="k">Strategy</span><span class="v">'+esc(strategy)+'</span></div><div class="card-fact"><span class="k">Current price</span><span class="v">$'+esc(s.price)+'</span></div><div class="card-fact"><span class="k">Reasonable value range</span><span class="v">'+(low==null||high==null?'Not available':'$'+esc(low)+'–$'+esc(high))+'</span></div><div class="card-fact"><span class="k">Expected holding period</span><span class="v">'+(em?'Research observation only':esc(hold))+'</span></div></div>'+
+    '<div class="card-evidence"><div class="card-evidence-box good"><h4>Three strongest reasons</h4>'+evidenceList(reasons,'Open details to inspect the available evidence.')+'</div><div class="card-evidence-box bad"><h4>Three largest risks</h4>'+evidenceList(risks,'No specific major risk was identified in the available data.')+'</div></div>'+emChip+agreementChip+hcChip+experimental+
+    '<div class="tile-actions"><button class="chartbtn" data-chart="'+esc(s.ticker)+'" type="button">Launch Chart</button>'+(em?'<span class="lab warn">Research only · cannot Add 100</span>':'<button class="addbtn" data-add="'+esc(s.ticker)+'" type="button">Add 100</button>')+'</div></div></div>'; }
 
 function currentList(){
   var q=$('#search').value.trim().toLowerCase(), sec=$('#sector').value, vf=$('#vfilter .on').dataset.v, sort=$('#sort').value;
   var wmaTickers={}; (META.wma_alerts||[]).forEach(function(a){wmaTickers[a.ticker]=true;});
   (META.strong_business_wma_candidates||[]).forEach(function(a){wmaTickers[a.ticker]=true;});
-  var list=STOCKS.filter(function(s){ return MODE==='all' || s.strategy.indexOf(MODE)>=0; })
+  var source=MODE==='emerging'?EMERGING_STOCKS:ACTIVE_STOCKS;
+  var list=source.filter(function(s){ return MODE==='all' || MODE==='emerging' || s.strategy.indexOf(MODE)>=0; })
     .map(function(s){ return {s:s, c:compute(s)}; })
-    .filter(function(o){ if(WMA_ONLY&&!wmaTickers[o.s.ticker])return false; if(HIGH_ONLY&&!highConfidenceResearchMatch(o.s,o.c))return false; if(sec!=='all'&&o.s.sector!==sec)return false; if(vf!=='all'&&o.c.verdict!==vf)return false;
+    .filter(function(o){ var em=o.s.emerging_candidate||{}; if(MODE==='emerging'&&(em.matched_variants||[]).indexOf(EM_VARIANT)<0)return false; if(MODE==='emerging'&&EM_LIQUIDITY!=='all'){if(EM_LIQUIDITY==='5m_to_20m'&&['5m_to_10m','10m_to_20m'].indexOf(em.liquidity_band)<0)return false; if(EM_LIQUIDITY!=='5m_to_20m'&&em.liquidity_band!==EM_LIQUIDITY)return false;} if(WMA_ONLY&&!wmaTickers[o.s.ticker])return false; if(HIGH_ONLY&&!highConfidenceResearchMatch(o.s,o.c))return false; if(sec!=='all'&&o.s.sector!==sec)return false; if(MODE!=='emerging'&&vf!=='all'&&o.c.verdict!==vf)return false;
       if(q&&(o.s.ticker.toLowerCase().indexOf(q)<0&&o.s.company.toLowerCase().indexOf(q)<0))return false; return true; });
   var rank={Buy:0,Watch:1,Avoid:2};
   list.sort(function(a,b){ if(sort==='upside')return b.s.valuation.upside-a.s.valuation.upside;
@@ -859,9 +885,14 @@ function renderBoard(){ var list=currentList();
   renderActiveWeights();
   var pf=META.price_freshness||{}, warning=pf.excluded_count?
     '<div class="notice warn" style="margin-bottom:14px"><b>Price unavailable/stale:</b> '+esc(pf.excluded_count)+' stock(s) hidden from active scoring. No Buy or High-confidence status is issued beyond the '+esc(pf.limit_hours)+'-hour price limit.</div>':'';
+  if(MODE==='emerging'){
+    var em=META.emerging_candidates||{};
+    warning='<div class="notice warn" style="margin-bottom:14px"><b>Emerging Research · not validated:</b> Broad, Balanced and Selective variants monitor all $5M+ stocks. The default view is $5M–$20M; liquidity and research strictness are independent filters. Shadow evidence adds 0 official points and never creates an official Buy. Discovery snapshot: '+esc(em.discovery_universe_refreshed_at||'unavailable')+'.</div>';
+  }
   $('#board').innerHTML=warning+(list.map(function(o){return tileHTML(o.s);}).join('')||'<div style="color:var(--ink-faint);padding:30px">No stocks match.</div>');
   var byv={Buy:0,Watch:0,Avoid:0}; list.forEach(function(o){byv[o.c.verdict]++;});
-  $('#count').textContent=list.length+' shown'+(WMA_ONLY?' near 200 WMA':'')+(HIGH_ONLY?' high-confidence research (not validated)':'')+' - '+byv.Buy+' Buy - '+byv.Watch+' Watch - '+byv.Avoid+' Avoid';
+  $('#count').textContent=MODE==='emerging'?(list.length+' '+EM_VARIANT+' emerging research candidates · '+EM_LIQUIDITY.replace(/_/g,' ')+' · not validated'):
+    (list.length+' shown'+(WMA_ONLY?' near 200 WMA':'')+(HIGH_ONLY?' high-confidence research (not validated)':'')+' - '+byv.Buy+' Buy - '+byv.Watch+' Watch - '+byv.Avoid+' Avoid');
 }
 function renderWmaAlerts(meta){
   var box=$('#wma-alerts'), alerts=meta.wma_alerts||[], strong=meta.strong_business_wma_candidates||[];
@@ -878,6 +909,7 @@ function portfolioLoad(){ try{return JSON.parse(localStorage.getItem(PORTKEY)||'
 function portfolioSave(xs){ try{localStorage.setItem(PORTKEY, JSON.stringify(xs));}catch(e){} }
 function addToPortfolio(ticker){
   var s=STOCKS.find(function(x){return x.ticker===ticker;}); if(!s)return;
+  if(s.emerging_candidate)return; // research-only names cannot create a position
   var price=Number(s.price)||0, shares=100, xs=portfolioLoad();
   var existing=xs.find(function(p){return String(p.ticker||'').toUpperCase()===ticker;});
   if(existing){
@@ -1124,7 +1156,7 @@ function entryExitEvidenceHTML(s){
 }
 
 function highConvictionResearchHTML(s){
-  var h=s.high_conviction_research;if(!h)return '';
+  var h=s.high_conviction_research;if(s.emerging_candidate||!h)return '';
   function tone(state){return state==='pass'?'good':state==='fail'?'bad':'warn';}
   var statusTone=h.status==='candidate'?'good':h.status==='quantitative_core_pass_research_incomplete'?'warn':'info';
   var rows=(h.requirements||[]).map(function(r){
@@ -1274,7 +1306,7 @@ function valuationContextHTML(s){
   return '<div class="sub-h">Experimental valuation context <span class="lab bad">NOT BACKTESTED</span></div><div class="dm-box"><div class="dm-head"><span class="lab warn">'+esc(c.experimental_context_label||'unavailable')+'</span><div class="dm-summary"><b>'+esc(scoreText)+'</b> separate experimental context score. '+esc(c.warning||'')+'</div><span class="dm-note">0 official points</span></div>'+rows+'<div style="font-size:11.5px;color:var(--ink-faint);padding:10px 14px;border-top:1px solid var(--line-soft);line-height:1.45">This panel is intentionally isolated from the historically tested FairEntry score and recommendation.</div></div>';
 }
 
-function confidenceHTML(s,c){ var t=s.confidence_tier;if(!t||c.verdict!=='Buy')return '';
+function confidenceHTML(s,c){ var t=s.confidence_tier;if(s.emerging_candidate||!t||c.verdict!=='Buy')return '';
   var high=t.id==='high_confidence',i=t.inputs||{},fin=i.financial_strength||{},growth=i.growth_score||{},eps=i.expected_eps_growth||{},h=t.historical_evidence||{};
   return '<div class="sub-h">Investment confidence validation <span class="lab '+(high?'good':'info')+'">'+esc(t.label)+'</span></div><div class="bizbox"><div class="biztop"><div class="bizplain"><b>'+(high?'Passes a validated high-confidence rule':'No validated High-confidence designation')+'</b><br><span class="meta">The Financial Strength overlay is information only and does not tune weights or change Buy / Watch / Avoid.</span></div><div class="bizexample">'+
     'Financial Strength: <b>'+esc(fin.value==null?'n/a':fin.value)+'</b> / required '+esc(fin.minimum)+' — <span class="lab '+(fin.passes?'good':'bad')+'">'+(fin.passes?'passes':'does not pass')+'</span><br>'+
@@ -1282,22 +1314,32 @@ function confidenceHTML(s,c){ var t=s.confidence_tier;if(!t||c.verdict!=='Buy')r
     'Expected next-year EPS growth: <b>'+(eps.value_pct==null?'n/a':esc(eps.value_pct)+'%')+'</b> / provisional confirmation '+esc(eps.confirmation_threshold_pct)+'% — <span class="lab '+(eps.passes_provisional_confirmation?'good':'warn')+'">'+(eps.passes_provisional_confirmation?'provisional pass':'not confirmed')+'</span><br>'+
     'Hard veto: <b>'+(i.no_hard_veto&&i.no_hard_veto.value?'none':'present')+'</b></div></div><div class="vg-explain"><b>Expanded replay result: not validated as High-confidence.</b> '+esc(h.successes)+'/'+esc(h.completed_episodes)+' succeeded ('+esc(h.observed_success_rate_pct)+'%), versus '+esc(h.comparison_all_buy_rate_pct)+'% for all Buys; 90% interval '+esc((h.confidence_interval_90_pct||[]).join('–'))+'%. The earlier 42/51 result did not reproduce. EPS remains information-only.</div></div>'; }
 
-function openDetail(tk){ var s=STOCKS.find(function(x){return x.ticker===tk;}); if(!s)return; var c=compute(s), vk=c.verdict.toLowerCase();
+function emergingResearchHTML(s){ var e=s.emerging_candidate;if(!e)return '';
+  function rows(items){return (items||[]).map(function(x){
+    var target=x.minimum!=null?'≥ '+x.minimum:(x.expected||'required');
+    return '<div class="item"><div class="row"><span class="rname">'+esc(x.label)+'</span><span class="rmeta"><span class="lab '+(x.passes?'good':'bad')+'">'+(x.passes?'passes':'does not pass')+'</span> <span class="tnum">'+esc(x.value==null?'n/a':x.value)+'</span> <span class="meta">expected '+esc(target)+'</span></span></div></div>';
+  }).join('');}
+  var lifecycle=(e.first_seen?'<div class="meta" style="margin-top:8px">First detected '+esc(e.first_seen)+' · last observed '+esc(e.last_seen||'—')+'</div>':'');
+  var variantRows=['broad','balanced','selective'].map(function(v){var x=(e.variants||{})[v]||{};return '<div class="item"><div class="row"><span class="rname">'+esc(x.label||v)+'</span><span class="rmeta"><span class="lab '+(x.passes?'good':'bad')+'">'+(x.passes?'passes':'does not pass')+'</span></span></div></div>';}).join('');
+  return '<div class="sub-h">Emerging-candidate audit <span class="lab warn">NOT VALIDATED</span></div><div class="bizbox"><div class="biztop"><div class="bizplain"><b>'+esc(e.label)+'</b><br>'+esc(e.source_description)+'<br><span class="meta">Official universe: '+(e.in_official_universe?'yes':'no')+' · official verdict: '+esc(e.official_verdict||'none')+' · research score effect: 0</span>'+lifecycle+'</div><div class="bizexample"><b>Liquidity band</b><br>'+esc((e.liquidity_band||'unavailable').replace(/_/g,' '))+'<br><b>Selective checks still missing</b><br>'+esc((e.blockers||[]).join(' · ')||'None')+'</div></div><div class="sub-h" style="margin-top:12px">Three research variants</div>'+variantRows+'<div class="sub-h" style="margin-top:12px">Highest passing variant checks</div>'+rows(e.checks)+'<div class="sub-h" style="margin-top:12px">Selective confirmation checks</div>'+rows(e.confirmation_checks)+'<div class="vg-explain"><b>Liquidity milestones are independent.</b> '+esc(e.graduation_rule)+' '+esc(e.disclaimer)+'</div></div>';
+}
+
+function openDetail(tk){ var s=STOCKS.find(function(x){return x.ticker===tk;}); if(!s)return; var c=compute(s), em=s.emerging_candidate||null, vk=em?'watch':c.verdict.toLowerCase();
   $('#d-title').innerHTML=esc(s.ticker)+' <span style="font-size:13px;color:var(--ink-faint);font-weight:500">'+esc(s.company)+'</span>';
   var vetoHTML=c.vetoed?'<div style="margin-top:10px"><span class="lab bad">VETO</span> '+s.vetoes.map(esc).join(' - ')+'</div>':'';
   var gateHTML=(c.gates&&c.gates.length)?'<div style="margin-top:8px;font-size:12px;color:var(--watch)">Soft gate'+(c.capped?' (capped Buy -> Watch)':'')+': '+c.gates.map(esc).join(' - ')+'</div>':'';
   var warnings=(s.context_warnings||[]); var warningHTML=warnings.length?'<div style="margin-top:8px"><span class="lab info">Information-only warning</span> '+warnings.map(function(w){return esc(w.reason||w);}).join(' - ')+' <span class="meta">Does not change the tested verdict.</span></div>':'';
   var hero='<div class="verdict-hero bg-'+vk+'" style="border-color:var(--'+vk+'-line)"><div class="vh-top">'+
-    '<span class="vh-pill bg-'+vk+' v-'+vk+'">'+c.verdict+'</span>'+(actionNuance(c)?'<span class="lab '+(c.vetoed?'bad':'warn')+'">'+esc(actionNuance(c))+'</span>':'')+
+    '<span class="vh-pill bg-'+vk+' v-'+vk+'">'+esc(em?em.label:c.verdict)+'</span>'+(em?'<span class="lab warn">Official verdict: '+esc(em.official_verdict||'none')+' · research overlay only</span>':(actionNuance(c)?'<span class="lab '+(c.vetoed?'bad':'warn')+'">'+esc(actionNuance(c))+'</span>':''))+
     '<span class="vh-score tnum" style="color:var(--'+vk+'-text)">'+Math.round(c.prelim)+'<span>/100</span></span></div>'+
     '<div class="vh-why"><span class="lab info">AI/news note - information only</span> '+esc(s.thesis.summary)+'</div>'+
     vetoHTML+gateHTML+warningHTML+'</div>';
-  var action='<div class="sub-h">Action plan</div><div class="action-grid">'+
-    [['Action',verdictAction(c)],['Position size',s.action.size],['Add trigger',s.action.add],['Invalidation / stop',s.action.stop],['Entry logic',s.action.entry],['Review',s.action.review]]
+  var action='<div class="sub-h">'+(em?'Research disposition':'Action plan')+'</div><div class="action-grid">'+
+    (em?[['Action','Observe only — not eligible for purchase from this list'],['Position size','None'],['Graduation',em.graduation_rule],['Current blocker',(em.blockers||[]).join(' · ')],['Shadow evidence','Model '+em.shadow_model_verdict+' at '+Math.round(em.shadow_score||0)+'/100; no official effect'],['Review','Recomputed after each successful universe refresh']]:[['Action',verdictAction(c)],['Position size',s.action.size],['Add trigger',s.action.add],['Invalidation / stop',s.action.stop],['Entry logic',s.action.entry],['Review',s.action.review]])
     .map(function(a){return '<div class="acard"><div class="l">'+a[0]+'</div><div class="v">'+esc(a[1])+'</div></div>';}).join('')+'</div>';
   var mathSec='<div class="sub-h">How the '+Math.round(c.prelim)+' was computed</div>'+scoreMathHTML(s,c);
   var scorecard='<div class="sub-h">Scorecard - each existing category shows scored quantitative factors and separate non-quantifiable context</div>'+(s.categories||s.cats).map(function(cat){return catHTML(cat,s);}).join('');
-  $('#d-body').innerHTML=hero+confidenceHTML(s,c)+highConvictionResearchHTML(s)+businessHTML(s)+durabilityResearchHTML(s)+growthQualificationHTML(s)+debtDirectionHTML(s)+mathSec+scorecard+demandMomentumHTML(s)+entryExitEvidenceHTML(s)+setupHTML(s)+targetPlanHTML(s)+valHTML(s)+valuationContextHTML(s)+growthEntryHTML(s)+contextHTML(s)+situationHTML(s)+newsHTML(s)+watchHTML(s)+action;
+  $('#d-body').innerHTML=hero+emergingResearchHTML(s)+confidenceHTML(s,c)+highConvictionResearchHTML(s)+businessHTML(s)+durabilityResearchHTML(s)+growthQualificationHTML(s)+debtDirectionHTML(s)+mathSec+scorecard+demandMomentumHTML(s)+entryExitEvidenceHTML(s)+setupHTML(s)+targetPlanHTML(s)+valHTML(s)+valuationContextHTML(s)+growthEntryHTML(s)+contextHTML(s)+situationHTML(s)+newsHTML(s)+watchHTML(s)+action;
   openDrawer('#detail');
 }
 
@@ -1516,6 +1558,15 @@ document.addEventListener('keydown',function(e){
 });
 $('#modes').addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b)return;
   $('#modes .on').classList.remove('on'); b.classList.add('on'); MODE=b.dataset.mode;
+  $('#emvariant').style.display=MODE==='emerging'?'':'none';
+  $('#emliquidity').style.display=MODE==='emerging'?'':'none';
+  if(MODE==='emerging'){
+    WMA_ONLY=false; HIGH_ONLY=false;
+    $('#wmafilter').classList.remove('on'); $('#wmafilter').setAttribute('aria-pressed','false');
+    $('#highfilter').classList.remove('on'); $('#highfilter').setAttribute('aria-pressed','false');
+    var current=$('#vfilter .on'); if(current)current.classList.remove('on');
+    $('#vfilter [data-v="all"]').classList.add('on');
+  }
   syncModelToMode(); renderSettings(); renderBoard(); });
 $('#vfilter').addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b)return;
   $('#vfilter .on').classList.remove('on'); b.classList.add('on'); renderBoard(); });
@@ -1523,6 +1574,8 @@ $('#wmafilter').addEventListener('click',function(){ WMA_ONLY=!WMA_ONLY; this.cl
 $('#highfilter').addEventListener('click',function(){ HIGH_ONLY=!HIGH_ONLY; this.classList.toggle('on',HIGH_ONLY); this.setAttribute('aria-pressed',HIGH_ONLY?'true':'false'); renderBoard(); });
 $('#search').addEventListener('input',renderBoard);
 $('#sector').addEventListener('change',renderBoard);
+$('#emvariant').addEventListener('change',function(){EM_VARIANT=this.value;renderBoard();});
+$('#emliquidity').addEventListener('change',function(){EM_LIQUIDITY=this.value;renderBoard();});
 $('#sort').addEventListener('change',renderBoard);
 $('#tunebtn').addEventListener('click',function(){ openDrawer('#settings'); });
 $('#d-close').addEventListener('click',closeAll); $('#c-close').addEventListener('click',closeAll); $('#s-close').addEventListener('click',closeAll); $('#scrim').addEventListener('click',closeAll);
@@ -1552,8 +1605,14 @@ $('#s-body').addEventListener('click',function(e){ if(e.target.id==='resetbtn'){
 restoreS();          // restore the user's saved weights/thresholds
 renderSettings();
 fetch('data/board.json', {cache:'no-store'}).then(function(r){ return r.json(); }).then(function(b){
-  STOCKS = (b.stocks || []).map(function(s){ if(s.categories){ s.cats=s.categories; } return s; });
+  ACTIVE_STOCKS = (b.stocks || []).map(function(s){ if(s.categories){ s.cats=s.categories; } return s; });
+  EMERGING_STOCKS = (b.emerging_candidates || []).map(function(s){ if(s.categories){ s.cats=s.categories; } return s; });
+  STOCKS = ACTIVE_STOCKS.concat(EMERGING_STOCKS);
   var m=b.meta||{}; META=m;
+  var emMeta=m.emerging_candidates||{};
+  EM_VARIANT=emMeta.default_variant||'balanced';
+  EM_LIQUIDITY=emMeta.default_liquidity_band||'5m_to_20m';
+  $('#emvariant').value=EM_VARIANT; $('#emliquidity').value=EM_LIQUIDITY;
   PRESETS=Object.assign({},m.presets||{},WEIGHT_PROFILES_BUILTIN);
   PRESET_PROFILES=Object.assign({},m.preset_profiles||{},WEIGHT_PROFILE_INFO_BUILTIN);
   syncModelToMode();          // apply the mode's backend preset weights + bands
@@ -1561,7 +1620,7 @@ fetch('data/board.json', {cache:'no-store'}).then(function(r){ return r.json(); 
   var secs=Array.from(new Set(STOCKS.map(function(s){return s.sector;}))).sort();
   $('#sector').innerHTML='<option value="all">All sectors</option>'+secs.map(function(x){return '<option>'+esc(x)+'</option>';}).join('');
   var tag=document.querySelector('.brand .tag');
-  if(tag) tag.textContent='working name - '+(m.count||STOCKS.length)+' stocks - '+((m.generated_at||'').slice(0,10));
+  if(tag) tag.textContent='working name - '+(m.count||ACTIVE_STOCKS.length)+' active + '+EMERGING_STOCKS.length+' emerging - '+((m.generated_at||'').slice(0,10));
   renderAiStatus(m.ai_review);
   renderWmaAlerts(m);
   renderBoard();

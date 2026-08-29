@@ -84,14 +84,12 @@ jobs:
           key: fairentry-backtest-placeholder
           restore-keys: |
             fairentry-store-
-      - name: Ensure current metrics exist
-        run: |
-          if [ ! -f data/fairentry.db ]; then
-            echo "No restored store — doing a quick refresh to get current metrics."
-            python scripts/build_all.py --refresh
-          else
-            echo "Using restored live store."
-          fi
+      # Always refresh and rescreen current data. The cache supplies history,
+      # never permission to use an old current universe for a new run.
+      - name: Refresh current official + Emerging universes
+        run: python scripts/build_all.py --refresh
+      - name: Verify latest official + Emerging universes
+        run: python scripts/validate_live_refresh.py --max-age-minutes 120
       - name: Seed history from real prices + SEC filings
         run: python scripts/seed_backtest.py --sec-history --limit "$LIMIT"
       - name: Run rolling backtest -> summary

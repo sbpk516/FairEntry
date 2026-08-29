@@ -736,6 +736,10 @@ class SFAReplay:
             f"max({net_return}) FILTER (WHERE p.date<={tuning_end}) tuning_max_return_pct",
             f"min({net_return}) FILTER (WHERE p.date<={tuning_end}) tuning_max_drawdown_pct",
         ])
+        for target in (20, 25, 30):
+            expressions.append(
+                f"min(p.date) FILTER (WHERE p.date<={tuning_end} AND "
+                f"{net_return}>={target}) tuning_hit_{target}_date")
         for horizon in horizons:
             expressions.extend(
                 [
@@ -1118,6 +1122,10 @@ def run_sfa_rolling(
                 "secondary_gain_pct": strategy.tuning_secondary_gain_pct,
                 "first_hit_primary_days": elapsed_days(prices.get("tuning_hit_primary_date")),
                 "first_hit_secondary_days": elapsed_days(prices.get("tuning_hit_secondary_date")),
+                "first_hit_days_by_target": {
+                    str(target): elapsed_days(prices.get(f"tuning_hit_{target}_date"))
+                    for target in (20, 25, 30)
+                },
                 "last_observed_days": elapsed_days(prices.get("last_date")),
                 "terminal_days": terminal_days,
                 "return_pct": horizon_outcome.get("return_pct"),

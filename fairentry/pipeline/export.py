@@ -757,10 +757,17 @@ def _fresh_price(metric, limit_hours=8, now=None):
     return True, None
 
 
-def build_board(cfg, store, settings=None, reason=False) -> dict:
+def build_board(cfg, store, settings=None, reason=False, *, source="finviz",
+                persist_results=True) -> dict:
+    """Build a scored view for one universe snapshot.
+
+    ``finviz`` is the only official decision universe. Other sources may use
+    this deterministic machinery as shadow research, but with
+    ``persist_results=False`` they cannot overwrite official screen/score rows.
+    """
     settings = settings or {"margin_of_safety_pct": 15, "target_upside_pct": 30}
     med = sector_medians(cfg, store)
-    secs = {x["ticker"]: x for x in store.active_securities()}
+    secs = {x["ticker"]: x for x in store.active_securities(source=source)}
     price_limit_h = float(cfg.field("price").get("freshness_limit_h", 8))
     price_issues = []
     for ticker in list(secs):
@@ -783,7 +790,8 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
             ok, _ = mod.passes(store.metrics_for(t))
             if ok:
                 quals.setdefault(t, []).append(mod.STRATEGY)
-                store.set_screen_result(t, sid, True, {})
+                if persist_results:
+                    store.set_screen_result(t, sid, True, {})
     store.commit()
 
     issuer_candidates = [
@@ -845,7 +853,7 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
         recs.append(rec)
 
     reasoning_summary = {}
-    if reason:
+    if reason and persist_results:
         reasoning_summary = _apply_reasoning(cfg, secs, store, recs, settings, med)
     # Always re-attach the most recent stored thesis to names not freshly
     # reasoned, so AI reads survive the deterministic builds between weekly runs.
@@ -859,8 +867,9 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
             rec, metrics_by_ticker.get(rec["ticker"], {}),
             minimum_upside_pct=settings.get("target_upside_pct", 30), maximum_upside_pct=100,
             expiry_days=365, historical=False)
-        store.set_score_result(rec["ticker"], rec["_primary"], rec["base_score"],
-                               rec["preliminary"], rec["verdict"], rec)
+        if persist_results:
+            store.set_score_result(rec["ticker"], rec["_primary"], rec["base_score"],
+                                   rec["preliminary"], rec["verdict"], rec)
         rec["_demand_momentum"] = demand_context.get(rec["ticker"])
         rec["_breakout_setup"] = breakout_context.get(rec["ticker"])
         rec["_entry_exit_evidence"] = (
@@ -901,6 +910,9 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
     return {"meta": {"generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                      "sectors": [s["id"] for s in cfg.enabled_sectors],
                      "config_version": cfg.scoring.get("version"), "count": len(stocks),
+                     "universe_source": source,
+                     "universe_refreshed_at": store.universe_refreshed_at(source),
+                     "official_decisions": source == "finviz" and persist_results,
                      "issuer_deduplication": {
                          "enabled": True,
                          "policy": "primary_class_then_liquidity",
@@ -950,8 +962,10 @@ def build_board(cfg, store, settings=None, reason=False) -> dict:
 def write_board(board: dict, path: Path = OUT):
     path.parent.mkdir(parents=True, exist_ok=True)
     if path == OUT:
-        chart_paths = write_chart_files(board.get("stocks") or [], path.parent / "charts")
-        for stock in board.get("stocks") or []:
+        chart_stocks = ((board.get("stocks") or [])
+                        + (board.get("emerging_candidates") or []))
+        chart_paths = write_chart_files(chart_stocks, path.parent / "charts")
+        for stock in chart_stocks:
             ticker = str(stock.get("ticker", "")).upper()
             if ticker in chart_paths:
                 stock["chart_path"] = chart_paths[ticker]

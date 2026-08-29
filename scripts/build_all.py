@@ -14,6 +14,7 @@ from fairentry.config import load_config
 from fairentry.store import Store
 from fairentry.catalog.refresh import refresh
 from fairentry.pipeline.export import build_board, write_board
+from fairentry.pipeline.emerging import build_emerging_candidates
 from fairentry.screeners import REGISTRY as SCREENERS
 from fairentry.backtest.universe import deduplicate_issuers
 
@@ -60,6 +61,10 @@ def main():
               "from independent source")
         print("Screening + scoring…" + (" + reasoning shortlist" if args.reason else ""))
         board = build_board(cfg, store, reason=args.reason)
+        print("Computing outside-universe emerging research candidates…")
+        emerging = build_emerging_candidates(cfg, store, official_board=board)
+        board["emerging_candidates"] = emerging["stocks"]
+        board["meta"]["emerging_candidates"] = emerging["meta"]
         from fairentry.tracking import record as track_record
         track = track_record(store, board)
         board["meta"]["tracking"] = {"alerts": len(track["alerts"]),
@@ -99,6 +104,18 @@ def main():
     from collections import Counter
     v = Counter(s["verdict"] if "verdict" in s else "" for s in [])  # verdict is recomputed in UI
     print(f"Exported {board['meta']['count']} stocks -> {path}")
+    emerging_meta = board["meta"].get("emerging_candidates", {})
+    print(f"Emerging research: {emerging_meta.get('candidate_count', 0)} active, "
+          f"{(emerging_meta.get('variant_counts') or {}).get('selective', 0)} selective; "
+          "information only, not validated")
+    for stock in board.get("emerging_candidates", []):
+        evidence = stock.get("emerging_candidate", {})
+        liquidity = (evidence.get("summary_values") or {}).get(
+            "average_daily_dollar_volume")
+        print(f"  EMERGING {stock['ticker']}: {evidence.get('status')} · "
+              f"shadow {evidence.get('shadow_model_verdict')} "
+              f"{evidence.get('shadow_score', 0):.1f}/100 · "
+              f"${(liquidity or 0) / 1_000_000:.1f}M avg daily dollar volume")
     print(f"Sectors: {board['meta']['sectors']}")
 
 

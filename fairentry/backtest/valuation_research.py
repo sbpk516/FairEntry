@@ -216,9 +216,9 @@ def evaluate_policy(row: dict, policy: dict) -> dict:
     }
 
 
-def attach_valuation_factors(observations: list[dict], connection) -> dict:
+def attach_valuation_factors(observations: list[dict], connection, *, buy_only=True) -> dict:
     """Attach point-in-time EV/Sales inputs and same-date sector medians."""
-    rows = [row for row in observations if row.get("verdict") == "Buy"
+    rows = [row for row in observations if (not buy_only or row.get("verdict") == "Buy")
             and row.get("ticker") and row.get("decision_date")]
     if not rows:
         return {"observations": 0, "enriched": 0}

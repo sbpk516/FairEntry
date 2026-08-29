@@ -91,6 +91,129 @@ class Store:
             (source,)).fetchone()
         return row["refreshed_at"] if row else None
 
+    # -- emerging candidates --------------------------------------------------
+    def replace_emerging_candidates(self, candidates, official_tickers=(), observed_at=None):
+        """Persist a research-only discovery snapshot and its lifecycle.
+
+        Candidates never touch ``score_results`` or ``recommendations``. A name
+        that subsequently enters the official universe is explicitly recorded
+        as ``graduated_to_active``; other missing names become
+        ``no_longer_qualified`` while all prior evidence remains queryable.
+        """
+        observed_at = observed_at or _now()
+        official = {str(t).strip().upper() for t in official_tickers if str(t).strip()}
+        rows = {str(c.get("ticker", "")).strip().upper(): c for c in candidates
+                if str(c.get("ticker", "")).strip()}
+        prior = {r["ticker"]: dict(r) for r in self.con.execute(
+            "SELECT * FROM emerging_candidates WHERE active=1")}
+        added = changed = graduated = removed = 0
+        graduated_10m = graduated_20m = 0
+
+        def event_values(ticker, status, candidate, evidence):
+            return (
+                observed_at, ticker, status, candidate.get("price"),
+                candidate.get("shadow_score"), candidate.get("shadow_verdict"),
+                candidate.get("financial_strength"),
+                candidate.get("avg_dollar_volume"),
+                candidate.get("source", "finviz_discovery"),
+                candidate.get("policy_version", "emerging_research_v2"),
+                json.dumps(evidence, sort_keys=True),
+            )
+
+        with self.con:
+            for ticker, candidate in rows.items():
+                evidence = candidate.get("evidence") or {}
+                status = candidate.get("status", "emerging_candidate")
+                old = prior.get(ticker)
+                if old is None:
+                    added += 1
+                elif old.get("status") != status:
+                    changed += 1
+                if old is not None:
+                    old_evidence = json.loads(old.get("evidence_json") or "{}")
+                    old_band = old_evidence.get("liquidity_band")
+                    new_band = evidence.get("liquidity_band")
+                    if old_band == "5m_to_10m" and new_band in {"10m_to_20m", "20m_plus"}:
+                        graduated_10m += 1
+                    if old_band == "10m_to_20m" and new_band == "20m_plus":
+                        graduated_20m += 1
+                self.con.execute(
+                    "INSERT INTO emerging_candidates("
+                    "ticker,status,strategy,company,sector,price,shadow_score,shadow_verdict,"
+                    "financial_strength,avg_dollar_volume,first_seen,last_seen,active,source,"
+                    "policy_version,evidence_json) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
+                    "ON CONFLICT(ticker) DO UPDATE SET status=excluded.status, "
+                    "strategy=excluded.strategy, company=excluded.company, sector=excluded.sector, "
+                    "price=excluded.price, shadow_score=excluded.shadow_score, "
+                    "shadow_verdict=excluded.shadow_verdict, "
+                    "financial_strength=excluded.financial_strength, "
+                    "avg_dollar_volume=excluded.avg_dollar_volume, last_seen=excluded.last_seen, "
+                    "active=1, source=excluded.source, policy_version=excluded.policy_version, "
+                    "evidence_json=excluded.evidence_json",
+                    (ticker, status, candidate.get("strategy"), candidate.get("company"),
+                     candidate.get("sector"), candidate.get("price"),
+                     candidate.get("shadow_score"), candidate.get("shadow_verdict"),
+                     candidate.get("financial_strength"), candidate.get("avg_dollar_volume"),
+                     observed_at, observed_at, 1,
+                     candidate.get("source", "finviz_discovery"),
+                     candidate.get("policy_version", "emerging_research_v2"),
+                     json.dumps(evidence, sort_keys=True)))
+                self.con.execute(
+                    "INSERT INTO emerging_candidate_events("
+                    "observed_at,ticker,status,price,shadow_score,shadow_verdict,"
+                    "financial_strength,avg_dollar_volume,source,policy_version,evidence_json) "
+                    "VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                    event_values(ticker, status, candidate, evidence))
+
+            for ticker, old in prior.items():
+                if ticker in rows:
+                    continue
+                legacy_policy = str(old.get("policy_version") or "").startswith(
+                    "emerging_candidate_v1")
+                status = ("graduated_to_active" if ticker in official and legacy_policy
+                          else "no_longer_qualified")
+                graduated += int(status == "graduated_to_active")
+                removed += int(status == "no_longer_qualified")
+                evidence = json.loads(old.get("evidence_json") or "{}")
+                evidence["lifecycle_reason"] = (
+                    "Now present in the official Finviz universe" if ticker in official
+                    else "No longer passes the emerging-candidate research rule")
+                self.con.execute(
+                    "UPDATE emerging_candidates SET status=?, active=0, last_seen=?, evidence_json=? "
+                    "WHERE ticker=?",
+                    (status, observed_at, json.dumps(evidence, sort_keys=True), ticker))
+                old_candidate = {
+                    "price": old.get("price"), "shadow_score": old.get("shadow_score"),
+                    "shadow_verdict": old.get("shadow_verdict"),
+                    "financial_strength": old.get("financial_strength"),
+                    "avg_dollar_volume": old.get("avg_dollar_volume"),
+                    "source": old.get("source"), "policy_version": old.get("policy_version"),
+                }
+                self.con.execute(
+                    "INSERT INTO emerging_candidate_events("
+                    "observed_at,ticker,status,price,shadow_score,shadow_verdict,"
+                    "financial_strength,avg_dollar_volume,source,policy_version,evidence_json) "
+                    "VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                    event_values(ticker, status, old_candidate, evidence))
+        return {"active": len(rows), "new": added, "status_changed": changed,
+                "graduated_to_active": graduated, "no_longer_qualified": removed,
+                "liquidity_graduated_10m": graduated_10m,
+                "liquidity_graduated_20m": graduated_20m,
+                "observed_at": observed_at}
+
+    def emerging_candidates(self, active_only=True) -> list[dict]:
+        query = "SELECT * FROM emerging_candidates"
+        if active_only:
+            query += " WHERE active=1"
+        query += " ORDER BY last_seen DESC, ticker"
+        out = []
+        for row in self.con.execute(query):
+            item = dict(row)
+            item["active"] = bool(item["active"])
+            item["evidence"] = json.loads(item.pop("evidence_json") or "{}")
+            out.append(item)
+        return out
+
     # -- metrics ---------------------------------------------------------------
     def set_metric(self, ticker, field_id, value, source, fetched_at=None):
         fetched_at = fetched_at or _now()

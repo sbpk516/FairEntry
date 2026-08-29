@@ -48,12 +48,52 @@ def refresh(cfg, store, run_id=None, wma_tickers=None, sec_tickers=None, verbose
         # Only replace membership after the complete Finviz fetch and writes
         # succeed. A source failure therefore cannot empty the active board.
         store.replace_universe("finviz", (s["ticker"] for s in securities))
+
+        # Monitor the liquid fringe separately. The adapter reuses the same
+        # cached Finviz export, so this normally adds no second network call.
+        # Discovery membership contains only names outside today's official
+        # universe; it can never leak into active scoring or recommendations.
+        emerging_cfg = cfg.sectors.get("emerging_candidates", {})
+        discovery_count = 0
+        discovery_values = 0
+        if emerging_cfg.get("enabled", True):
+            discovery_min = emerging_cfg.get(
+                "discovery_avg_dollar_volume_min", 5_000_000)
+            discovery_securities, discovery_metrics = finviz.fetch(
+                cfg, by_adapter.get("finviz", []),
+                avg_dollar_volume_min=discovery_min)
+            active_tickers = {s["ticker"] for s in securities}
+            outside = [s for s in discovery_securities
+                       if s["ticker"] not in active_tickers]
+            outside_tickers = {s["ticker"] for s in outside}
+            for security in outside:
+                store.upsert_security(**security)
+            for ticker in outside_tickers:
+                for field_id, value in discovery_metrics.get(ticker, {}).items():
+                    if value is not None:
+                        store.set_metric(ticker, field_id, value, "finviz_discovery")
+                        discovery_values += 1
+            # Membership includes every $5M+ name so the research UI can show
+            # the $5M-$10M, $10M-$20M and $20M+ bands. Metrics are only written
+            # again for outside-universe names; official members already have
+            # the identical snapshot above.
+            store.replace_universe(
+                "finviz_discovery", (s["ticker"] for s in discovery_securities))
+            discovery_count = len(discovery_securities)
         store.commit()
         store.log_fetch(run_id, "finviz", True, len(securities), time.time() - t0)
         summary["sources"]["finviz"] = {"ok": True, "tickers": len(securities), "values": n}
+        summary["sources"]["finviz_discovery"] = {
+            "ok": True, "tickers": discovery_count,
+            "values": discovery_values,
+            "information_only": True,
+        }
         if verbose:
             print(f"  finviz: {len(securities)} tickers, {n} values "
                   f"({time.time()-t0:.1f}s)")
+            print(f"  finviz discovery: {discovery_count} total $5M+ tickers "
+                  f"({len(outside_tickers)} outside official), "
+                  f"{discovery_values} outside-only values (research only)")
     except Exception as e:  # source-failure isolation
         store.log_fetch(run_id, "finviz", False, 0, time.time() - t0, str(e))
         summary["sources"]["finviz"] = {"ok": False, "error": str(e)}

@@ -39,7 +39,7 @@ def _fetch_rows(force=False) -> list[dict]:
     return list(csv.DictReader(io.StringIO(resp.text)))
 
 
-def fetch(cfg, field_ids, tickers=None, force=False):
+def fetch(cfg, field_ids, tickers=None, force=False, *, avg_dollar_volume_min=None):
     """Return (securities, metrics).
     securities: [{ticker,company,sector,industry,country}]
     metrics:    {ticker: {field_id: value}} for the finviz fields requested.
@@ -52,7 +52,8 @@ def fetch(cfg, field_ids, tickers=None, force=False):
     uf = cfg.sectors.get("universe_filter", {})
     cap_min = uf.get("market_cap_min_usd", 0)
     price_min = uf.get("price_min_usd", 0)
-    advol_min = uf.get("avg_dollar_volume_min", 0)
+    advol_min = (uf.get("avg_dollar_volume_min", 0)
+                 if avg_dollar_volume_min is None else avg_dollar_volume_min)
 
     securities, metrics = [], {}
     for r in rows:
