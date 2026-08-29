@@ -107,7 +107,7 @@ def main():
     emerging_meta = board["meta"].get("emerging_candidates", {})
     print(f"Emerging research: {emerging_meta.get('candidate_count', 0)} active, "
           f"{(emerging_meta.get('variant_counts') or {}).get('selective', 0)} selective; "
-          "information only, not validated")
+          "research only; historical advantage not proven")
     for stock in board.get("emerging_candidates", []):
         evidence = stock.get("emerging_candidate", {})
         liquidity = (evidence.get("summary_values") or {}).get(

@@ -74,7 +74,7 @@ def evaluate_emerging_candidate(inputs: dict, policy: dict | None = None) -> dic
     ]
     definitions = {
         "broad": {
-            "label": "Broad Discovery",
+            "label": "Emerging · Basic Match",
             "verdicts": {"Buy", "Watch"},
             "quality": _threshold(policy, "broad", "minimum_business_quality", 50),
             "financial": _threshold(policy, "broad", "minimum_financial_strength", 60),
@@ -82,7 +82,7 @@ def evaluate_emerging_candidate(inputs: dict, policy: dict | None = None) -> dic
             "upside": _threshold(policy, "broad", "minimum_valuation_upside_pct", 20),
         },
         "balanced": {
-            "label": "Balanced Emerging",
+            "label": "Emerging · Strong Match",
             "verdicts": {"Buy", "Watch"},
             "quality": _threshold(policy, "balanced", "minimum_business_quality", 60),
             "financial": _threshold(policy, "balanced", "minimum_financial_strength", 60),
@@ -92,7 +92,7 @@ def evaluate_emerging_candidate(inputs: dict, policy: dict | None = None) -> dic
             "alignments": {"supportive", "constructive", "mixed"},
         },
         "selective": {
-            "label": "Selective Confirmation Review",
+            "label": "Emerging · Strict Match",
             "verdicts": {"Buy"},
             "quality": _threshold(policy, "selective", "minimum_business_quality", 70),
             "financial": _threshold(policy, "selective", "minimum_financial_strength", 70),

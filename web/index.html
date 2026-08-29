@@ -418,9 +418,9 @@
     <input id="search" placeholder="Search ticker or company">
     <select id="sector"><option value="all">All sectors</option></select>
     <select id="emvariant" style="display:none" aria-label="Emerging research variant">
-      <option value="broad">Broad Discovery</option>
-      <option value="balanced" selected>Balanced Emerging</option>
-      <option value="selective">Selective Confirmation</option>
+      <option value="broad">Basic Match</option>
+      <option value="balanced" selected>Strong Match</option>
+      <option value="selective">Strict Match</option>
     </select>
     <select id="emliquidity" style="display:none" aria-label="Emerging liquidity band">
       <option value="5m_to_20m" selected>$5M–$20M liquidity</option>
@@ -562,8 +562,8 @@ function renderActiveWeights(){
   var box=$('#active-weights'); if(!box)return;
   if(MODE==='emerging'){
     var em=(META.emerging_candidates||{});
-    box.innerHTML='<div class="active-weights-top"><span class="active-weights-title">Early discovery and confirmation research</span><span class="active-weights-name">Emerging Candidate · NOT VALIDATED</span></div>'+
-      '<div class="active-weights-note">The displayed score and model verdict are shadow evidence only. They add 0 official points, change no Buy/Watch/Avoid verdict, open no position, and send no trading alert. Liquidity bands and research strictness are independent. Policy: '+esc(em.policy_version||'emerging_research_v2')+'.</div>';
+    box.innerHTML='<div class="active-weights-top"><span class="active-weights-title">Emerging candidate research</span><span class="active-weights-name">Research only · backtest advantage not proven</span></div>'+
+      '<div class="active-weights-note">Choose Basic, Strong, or Strict Match independently from the liquidity range. Default: Strong Match at $5M–$20M. Shadow evidence adds 0 official points and never creates an official Buy. Latest universe: '+esc(em.discovery_universe_refreshed_at||'unavailable')+'.</div>';
     return;
   }
   var rows=effectiveWeights(S.weights), differs=rows.some(function(x){return Math.abs(x.input-x.effective)>.005;});
@@ -886,12 +886,12 @@ function renderBoard(){ var list=currentList();
   var pf=META.price_freshness||{}, warning=pf.excluded_count?
     '<div class="notice warn" style="margin-bottom:14px"><b>Price unavailable/stale:</b> '+esc(pf.excluded_count)+' stock(s) hidden from active scoring. No Buy or High-confidence status is issued beyond the '+esc(pf.limit_hours)+'-hour price limit.</div>':'';
   if(MODE==='emerging'){
-    var em=META.emerging_candidates||{};
-    warning='<div class="notice warn" style="margin-bottom:14px"><b>Emerging Research · not validated:</b> Broad, Balanced and Selective variants monitor all $5M+ stocks. The default view is $5M–$20M; liquidity and research strictness are independent filters. Shadow evidence adds 0 official points and never creates an official Buy. Discovery snapshot: '+esc(em.discovery_universe_refreshed_at||'unavailable')+'.</div>';
+    warning='';
   }
   $('#board').innerHTML=warning+(list.map(function(o){return tileHTML(o.s);}).join('')||'<div style="color:var(--ink-faint);padding:30px">No stocks match.</div>');
   var byv={Buy:0,Watch:0,Avoid:0}; list.forEach(function(o){byv[o.c.verdict]++;});
-  $('#count').textContent=MODE==='emerging'?(list.length+' '+EM_VARIANT+' emerging research candidates · '+EM_LIQUIDITY.replace(/_/g,' ')+' · not validated'):
+  var emNames={broad:'Basic Match',balanced:'Strong Match',selective:'Strict Match'};
+  $('#count').textContent=MODE==='emerging'?(list.length+' '+emNames[EM_VARIANT]+' candidates · '+EM_LIQUIDITY.replace(/_/g,' ')+' · research only'):
     (list.length+' shown'+(WMA_ONLY?' near 200 WMA':'')+(HIGH_ONLY?' high-confidence research (not validated)':'')+' - '+byv.Buy+' Buy - '+byv.Watch+' Watch - '+byv.Avoid+' Avoid');
 }
 function renderWmaAlerts(meta){
@@ -1321,7 +1321,7 @@ function emergingResearchHTML(s){ var e=s.emerging_candidate;if(!e)return '';
   }).join('');}
   var lifecycle=(e.first_seen?'<div class="meta" style="margin-top:8px">First detected '+esc(e.first_seen)+' · last observed '+esc(e.last_seen||'—')+'</div>':'');
   var variantRows=['broad','balanced','selective'].map(function(v){var x=(e.variants||{})[v]||{};return '<div class="item"><div class="row"><span class="rname">'+esc(x.label||v)+'</span><span class="rmeta"><span class="lab '+(x.passes?'good':'bad')+'">'+(x.passes?'passes':'does not pass')+'</span></span></div></div>';}).join('');
-  return '<div class="sub-h">Emerging-candidate audit <span class="lab warn">NOT VALIDATED</span></div><div class="bizbox"><div class="biztop"><div class="bizplain"><b>'+esc(e.label)+'</b><br>'+esc(e.source_description)+'<br><span class="meta">Official universe: '+(e.in_official_universe?'yes':'no')+' · official verdict: '+esc(e.official_verdict||'none')+' · research score effect: 0</span>'+lifecycle+'</div><div class="bizexample"><b>Liquidity band</b><br>'+esc((e.liquidity_band||'unavailable').replace(/_/g,' '))+'<br><b>Selective checks still missing</b><br>'+esc((e.blockers||[]).join(' · ')||'None')+'</div></div><div class="sub-h" style="margin-top:12px">Three research variants</div>'+variantRows+'<div class="sub-h" style="margin-top:12px">Highest passing variant checks</div>'+rows(e.checks)+'<div class="sub-h" style="margin-top:12px">Selective confirmation checks</div>'+rows(e.confirmation_checks)+'<div class="vg-explain"><b>Liquidity milestones are independent.</b> '+esc(e.graduation_rule)+' '+esc(e.disclaimer)+'</div></div>';
+  return '<div class="sub-h">Emerging-candidate research <span class="lab warn">BACKTEST ADVANTAGE NOT PROVEN</span></div><div class="bizbox"><div class="biztop"><div class="bizplain"><b>'+esc(e.label)+'</b><br>'+esc(e.source_description)+'<br><span class="meta">Official universe: '+(e.in_official_universe?'yes':'no')+' · official verdict: '+esc(e.official_verdict||'none')+' · research score effect: 0</span>'+lifecycle+'</div><div class="bizexample"><b>Liquidity band</b><br>'+esc((e.liquidity_band||'unavailable').replace(/_/g,' '))+'<br><b>Strict Match checks still missing</b><br>'+esc((e.blockers||[]).join(' · ')||'None')+'</div></div><div class="sub-h" style="margin-top:12px">Three match levels</div>'+variantRows+'<div class="sub-h" style="margin-top:12px">Highest passing level checks</div>'+rows(e.checks)+'<div class="sub-h" style="margin-top:12px">Strict Match checks</div>'+rows(e.confirmation_checks)+'<div class="vg-explain"><b>Liquidity milestones are independent.</b> '+esc(e.graduation_rule)+' '+esc(e.disclaimer)+'</div></div>';
 }
 
 function openDetail(tk){ var s=STOCKS.find(function(x){return x.ticker===tk;}); if(!s)return; var c=compute(s), em=s.emerging_candidate||null, vk=em?'watch':c.verdict.toLowerCase();

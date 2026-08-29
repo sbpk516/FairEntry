@@ -55,7 +55,7 @@ Every successful Finviz refresh maintains two independent snapshots:
   volume). Only this universe can create scores, recommendations, positions,
   and trading alerts.
 - `finviz_discovery`: all $5M+ names, separated into $5M-$10M, $10M-$20M and
-  $20M+ bands. Broad, Balanced and Selective research variants are shadow
+  $20M+ bands. Basic, Strong and Strict Match research levels are shadow
   evidence with zero official score or verdict effect.
 
 Current emerging state is stored in `emerging_candidates`; the append-only

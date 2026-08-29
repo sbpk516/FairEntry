@@ -40,14 +40,16 @@ def classify_emerging_stock(stock: dict, metrics: dict, policy: dict) -> dict | 
     if not evaluated["qualifies"]:
         return None
 
-    labels = {"broad": "Broad Discovery", "balanced": "Balanced Emerging",
-              "selective": "Selective Confirmation Review"}
+    labels = {"broad": "Emerging · Basic Match",
+              "balanced": "Emerging · Strong Match",
+              "selective": "Emerging · Strict Match"}
     highest = evaluated["highest_variant"]
     inputs = evaluated["inputs"]
     return {
         **evaluated,
         "status": highest,
-        "label": f"{labels[highest]} · not validated",
+        "label": labels[highest],
+        "validation_label": "Research only · backtest advantage not proven",
         "official_buy": False,
         "source": "finviz_discovery",
         "source_description": (

@@ -53,7 +53,8 @@ def test_emerging_confirmation_is_explicit_and_zero_effect():
         _stock(), {"avg_dollar_volume": {"value": 7_000_000}},
         cfg.sectors["emerging_candidates"])
     assert result["status"] == "selective"
-    assert result["label"] == "Selective Confirmation Review · not validated"
+    assert result["label"] == "Emerging · Strict Match"
+    assert result["validation_label"] == "Research only · backtest advantage not proven"
     assert result["matched_variants"] == ["broad", "balanced", "selective"]
     assert result["liquidity_band"] == "5m_to_10m"
     assert result["official_buy"] is False
@@ -158,7 +159,10 @@ def test_ui_keeps_emerging_research_separate_from_official_buy():
     html = (Path(__file__).resolve().parents[1] / "web" / "index.html").read_text(
         encoding="utf-8")
     assert 'data-mode="emerging"' in html
-    assert "Emerging Research · not validated" in html
+    assert "Research only · backtest advantage not proven" in html
+    assert "Basic Match" in html
+    assert "Strong Match" in html
+    assert "Strict Match" in html
     assert 'id="emvariant"' in html
     assert 'id="emliquidity"' in html
     assert "research-only names cannot create a position" in html
@@ -166,7 +170,9 @@ def test_ui_keeps_emerging_research_separate_from_official_buy():
     backtest = (Path(__file__).resolve().parents[1] / "web" / "backtest.html").read_text(
         encoding="utf-8")
     assert "function emergingCandidateBacktest(b)" in backtest
-    assert "Broad · Balanced · Selective · point-in-time" in backtest
+    assert "Basic · Strong · Strict Match" in backtest
+    assert "How the test was kept honest" in backtest
+    assert "Newest 20% +30%" in backtest
 
 
 def test_live_refresh_validation_checks_both_universes(tmp_path):
