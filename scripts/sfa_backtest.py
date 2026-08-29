@@ -22,6 +22,9 @@ from fairentry.backtest.entry_opportunity_research import (
 from fairentry.backtest.movement_capacity_research import (
     run_movement_capacity_research,
 )
+from fairentry.backtest.relative_momentum_research import (
+    run_relative_momentum_research,
+)
 from fairentry.backtest.factor_explorer import (
     attach_warehouse_factors,
     run_factor_explorer,
@@ -221,6 +224,11 @@ def main():
                     warehouse.con,
                     step_days=int(result.get("step_days") or 30),
                 )
+                result["relative_momentum_research"] = run_relative_momentum_research(
+                    result.get("observations", []),
+                    warehouse.con,
+                    step_days=int(result.get("step_days") or 30),
+                )
                 result["high_conviction_research"] = run_high_conviction_research(
                     result.get("observations", []),
                     step_days=int(result.get("step_days") or 30),
@@ -291,6 +299,11 @@ def main():
                 step_days=int(result.get("step_days") or args.step),
             )
             result["movement_capacity_research"] = run_movement_capacity_research(
+                result.get("observations", []),
+                warehouse.con,
+                step_days=int(result.get("step_days") or args.step),
+            )
+            result["relative_momentum_research"] = run_relative_momentum_research(
                 result.get("observations", []),
                 warehouse.con,
                 step_days=int(result.get("step_days") or args.step),

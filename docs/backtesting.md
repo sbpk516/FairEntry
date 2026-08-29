@@ -399,3 +399,23 @@ and controlled downside volatility so a large, downside-heavy range is not
 mistaken for favorable movement capacity. All fields are transparent,
 backtestable and information-only. No low-range stock is removed and no score
 changes unless a separately frozen out-of-time confirmation is later approved.
+
+## Relative momentum and experiment-count control
+
+The frozen relative-momentum study tests whether Buy episodes with improving
+six-month stock-minus-sector performance reach +30% within one year more often
+than Buy episodes with deteriorating relative performance. The 126-session
+lookback, 21-session direction comparison, zero-percent relative boundary and
+sector-ETF benchmark are registered before evaluation.
+
+The experiment registry makes multiple testing visible. Every future
+definition must receive a new ID rather than silently replacing the first
+rule, and the report publishes the number and IDs of all definitions tested.
+This reduces the risk of selecting a lucky result from many hidden
+combinations.
+
+The historical result remains research-only even when favorable. Production
+promotion requires enough completed cases and issuers, consistent validation
+and newest-period results, no material drawdown deterioration, and genuinely
+new future shadow confirmation. Missing price history is unavailable rather
+than favorable, and all measurements stop before the first Buy date.

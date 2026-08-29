@@ -205,6 +205,32 @@ less. These derived inputs use only prices on or before the Buy date. The
 research remains explicitly not validated and changes no score, weight,
 verdict or production exclusion.
 
+## Frozen six-month relative-momentum research
+
+The SFA report also evaluates one pre-registered market-confirmation
+hypothesis. It calculates the stock's 126-session return minus its mapped
+sector ETF's return, then compares that value with the same six-month relative
+return 21 sessions earlier. The evidence is Supportive only when relative
+momentum is positive and improving, Contradictory only when it is negative and
+deteriorating, and Neutral otherwise.
+
+The calculation uses the latest aligned stock/sector trading session strictly
+before the earliest official Buy. The primary outcome is +30% within one year;
++25% within one year and +30% within two years are secondary outcomes. Missing
+sector mappings or fewer than 148 aligned sessions are unavailable rather than
+treated as neutral or supportive.
+
+Every tested definition is recorded in
+`config/relative_momentum_experiments.json`. The initial experiment tests
+exactly one frozen definition and does not search alternative thresholds after
+seeing outcomes. Results are shown for chronological development, validation,
+and a one-time newest historical test, including candidates, successes,
+failures, uncertainty, time to target and drawdown. Genuinely new shadow
+outcomes are still required before promotion. The current board and historical
+replay share the calculation in `fairentry/analytics/relative_momentum.py`; it
+adds zero official points and never changes scoring, verdicts, positions or
+alerts.
+
 ## Latest completed replay
 
 Run `sfa-1b9647cb354d` used snapshot `20260810T132048Z`. It evaluated 333

@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "purpose": "Append-only registry of relative-momentum definitions evaluated by FairEntry.",
+  "experiments": [
+    {
+      "id": "six_month_sector_relative_momentum_v1",
+      "registered_on": "2026-08-29",
+      "status": "frozen_before_first_evaluation",
+      "stock_lookback_sessions": 126,
+      "benchmark": "sector ETF mapped from the existing FairEntry sector",
+      "change_lookback_sessions": 21,
+      "improving_rule": "six-month stock-minus-sector return is above 0% and higher than it was 21 trading sessions earlier",
+      "deteriorating_rule": "six-month stock-minus-sector return is below 0% and lower than it was 21 trading sessions earlier",
+      "neutral_rule": "every other available combination",
+      "primary_outcome": "+30% within 365 days from the earliest official Buy",
+      "secondary_outcomes": [
+        "+25% within 365 days",
+        "+30% within 730 days"
+      ],
+      "automatic_score_effect": 0,
+      "automatic_verdict_effect": "none"
+    }
+  ]
+}

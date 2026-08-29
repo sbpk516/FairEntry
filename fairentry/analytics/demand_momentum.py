@@ -8,8 +8,9 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from ..adapters.cache_lite import cache_get, cache_put
+from .relative_momentum import calculate_relative_momentum
 
-_CACHE_NS = "demand_momentum_v1"
+_CACHE_NS = "demand_momentum_v2"
 _TTL_DAYS = 1
 _PERIODS = {"1m": 21, "3m": 63, "6m": 126, "12m": 252}
 _MARKET = "SPY"
@@ -165,7 +166,7 @@ def build_context(records: list[tuple[dict, dict]]) -> dict:
         bench = _benchmark_returns(frame, set(needed))
         series = {}
         if frame is not None:
-            for ticker in tickers:
+            for ticker in needed:
                 series[ticker] = {
                     "close": _series(frame, ticker, "Close"),
                     "volume": _series(frame, ticker, "Volume"),
@@ -201,6 +202,12 @@ def build_context(records: list[tuple[dict, dict]]) -> dict:
         vol_label = _volume_accumulation_label(up_down)
         rel_vol = _num(metrics, "rel_volume")
         tone = _tone(rows, vol_label)
+        six_month_confirmation = calculate_relative_momentum(
+            closes,
+            (series.get(sector_etf) or {}).get("close") or [],
+        )
+        six_month_confirmation["sector_benchmark"] = sector_etf
+        six_month_confirmation["experiment_id"] = "six_month_sector_relative_momentum_v1"
         out[ticker] = {
             "context_only": True,
             "not_scored": True,
@@ -210,6 +217,7 @@ def build_context(records: list[tuple[dict, dict]]) -> dict:
             "tone": tone,
             "summary": _summary(tone, rows, vol_label),
             "relative_strength": rows,
+            "six_month_sector_confirmation": six_month_confirmation,
             "volume": {
                 "relative_volume": rel_vol,
                 "up_down_volume_20d": up_down,
