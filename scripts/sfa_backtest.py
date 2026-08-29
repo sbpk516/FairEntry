@@ -19,6 +19,9 @@ from fairentry.backtest.failure_research import build_research_queue
 from fairentry.backtest.entry_opportunity_research import (
     run_entry_opportunity_research,
 )
+from fairentry.backtest.movement_capacity_research import (
+    run_movement_capacity_research,
+)
 from fairentry.backtest.factor_explorer import (
     attach_warehouse_factors,
     run_factor_explorer,
@@ -213,6 +216,11 @@ def main():
                     result.get("observations", []),
                     step_days=int(result.get("step_days") or 30),
                 )
+                result["movement_capacity_research"] = run_movement_capacity_research(
+                    result.get("observations", []),
+                    warehouse.con,
+                    step_days=int(result.get("step_days") or 30),
+                )
                 result["high_conviction_research"] = run_high_conviction_research(
                     result.get("observations", []),
                     step_days=int(result.get("step_days") or 30),
@@ -280,6 +288,11 @@ def main():
             result["valuation_research"]["enrichment"] = valuation_enrichment
             result["entry_opportunity_research"] = run_entry_opportunity_research(
                 result.get("observations", []),
+                step_days=int(result.get("step_days") or args.step),
+            )
+            result["movement_capacity_research"] = run_movement_capacity_research(
+                result.get("observations", []),
+                warehouse.con,
                 step_days=int(result.get("step_days") or args.step),
             )
             result["high_conviction_research"] = run_high_conviction_research(

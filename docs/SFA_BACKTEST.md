@@ -176,6 +176,35 @@ hard veto. Missing history is reported as incomplete and excluded; it is never
 assumed positive. Full-history and newest unseen-period results are displayed
 separately. This research changes no score, weight or verdict.
 
+## Movement-capacity and horizon research
+
+The SFA report separately measures whether an earliest Buy had enough recent
+price movement to make the fixed +30% one-year target plausible. Movement
+capacity is the trailing range available on the Buy date:
+
+`(highest adjusted daily high / lowest adjusted daily low - 1) * 100`
+
+The calculation uses at most 252 prior trading sessions and requires at least
+200. Shorter histories are unavailable rather than treated as passing. The
+predeclared exclusive bands are below 20%, 20% to under 30%, 30% to under 45%,
+45% to under 60%, and 60% or more. Direct below/above comparisons are also
+reported for 20% and 30% cutoffs.
+
+The same frozen episodes are measured against +30% within 365 days, +30%
+within 730 days, and +50% within 730 days. This prevents a longer deadline from
+being confused with an improvement in the original one-year objective. Each
+group reports completed cases, success, time to target, median drawdown and
+worst drawdown, with the newest chronological period displayed separately.
+
+Annualized volatility is not compared directly with a cumulative 30% return.
+The report shows 126-session realized volatility and target distance in
+volatility units as context. It also combines a four-check price trend measure
+with 63-session downside/upside volatility. Constructive trend requires a
+trend score of at least 75; controlled downside requires a ratio of 1.10 or
+less. These derived inputs use only prices on or before the Buy date. The
+research remains explicitly not validated and changes no score, weight,
+verdict or production exclusion.
+
 ## Latest completed replay
 
 Run `sfa-1b9647cb354d` used snapshot `20260810T132048Z`. It evaluated 333
@@ -198,6 +227,12 @@ issuer-deduplicated observations and 2,312 different stocks.
   51.0% versus the 47.4% unseen baseline, a +3.6 percentage-point improvement
   with better median drawdown. It did not meet the 5-point improvement and 55%
   success requirements, so it remains research evidence with zero score effect.
+- Movement capacity was available for 879 of 881 earliest Buy episodes. Only
+  12 had a trailing 52-week high/low range below 30%; 1 of 11 completed cases
+  reached +30% within one year (9.1%), versus 390 of 833 (46.8%) at or above a
+  30% range. The newest chronological period contained no below-30% cases, so
+  the apparent full-history difference is too small and unconfirmed to support
+  an automatic exclusion.
 
 ## One-year weight challenger
 

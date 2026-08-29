@@ -384,3 +384,18 @@ with complete stable-value/no-thesis-deterioration evidence. The main outcome
 remains +30% within one year; +50% within two years and +100% within three years
 are separate longer-horizon measurements. These comparisons are research-only
 and add no score or verdict rule.
+
+## Movement-capacity research
+
+Every earliest SFA Buy can also be grouped by its trailing 52-week high/low
+range as known on that date. The research requires at least 200 prior sessions,
+uses no post-Buy price in the factor, and compares exclusive range bands plus
+direct 20% and 30% cutoffs. It reports +30% within one year, +30% within two
+years and +50% within two years, together with drawdown and candidate count.
+
+The report keeps cumulative return, annualized volatility and high/low range
+as different measurements. It also shows combinations of constructive trend
+and controlled downside volatility so a large, downside-heavy range is not
+mistaken for favorable movement capacity. All fields are transparent,
+backtestable and information-only. No low-range stock is removed and no score
+changes unless a separately frozen out-of-time confirmation is later approved.
