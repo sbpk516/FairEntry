@@ -35,8 +35,10 @@ def _outcome_summary(observations):
     completed, successes, drawdowns = [], [], []
     for observation in observations:
         outcome = observation.get("_tuning_outcome") or {}
-        hit, observed, terminal = (outcome.get("first_hit_secondary_days"),
-                                   outcome.get("last_observed_days"), outcome.get("terminal_days"))
+        hit = (outcome.get("first_hit_days_by_target") or {}).get("30")
+        if hit is None:  # compatibility with replay artifacts produced before the target ladder
+            hit = outcome.get("first_hit_secondary_days")
+        observed, terminal = outcome.get("last_observed_days"), outcome.get("terminal_days")
         is_complete = ((isinstance(observed, int) and observed >= 365)
                        or isinstance(terminal, int) and terminal <= 365)
         if is_complete:

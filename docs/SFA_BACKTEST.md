@@ -138,7 +138,7 @@ deletion obligations may differ from the Nasdaq snapshot.
 ## Fixed-return achievement after a Buy
 
 The backtest separately reports whether Buy recommendations reached fixed net
-returns of 10%, 15%, 20%, 25%, 30%, 40%, 50%, 75%, 100%, 150% and 200% within
+returns of 10%, 15%, 20%, 25%, 28%, 30%, 35%, 40%, 50%, 75%, 100%, 150% and 200% within
 90, 180, 270, 365, 730, 1,095 and 1,825 calendar days. Attainment uses the first
 dividend-adjusted daily close that clears the threshold after configured entry
 and exit costs.
@@ -154,41 +154,65 @@ horizon is observed, or the security reaches a terminal event. The UI displays
 reached, evaluable and active counts, Wilson uncertainty, median time to hit and
 the middle 50% of successful hit times.
 
+## Earliest-entry and conservative-upside research
+
+Every SFA run also tests whether FairEntry could have recognized an opportunity
+before later repeated Buy signals. The first point-in-time official Buy in a
+continuous episode starts the clock; later Buys never reset the entry price or
+deadline. The primary outcome remains +30% within 365 days. Separate secondary
+outcomes measure +50% within 730 days and +100% within 1,095 days.
+
+The predeclared conservative-upside thresholds are 30%, 45%, 50% and 60%.
+Conservative fair value is the lowest of at least two relevant replayable
+methods after sector-inappropriate P/B is removed, and the highest retained
+method may be no more than 75% above the lowest. The report shows both
+upside-only results and a stricter stable-thesis subset.
+
+The stable-thesis subset requires a comparable earlier snapshot within 120
+days, no more than a 10% fall in conservative fair value, no more than a
+10-point fall in the official score or Business Quality, Financial Strength or
+Growth category, a passing point-in-time growth qualification, and no tested
+hard veto. Missing history is reported as incomplete and excluded; it is never
+assumed positive. Full-history and newest unseen-period results are displayed
+separately. This research changes no score, weight or verdict.
+
 ## Latest completed replay
 
-Run `sfa-7853ef5c27eb` used snapshot `20260810T132048Z`. It evaluated 333
-monthly decision dates from October 1998 through June 2026, comprising 73,843
-issuer-deduplicated observations under the new testable-factor contract.
+Run `sfa-1b9647cb354d` used snapshot `20260810T132048Z`. It evaluated 333
+monthly decision dates from October 1998 through June 2026, comprising 99,103
+issuer-deduplicated observations and 2,312 different stocks.
 
-- The 30-day Buy-minus-Avoid extra-return difference was +0.45 percentage
-  points. Its date-block likely range was -0.33 to +1.30, so this is not a
-  proven short-term advantage.
-- Among 644 completed current-weight Buy episodes, 312 (48.4%) touched a net
-  +25% within one year. The 90% likely range was 45.2% to 51.7%, and successful
-  episodes typically took 110.5 days. A net +30% was reached by 278 (43.2%).
-- Under the new episode-level deadline rule, 175 of 456 completed Practical
-  Targets were reached on time (38.4%); 96 more were reached late, 185 missed
-  their deadline, and 12 are still waiting. The older signal-level,
-  method-expiry view remains available below and reports 32.7% (256 of 783).
-- The constrained Buy portfolio compounded +103.69%, but experienced an
-  -84.47% maximum drawdown and an approximate 0.24 Sharpe ratio. This confirms
-  that absolute return alone is not an acceptance criterion.
-- The older-period winner increased Growth, Quality, Survival and Market
-  Confirmation while reducing Valuation. It improved +25% attainment from
-  48.4% to 51.4% on development and from 50.8% to 53.3% on validation.
-- It failed promotion: validation one-year extra return versus SPY was -4.04%,
-  compared with -3.24% for the current weights. The untouched final-period
-  +25% rate was 46.9% versus 47.0% for the current weights. The lower end of
-  its likely range was also slightly worse.
-  The live default therefore remains unchanged.
+- Among completed current-weight Buy episodes, 438 of 849 (51.6%) touched a
+  net +25% within one year, 409 of 846 (48.3%) reached +28%, 392 of 846 (46.3%)
+  reached the primary +30% target, and 352 of 845 (41.7%) reached +35%.
+- All 881 Buy episodes had a recorded official FairEntry score. The historical
+  score bands were not monotonic: +30% attainment ranged from 47.7% for scores
+  72–74 to 40.3% for scores 85–89. The 90+ band was only 18 episodes and reached
+  35.3%, so a higher current score is not yet validated as a higher one-year
+  probability.
+- The best older-period weight challenger improved +30% from 44.0% to 45.5% on
+  development and from 47.6% to 54.4% on validation, but fell from 45.1% to
+  43.4% on the final untouched period. It was rejected and the live weights
+  remain unchanged.
+- Operating-cash conversion was the best new walk-forward factor hypothesis:
+  51.0% versus the 47.4% unseen baseline, a +3.6 percentage-point improvement
+  with better median drawdown. It did not meet the 5-point improvement and 55%
+  success requirements, so it remains research evidence with zero score effect.
 
 ## One-year weight challenger
 
 The SFA tuner now uses the investor goal directly. It searches one shared set
 of effective weights for Business Quality, Financial Survival, Growth,
 Valuation and Market Confirmation. Information-only groups have zero tuning
-weight. The primary goal is a Buy episode touching +25% within 365 days; +30%,
-large losses, maximum decline and one-year return versus SPY are guardrails.
+weight. The primary goal is a Buy episode touching +30% within 365 days. +25%
+is the acceptable lower-target guardrail and +35% is the stronger-upside
+guardrail; large losses, maximum decline and one-year return versus SPY must
+also remain protected.
+
+The evidence page separately calibrates the one official FairEntry score in
+historical score bands. Each band reports +25%, +28%, +30% and +35% one-year
+attainment and drawdown. This is descriptive evidence only: it creates no
+second score and changes no verdict or production weight.
 
 The replay stores a small derived one-year outcome for every screened
 observation. This lets a challenger fairly turn a historical Watch into a Buy

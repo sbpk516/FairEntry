@@ -9,8 +9,17 @@ from datetime import date, timedelta
 from pathlib import Path
 
 
-RETURN_THRESHOLDS_PCT = (10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200)
+RETURN_THRESHOLDS_PCT = (10, 15, 20, 25, 28, 30, 35, 40, 50, 75, 100, 150, 200)
 RETURN_HORIZONS_DAYS = (90, 180, 270, 365, 730, 1095, 1825)
+ONE_YEAR_CALIBRATION_TARGETS_PCT = (25, 28, 30, 35)
+OFFICIAL_SCORE_BANDS = (
+    (None, 72, "Below 72 (historical Buy)"),
+    (72, 75, "72-74"),
+    (75, 80, "75-79"),
+    (80, 85, "80-84"),
+    (85, 90, "85-89"),
+    (90, None, "90+"),
+)
 PRACTICAL_TARGET_DEADLINES = (
     (30.0, 365, 1),
     (70.0, 730, 2),
@@ -416,6 +425,7 @@ def fixed_return_milestones(
     return {
         "status": "observed" if rows else "data_unavailable",
         "return_basis": "dividend_adjusted_close_with_entry_and_exit_costs",
+        "thresholds_pct": list(thresholds),
         "first_hit_days": first_hits,
         "max_drawdown_before_first_hit_pct": {
             str(threshold): (
@@ -1048,6 +1058,68 @@ def _return_attainment_view(
     return {"observations": len(rows), "matrix": matrix}
 
 
+def _score_band_calibration(
+    episodes: list[dict],
+    targets: tuple[int, ...] = ONE_YEAR_CALIBRATION_TARGETS_PCT,
+) -> dict:
+    """Calibrate the one official FairEntry score against one-year outcomes.
+
+    This is descriptive evidence only. It neither creates another score nor
+    changes the historical or production verdict.
+    """
+    scored = [row for row in episodes if isinstance(row.get("score"), (int, float))]
+    bands = []
+    for minimum, maximum, label in OFFICIAL_SCORE_BANDS:
+        rows = [
+            row for row in scored
+            if (minimum is None or float(row["score"]) >= minimum)
+            and (maximum is None or float(row["score"]) < maximum)
+        ]
+        if not rows:
+            continue
+        target_matrix = _return_attainment_view(rows, targets, (365,))["matrix"]
+        drawdowns = []
+        for row in rows:
+            evaluation = _fixed_horizon_evaluation(row, 30, 365)
+            drawdown = (row.get("return_milestones") or {}).get(
+                "max_drawdown_pct_by_horizon", {}
+            ).get("365")
+            if (evaluation["counted_in_success_rate"]
+                    and isinstance(drawdown, (int, float))):
+                drawdowns.append(float(drawdown))
+        bands.append({
+            "label": label,
+            "minimum_score": minimum,
+            "maximum_score_exclusive": maximum,
+            "episodes": len(rows),
+            "targets": {
+                str(target): target_matrix[str(target)]["365"] for target in targets
+            },
+            "median_max_drawdown_pct": (
+                round(statistics.median(drawdowns), 1) if drawdowns else None
+            ),
+            "worst_max_drawdown_pct": round(min(drawdowns), 1) if drawdowns else None,
+        })
+    all_targets = _return_attainment_view(scored, targets, (365,))["matrix"]
+    return {
+        "version": 1,
+        "score_source": "official FairEntry score frozen at the first Buy date",
+        "one_official_score": True,
+        "production_effect": "none",
+        "interpretation": (
+            "Historical calibration of the existing score, not a second score or a new verdict rule."
+        ),
+        "horizon_days": 365,
+        "targets_pct": list(targets),
+        "scored_episodes": len(scored),
+        "episodes_missing_score": len(episodes) - len(scored),
+        "overall": {
+            str(target): all_targets[str(target)]["365"] for target in targets
+        },
+        "bands": bands,
+    }
+
+
 def summarize_buy_return_achievement(
     observations: list[dict],
     step_days: int,
@@ -1061,12 +1133,14 @@ def summarize_buy_return_achievement(
     max_gap_days = max(step_days + 1, int(math.ceil(step_days * 1.5)))
     episodes = _buy_episode_roots(observations, max_gap_days)
     details = [row["episode"] for row in episodes]
-    fixed_one_year = _return_attainment_view(
-        episodes, (30,), (365,)
-    )["matrix"]["30"]["365"]
-    fixed_25_one_year = _return_attainment_view(
-        episodes, (25,), (365,)
-    )["matrix"]["25"]["365"]
+    fixed_one_year_targets = {
+        str(target): _return_attainment_view(
+            episodes, (target,), (365,)
+        )["matrix"][str(target)]["365"]
+        for target in ONE_YEAR_CALIBRATION_TARGETS_PCT
+    }
+    fixed_one_year = fixed_one_year_targets["30"]
+    fixed_25_one_year = fixed_one_year_targets["25"]
     practical_rows = [row["practical_target"] for row in details
                       if row.get("practical_target")
                       and row["practical_target"].get("status")
@@ -1116,9 +1190,14 @@ def summarize_buy_return_achievement(
             "episodes": _return_attainment_view(episodes, thresholds, horizons),
             "signals": _return_attainment_view(buys, thresholds, horizons),
         },
+        "score_band_calibration": _score_band_calibration(episodes),
         "primary_success_contract": {
+            "primary_fixed_target_pct": 30,
+            "fixed_one_year_targets": fixed_one_year_targets,
             "fixed_25_within_one_year": fixed_25_one_year,
+            "fixed_28_within_one_year": fixed_one_year_targets["28"],
             "fixed_30_within_one_year": fixed_one_year,
+            "fixed_35_within_one_year": fixed_one_year_targets["35"],
             "fixed_30_timing": {
                 key: sum(row.get("fixed_30_status") == key for row in details)
                 for key in ("within_one_year", "during_year_two", "during_year_three",

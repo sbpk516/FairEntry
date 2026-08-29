@@ -90,6 +90,66 @@ FACTOR_DEFINITIONS = (
         "meaning": "Trailing free cash flow divided by trailing revenue, using the filing available on the Buy date.",
     },
     {
+        "id": "gross_profitability",
+        "label": "Gross profitability on assets",
+        "field": "research.gross_profitability_pct",
+        "direction": "higher",
+        "unit": "%",
+        "theme": "business_quality",
+        "category": "Business Quality",
+        "meaning": "Trailing gross profit divided by total assets; a point-in-time measure of the business engine's productivity.",
+    },
+    {
+        "id": "cash_conversion",
+        "label": "Operating-cash conversion",
+        "field": "research.cash_conversion_pct",
+        "direction": "higher",
+        "unit": "%",
+        "theme": "business_quality",
+        "category": "Business Quality",
+        "meaning": "Trailing operating cash flow divided by positive net income; higher means reported earnings are better supported by cash.",
+    },
+    {
+        "id": "accrual_quality",
+        "label": "Accruals relative to assets",
+        "field": "research.accruals_to_assets_pct",
+        "direction": "lower",
+        "unit": "%",
+        "theme": "business_quality",
+        "category": "Business Quality",
+        "meaning": "Trailing net income minus operating cash flow, divided by assets; lower means less reliance on non-cash earnings.",
+    },
+    {
+        "id": "return_on_invested_capital",
+        "label": "Return on invested capital",
+        "field": "research.roic_pct",
+        "direction": "higher",
+        "unit": "%",
+        "theme": "business_quality",
+        "category": "Business Quality",
+        "meaning": "Trailing point-in-time ROIC from the filing warehouse; higher can indicate a more durable compounding business.",
+    },
+    {
+        "id": "net_debt_to_fcf",
+        "label": "Net debt to free cash flow",
+        "field": "research.net_debt_to_fcf",
+        "direction": "lower",
+        "unit": "x",
+        "theme": "financial_strength",
+        "category": "Financial Strength",
+        "meaning": "Debt minus cash divided by positive trailing free cash flow; lower indicates more capacity to absorb stress.",
+    },
+    {
+        "id": "interest_coverage",
+        "label": "Interest coverage",
+        "field": "research.interest_coverage",
+        "direction": "higher",
+        "unit": "x",
+        "theme": "financial_strength",
+        "category": "Financial Strength",
+        "meaning": "Trailing EBIT divided by absolute interest expense; higher means a larger operating cushion over financing costs.",
+    },
+    {
         "id": "valuation_to_growth",
         "label": "P/E relative to revenue growth",
         "field": "research.pe_to_revenue_growth",
@@ -287,6 +347,12 @@ COMBINATION_TEMPLATES = (
      ("sector_return", "market_return", "relative_strength")),
     ("quality_entry", "Consistent earnings with disciplined entry timing",
      ("positive_eps_consistency", "margin_direction", "entry_extension")),
+    ("quality_cash_discipline", "Productive business with cash-backed earnings",
+     ("gross_profitability", "cash_conversion", "accrual_quality")),
+    ("resilient_balance_sheet", "Cash-supported balance-sheet resilience",
+     ("net_debt_to_fcf", "interest_coverage", "dilution")),
+    ("quality_growth_entry", "Quality business, stable growth and disciplined entry",
+     ("gross_profitability", "revenue_growth_stability", "entry_extension")),
 )
 
 DEFAULT_POLICY = {
@@ -413,7 +479,8 @@ def attach_warehouse_factors(observations: list[dict], connection) -> dict:
                arq.revenue_growth_volatility_pct,arq.revenue_growth_min_pct,
                arq.sharesbas,arq.sharesbas_prev_y,
                arq.debtnc,arq.assets,arq.debtnc_prev_y,arq.assets_prev_y,
-               art.revenue art_revenue,art.fcf,
+               art.revenue art_revenue,art.fcf,art.gp,art.assets art_assets,
+               art.ncfo,art.netinc,art.debt,art.cashneq,art.ebit,art.intexp,art.roic,
                daily.pe,daily.ps,daily.pb,
                own.close,own.sma50,own.sma200,
                sector.close,sector.close_3m,sector.sma50,sector.sma200,
@@ -424,7 +491,8 @@ def attach_warehouse_factors(observations: list[dict], connection) -> dict:
           WHERE a.observation_id=o.observation_id AND a.latest_rank=1
         ) arq ON true
         LEFT JOIN LATERAL (
-          SELECT ticker,datekey,reportperiod,revenue,fcf
+          SELECT ticker,datekey,reportperiod,revenue,fcf,gp,assets,ncfo,netinc,
+                 debt,cashneq,ebit,intexp,roic
           FROM sfa_fundamentals a
           WHERE a.ticker=o.ticker AND a.datekey<=CAST(o.decision_date AS DATE)
             AND a.dimension='ART'
@@ -452,7 +520,8 @@ def attach_warehouse_factors(observations: list[dict], connection) -> dict:
          opinc, opinc_prev_q, positive_eps_quarters, eps_improving_quarters,
          revenue_positive_quarters, revenue_growth_volatility, revenue_growth_min,
          sharesbas, sharesbas_prev_y, debtnc, assets, debtnc_prev_y, assets_prev_y,
-         art_revenue, fcf, pe, ps, pb, own_close, own_sma50, own_sma200,
+         art_revenue, fcf, gp, art_assets, ncfo, netinc, debt, cashneq, ebit,
+         intexp, roic, pe, ps, pb, own_close, own_sma50, own_sma200,
          sector_close, sector_close_3m, sector_sma50, sector_sma200,
          market_close, market_close_3m, market_sma50, market_sma200) in result:
         revenue_number = _number(revenue)
@@ -467,6 +536,28 @@ def attach_warehouse_factors(observations: list[dict], connection) -> dict:
         current_margin = _ratio(opinc, revenue, 100)
         prior_margin = _ratio(opinc_prev_q, revenue_prev_q, 100)
         fcf_margin = _ratio(fcf, art_revenue, 100)
+        gross_profitability = _ratio(gp, art_assets, 100)
+        netinc_number = _number(netinc)
+        ncfo_number = _number(ncfo)
+        cash_conversion = (_ratio(ncfo_number, netinc_number, 100)
+                           if netinc_number is not None and netinc_number > 0 else None)
+        accruals_to_assets = (
+            _ratio(netinc_number - ncfo_number, art_assets, 100)
+            if None not in (netinc_number, ncfo_number) else None
+        )
+        fcf_number = _number(fcf)
+        debt_number = _number(debt)
+        cash_number = _number(cashneq)
+        net_debt_to_fcf = (
+            _ratio(debt_number - cash_number, fcf_number)
+            if None not in (debt_number, cash_number, fcf_number) and fcf_number > 0 else None
+        )
+        interest_expense = _number(intexp)
+        interest_coverage = (
+            _ratio(ebit, abs(interest_expense))
+            if interest_expense not in {None, 0} else None
+        )
+        roic_pct = _number(roic) * 100 if _number(roic) is not None else None
         pe_number = _number(pe)
         ps_number = _number(ps)
         pb_number = _number(pb)
@@ -507,6 +598,17 @@ def attach_warehouse_factors(observations: list[dict], connection) -> dict:
             "operating_margin_change_qoq_pp": round(current_margin - prior_margin, 4)
             if None not in (current_margin, prior_margin) else None,
             "fcf_margin_pct": round(fcf_margin, 4) if fcf_margin is not None else None,
+            "gross_profitability_pct": round(gross_profitability, 4)
+            if gross_profitability is not None else None,
+            "cash_conversion_pct": round(cash_conversion, 4)
+            if cash_conversion is not None else None,
+            "accruals_to_assets_pct": round(accruals_to_assets, 4)
+            if accruals_to_assets is not None else None,
+            "net_debt_to_fcf": round(net_debt_to_fcf, 4)
+            if net_debt_to_fcf is not None else None,
+            "interest_coverage": round(interest_coverage, 4)
+            if interest_coverage is not None else None,
+            "roic_pct": round(roic_pct, 4) if roic_pct is not None else None,
             "pe_to_revenue_growth": round(pe_number / current_growth, 4)
             if pe_number is not None and pe_number > 0
             and current_growth is not None and current_growth > 0 else None,
@@ -912,7 +1014,7 @@ def walk_forward_explorer(episodes: list[dict], *, factors=FACTOR_DEFINITIONS,
         reverse=True,
     )
     return {
-        "method": "rolling_origin_with_inner_validation_factor_explorer_v2",
+        "method": "rolling_origin_with_inner_validation_factor_explorer_v3",
         "production_effect": "none",
         "deployable_rule": False,
         "policy": policy,
@@ -942,7 +1044,7 @@ def run_factor_explorer(observations: list[dict], *, step_days: int = 30,
                               use_recorded_verdict=True)
     return {
         "ok": True,
-        "version": 2,
+        "version": 3,
         "objective": "Identify entry-date factors separating +30%-within-one-year successes and failures.",
         "information_boundary": "Point-in-time values available on or before the first Buy date only.",
         "production_effect": "none",

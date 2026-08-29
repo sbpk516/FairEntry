@@ -210,7 +210,7 @@ def _summary(episodes: list[dict]) -> dict:
             str(horizon): _target_summary(episodes, target, horizon)
             for horizon in (365, 730, 1095)
         }
-        for target in (20, 25, 30)
+        for target in (20, 25, 28, 30, 35)
     }
     return {
         "episodes": len(episodes),

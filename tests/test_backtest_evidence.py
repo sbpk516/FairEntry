@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from pathlib import Path
 
 import pytest
 
@@ -22,11 +23,61 @@ def test_strategy_has_stable_version_id():
     b = load_strategy()
     assert a.strategy_id == b.strategy_id
     assert a.tuning_promotion == "manual"
+    assert (a.tuning_lower_gain_pct, a.tuning_primary_gain_pct,
+            a.tuning_upper_gain_pct) == (25, 30, 35)
     assert (30, 60, 90, 180, 365) == a.horizons_days
 
 
 def test_return_explorer_covers_large_gains():
-    assert RETURN_THRESHOLDS_PCT == (10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200)
+    assert RETURN_THRESHOLDS_PCT == (
+        10, 15, 20, 25, 28, 30, 35, 40, 50, 75, 100, 150, 200
+    )
+
+
+def test_one_official_score_is_calibrated_against_25_to_35_pct_outcomes():
+    def row(ticker, score, hit_35):
+        return {
+            "entry_date": "2020-01-02",
+            "entry_price": 100,
+            "ticker": ticker,
+            "issuer_key": ticker,
+            "verdict": "Buy",
+            "score": score,
+            "return_milestones": {
+                "first_hit_days": {
+                    "25": 80, "28": 95, "30": 110,
+                    "35": 140 if hit_35 else None,
+                },
+                "last_observed_days": 365,
+                "terminal_days": None,
+                "max_return_pct_by_horizon": {"365": 40 if hit_35 else 31},
+                "max_drawdown_pct_by_horizon": {"365": -8 if hit_35 else -18},
+            },
+        }
+
+    summary = summarize_buy_return_achievement(
+        [row("LOW", 73, False), row("HIGH", 91, True)], 30
+    )
+    calibration = summary["score_band_calibration"]
+    assert calibration["one_official_score"] is True
+    assert calibration["production_effect"] == "none"
+    assert calibration["targets_pct"] == [25, 28, 30, 35]
+    assert calibration["overall"]["30"]["hit_rate_pct"] == 100
+    assert calibration["overall"]["35"]["hit_rate_pct"] == 50
+    assert [band["label"] for band in calibration["bands"]] == ["72-74", "90+"]
+    assert summary["primary_success_contract"]["primary_fixed_target_pct"] == 30
+
+
+def test_backtest_ui_displays_one_score_probability_ladder():
+    html = (Path(__file__).resolve().parents[1] / "web" / "backtest.html").read_text(
+        encoding="utf-8"
+    )
+    assert "function scoreBandCalibration(b)" in html
+    assert "What the one FairEntry score achieved" in html
+    assert "+25% is the acceptable lower target" in html
+    assert "+28% shows the middle" in html
+    assert "+35% tests stronger upside" in html
+    assert "successContract(b)+scoreBandCalibration(b)" in html
 
 
 @pytest.mark.parametrize(("upside", "years"), [

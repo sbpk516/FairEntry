@@ -16,6 +16,9 @@ from fairentry.backtest.sfa_replay import run_sfa_rolling
 from fairentry.backtest.sfa_tune import policy_from_strategy, tune_sfa_observations
 from fairentry.backtest.research_cycle import run_predictive_rule_research
 from fairentry.backtest.failure_research import build_research_queue
+from fairentry.backtest.entry_opportunity_research import (
+    run_entry_opportunity_research,
+)
 from fairentry.backtest.factor_explorer import (
     attach_warehouse_factors,
     run_factor_explorer,
@@ -206,6 +209,10 @@ def main():
                     step_days=int(result.get("step_days") or 30),
                 )
                 result["valuation_research"]["enrichment"] = valuation_enrichment
+                result["entry_opportunity_research"] = run_entry_opportunity_research(
+                    result.get("observations", []),
+                    step_days=int(result.get("step_days") or 30),
+                )
                 result["high_conviction_research"] = run_high_conviction_research(
                     result.get("observations", []),
                     step_days=int(result.get("step_days") or 30),
@@ -271,6 +278,10 @@ def main():
                 step_days=int(result.get("step_days") or args.step),
             )
             result["valuation_research"]["enrichment"] = valuation_enrichment
+            result["entry_opportunity_research"] = run_entry_opportunity_research(
+                result.get("observations", []),
+                step_days=int(result.get("step_days") or args.step),
+            )
             result["high_conviction_research"] = run_high_conviction_research(
                 result.get("observations", []),
                 step_days=int(result.get("step_days") or args.step),

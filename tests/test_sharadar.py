@@ -372,6 +372,9 @@ def test_sfa_tuner_uses_disjoint_chronological_partitions_and_never_promotes_aut
     assert split["validation"]["last"] < split["test"]["first"]
     assert report["default_changed"] is False
     assert report["promotion"] == "manual"
+    assert report["policy"]["lower_gain_pct"] == 25
+    assert report["policy"]["primary_gain_pct"] == 30
+    assert report["policy"]["upper_gain_pct"] == 35
     assert set(report["active_categories"]) == {
         "quality", "survival", "growth", "valuation", "confirmation"
     }

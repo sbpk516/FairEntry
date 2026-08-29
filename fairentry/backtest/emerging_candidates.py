@@ -240,7 +240,7 @@ def _wilson(successes, total):
 
 def summarize(episodes: list[dict]) -> dict:
     targets = {}
-    for target in (20, 25, 30):
+    for target in (20, 25, 28, 30, 35):
         reached, failed, active, days = 0, 0, 0, []
         for row in episodes:
             outcome = row.get("_tuning_outcome") or {}

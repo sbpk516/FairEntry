@@ -707,8 +707,9 @@ class SFAReplay:
         next_close: bool,
         *,
         tuning_horizon_days: int = 365,
-        tuning_primary_gain_pct: float = 25,
-        tuning_secondary_gain_pct: float = 30,
+        tuning_lower_gain_pct: float = 25,
+        tuning_primary_gain_pct: float = 30,
+        tuning_upper_gain_pct: float = 35,
         entry_cost_bps: float = 0,
         exit_cost_bps: float = 0,
     ) -> dict[str, dict]:
@@ -731,12 +732,13 @@ class SFAReplay:
         )
         tuning_end = f"e.entry_date+INTERVAL {int(tuning_horizon_days)} DAY"
         expressions.extend([
+            f"min(p.date) FILTER (WHERE p.date<={tuning_end} AND {net_return}>={float(tuning_lower_gain_pct)}) tuning_hit_lower_date",
             f"min(p.date) FILTER (WHERE p.date<={tuning_end} AND {net_return}>={float(tuning_primary_gain_pct)}) tuning_hit_primary_date",
-            f"min(p.date) FILTER (WHERE p.date<={tuning_end} AND {net_return}>={float(tuning_secondary_gain_pct)}) tuning_hit_secondary_date",
+            f"min(p.date) FILTER (WHERE p.date<={tuning_end} AND {net_return}>={float(tuning_upper_gain_pct)}) tuning_hit_upper_date",
             f"max({net_return}) FILTER (WHERE p.date<={tuning_end}) tuning_max_return_pct",
             f"min({net_return}) FILTER (WHERE p.date<={tuning_end}) tuning_max_drawdown_pct",
         ])
-        for target in (20, 25, 30):
+        for target in (20, 25, 28, 30, 35):
             expressions.append(
                 f"min(p.date) FILTER (WHERE p.date<={tuning_end} AND "
                 f"{net_return}>={target}) tuning_hit_{target}_date")
@@ -913,8 +915,9 @@ def run_sfa_rolling(
             fixed_horizons,
             strategy.entry == "next_close",
             tuning_horizon_days=strategy.tuning_horizon_days,
+            tuning_lower_gain_pct=strategy.tuning_lower_gain_pct,
             tuning_primary_gain_pct=strategy.tuning_primary_gain_pct,
-            tuning_secondary_gain_pct=strategy.tuning_secondary_gain_pct,
+            tuning_upper_gain_pct=strategy.tuning_upper_gain_pct,
             entry_cost_bps=strategy.slippage_bps + strategy.transaction_cost_bps,
             exit_cost_bps=strategy.exit_slippage_bps + strategy.exit_transaction_cost_bps,
         )
@@ -1118,13 +1121,15 @@ def run_sfa_rolling(
                 max_drawdown = min(float(max_drawdown or 0), -100.0)
             observation["_tuning_outcome"] = {
                 "horizon_days": strategy.tuning_horizon_days,
+                "lower_gain_pct": strategy.tuning_lower_gain_pct,
                 "primary_gain_pct": strategy.tuning_primary_gain_pct,
-                "secondary_gain_pct": strategy.tuning_secondary_gain_pct,
+                "upper_gain_pct": strategy.tuning_upper_gain_pct,
+                "first_hit_lower_days": elapsed_days(prices.get("tuning_hit_lower_date")),
                 "first_hit_primary_days": elapsed_days(prices.get("tuning_hit_primary_date")),
-                "first_hit_secondary_days": elapsed_days(prices.get("tuning_hit_secondary_date")),
+                "first_hit_upper_days": elapsed_days(prices.get("tuning_hit_upper_date")),
                 "first_hit_days_by_target": {
                     str(target): elapsed_days(prices.get(f"tuning_hit_{target}_date"))
-                    for target in (20, 25, 30)
+                    for target in (20, 25, 28, 30, 35)
                 },
                 "last_observed_days": elapsed_days(prices.get("last_date")),
                 "terminal_days": terminal_days,

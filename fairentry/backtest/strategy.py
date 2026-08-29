@@ -41,8 +41,9 @@ class BacktestStrategy:
     tuning_promotion: str = "manual"
     challenger_holds_days: tuple[int, ...] = (20, 30, 60, 90, 180)
     tuning_objective: str = "one_year_buy_episode_targets"
-    tuning_primary_gain_pct: float = 25
-    tuning_secondary_gain_pct: float = 30
+    tuning_lower_gain_pct: float = 25
+    tuning_primary_gain_pct: float = 30
+    tuning_upper_gain_pct: float = 35
     tuning_horizon_days: int = 365
     tuning_large_loss_pct: float = -20
     tuning_severe_drawdown_pct: float = -30
@@ -93,8 +94,9 @@ class BacktestStrategy:
             raise ValueError("backtest portfolio_max_positions must be positive")
         if self.tuning_objective != "one_year_buy_episode_targets":
             raise ValueError(f"unsupported tuning objective={self.tuning_objective!r}")
-        if not (0 < self.tuning_primary_gain_pct <= self.tuning_secondary_gain_pct):
-            raise ValueError("tuning gain targets must be positive and ordered")
+        if not (0 < self.tuning_lower_gain_pct <= self.tuning_primary_gain_pct
+                <= self.tuning_upper_gain_pct):
+            raise ValueError("tuning lower, primary and upper gain targets must be positive and ordered")
         if self.tuning_horizon_days <= 0 or min(
             self.tuning_minimum_completed_episodes,
             self.tuning_minimum_unique_issuers,
@@ -155,8 +157,11 @@ def load_strategy(path: str | Path | None = None) -> BacktestStrategy:
         tuning_promotion=raw.get("tuning", {}).get("promotion", "manual"),
         challenger_holds_days=tuple(raw.get("tuning", {}).get("challenger_holds_days", [20, 30, 60])),
         tuning_objective=raw.get("tuning", {}).get("objective", "one_year_buy_episode_targets"),
-        tuning_primary_gain_pct=float(raw.get("tuning", {}).get("primary_gain_pct", 25)),
-        tuning_secondary_gain_pct=float(raw.get("tuning", {}).get("secondary_gain_pct", 30)),
+        tuning_lower_gain_pct=float(raw.get("tuning", {}).get("lower_gain_pct", 25)),
+        tuning_primary_gain_pct=float(raw.get("tuning", {}).get("primary_gain_pct", 30)),
+        tuning_upper_gain_pct=float(raw.get("tuning", {}).get(
+            "upper_gain_pct", raw.get("tuning", {}).get("secondary_gain_pct", 35)
+        )),
         tuning_horizon_days=int(raw.get("tuning", {}).get("horizon_days", 365)),
         tuning_large_loss_pct=float(raw.get("tuning", {}).get("large_loss_pct", -20)),
         tuning_severe_drawdown_pct=float(raw.get("tuning", {}).get("severe_drawdown_pct", -30)),

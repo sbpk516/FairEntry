@@ -33,8 +33,9 @@ tuning:
   promotion: manual
   challenger_holds_days: [20, 30, 60, 90, 180]
   objective: one_year_buy_episode_targets
-  primary_gain_pct: 25
-  secondary_gain_pct: 30
+  lower_gain_pct: 25
+  primary_gain_pct: 30
+  upper_gain_pct: 35
   horizon_days: 365
   large_loss_pct: -20
   severe_drawdown_pct: -30

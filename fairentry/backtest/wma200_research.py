@@ -22,7 +22,7 @@ STRONG_BUSINESS_RULE = {
     "no_tested_veto": True,
 }
 PROXIMITY_THRESHOLDS_PCT = (3.0, 5.0, 10.0)
-TARGETS_PCT = (10, 20, 25, 30)
+TARGETS_PCT = (10, 20, 25, 28, 30, 35)
 
 
 def _category_score(row: dict, category_id: str):

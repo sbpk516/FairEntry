@@ -2,7 +2,7 @@
 
 Weights are selected only on older observations. The objective is one Buy
 episode per issuer, not repeated weekly Buy signals. A challenger must improve
-the chance of touching +25% within one year while preserving +30%, loss,
+the chance of touching +30% within one year while preserving +25%, +35%, loss,
 drawdown and SPY guardrails on later untouched dates. Nothing in this module
 changes the production preset automatically.
 """
@@ -16,8 +16,9 @@ from datetime import date
 
 DEFAULT_POLICY = {
     "objective": "one_year_buy_episode_targets",
-    "primary_gain_pct": 25.0,
-    "secondary_gain_pct": 30.0,
+    "lower_gain_pct": 25.0,
+    "primary_gain_pct": 30.0,
+    "upper_gain_pct": 35.0,
     "horizon_days": 365,
     "large_loss_pct": -20.0,
     "severe_drawdown_pct": -30.0,
@@ -39,8 +40,9 @@ def policy_from_strategy(strategy) -> dict:
     """Copy the operational tuning contract from BacktestStrategy."""
     return {
         "objective": strategy.tuning_objective,
+        "lower_gain_pct": strategy.tuning_lower_gain_pct,
         "primary_gain_pct": strategy.tuning_primary_gain_pct,
-        "secondary_gain_pct": strategy.tuning_secondary_gain_pct,
+        "upper_gain_pct": strategy.tuning_upper_gain_pct,
         "horizon_days": strategy.tuning_horizon_days,
         "large_loss_pct": strategy.tuning_large_loss_pct,
         "severe_drawdown_pct": strategy.tuning_severe_drawdown_pct,
@@ -59,6 +61,9 @@ def _policy(overrides: dict | None) -> dict:
             result[key] = {name: tuple(bounds) for name, bounds in value.items()}
         else:
             result[key] = value
+    # Read old saved policies without changing their meaning.
+    if overrides and "secondary_gain_pct" in overrides and "upper_gain_pct" not in overrides:
+        result["upper_gain_pct"] = overrides["secondary_gain_pct"]
     return result
 
 
@@ -200,27 +205,36 @@ def _summary(episodes: list[dict], policy: dict, *, groups: bool = True) -> dict
     horizon = int(policy["horizon_days"])
     mature = [row for row in episodes
               if _is_complete(row.get("_tuning_outcome") or {}, horizon)]
-    primary_evaluable, secondary_evaluable = [], []
-    for row in episodes:
+
+    def hit_days(row: dict, target: float, alias: str):
         outcome = row.get("_tuning_outcome") or {}
-        primary = outcome.get("first_hit_primary_days")
-        secondary = outcome.get("first_hit_secondary_days")
-        is_mature = _is_complete(outcome, horizon)
-        if is_mature or (isinstance(primary, (int, float)) and primary <= horizon):
-            primary_evaluable.append(row)
-        if is_mature or (isinstance(secondary, (int, float)) and secondary <= horizon):
-            secondary_evaluable.append(row)
-    primary_days, secondary_days, returns, alphas, drawdowns = [], [], [], [], []
-    for row in primary_evaluable:
-        outcome = row.get("_tuning_outcome") or {}
-        primary = outcome.get("first_hit_primary_days")
-        if isinstance(primary, (int, float)) and primary <= horizon:
-            primary_days.append(float(primary))
-    for row in secondary_evaluable:
-        outcome = row.get("_tuning_outcome") or {}
-        secondary = outcome.get("first_hit_secondary_days")
-        if isinstance(secondary, (int, float)) and secondary <= horizon:
-            secondary_days.append(float(secondary))
+        key = f"{float(target):g}"
+        value = (outcome.get("first_hit_days_by_target") or {}).get(key)
+        if value is None:
+            value = outcome.get(f"first_hit_{alias}_days")
+        # Compatibility with v1 replay fixtures, where secondary was the
+        # stricter target and primary was the lower target.
+        if value is None and alias == "lower":
+            value = outcome.get("first_hit_primary_days")
+        if value is None and alias == "upper":
+            value = outcome.get("first_hit_secondary_days")
+        return value
+
+    def attainment(target: float, alias: str) -> tuple[list[dict], list[float]]:
+        evaluable, days = [], []
+        for row in episodes:
+            value = hit_days(row, target, alias)
+            if (_is_complete(row.get("_tuning_outcome") or {}, horizon)
+                    or (isinstance(value, (int, float)) and value <= horizon)):
+                evaluable.append(row)
+                if isinstance(value, (int, float)) and value <= horizon:
+                    days.append(float(value))
+        return evaluable, days
+
+    lower_evaluable, lower_days = attainment(float(policy["lower_gain_pct"]), "lower")
+    primary_evaluable, primary_days = attainment(float(policy["primary_gain_pct"]), "primary")
+    upper_evaluable, upper_days = attainment(float(policy["upper_gain_pct"]), "upper")
+    returns, alphas, drawdowns = [], [], []
     for row in mature:
         outcome = row.get("_tuning_outcome") or {}
         if isinstance(outcome.get("return_pct"), (int, float)):
@@ -230,7 +244,7 @@ def _summary(episodes: list[dict], policy: dict, *, groups: bool = True) -> dict
         if isinstance(outcome.get("max_drawdown_pct"), (int, float)):
             drawdowns.append(float(outcome["max_drawdown_pct"]))
     total = len(primary_evaluable)
-    secondary_total = len(secondary_evaluable)
+    lower_total, upper_total = len(lower_evaluable), len(upper_evaluable)
     large_losses = sum(value <= float(policy["large_loss_pct"]) for value in returns)
     severe_drawdowns = sum(value <= float(policy["severe_drawdown_pct"]) for value in drawdowns)
     result = {
@@ -243,12 +257,25 @@ def _summary(episodes: list[dict], policy: dict, *, groups: bool = True) -> dict
         "primary_reached": len(primary_days),
         "primary_hit_rate_pct": round(len(primary_days) / total * 100, 1) if total else None,
         "primary_hit_ci90": _wilson_ci(len(primary_days), total),
-        "secondary_reached": len(secondary_days),
-        "secondary_evaluable": secondary_total,
-        "secondary_hit_rate_pct": round(len(secondary_days) / secondary_total * 100, 1)
-        if secondary_total else None,
-        "secondary_hit_ci90": _wilson_ci(len(secondary_days), secondary_total),
+        "lower_reached": len(lower_days),
+        "lower_evaluable": lower_total,
+        "lower_hit_rate_pct": round(len(lower_days) / lower_total * 100, 1)
+        if lower_total else None,
+        "lower_hit_ci90": _wilson_ci(len(lower_days), lower_total),
+        "upper_reached": len(upper_days),
+        "upper_evaluable": upper_total,
+        "upper_hit_rate_pct": round(len(upper_days) / upper_total * 100, 1)
+        if upper_total else None,
+        "upper_hit_ci90": _wilson_ci(len(upper_days), upper_total),
+        # Deprecated output aliases keep older report readers functional.
+        "secondary_reached": len(upper_days),
+        "secondary_evaluable": upper_total,
+        "secondary_hit_rate_pct": round(len(upper_days) / upper_total * 100, 1)
+        if upper_total else None,
+        "secondary_hit_ci90": _wilson_ci(len(upper_days), upper_total),
+        "median_days_to_lower": round(statistics.median(lower_days), 1) if lower_days else None,
         "median_days_to_primary": round(statistics.median(primary_days), 1) if primary_days else None,
+        "median_days_to_upper": round(statistics.median(upper_days), 1) if upper_days else None,
         "mean_one_year_return_pct": round(statistics.mean(returns), 2) if returns else None,
         "mean_one_year_alpha_pct": round(statistics.mean(alphas), 2) if alphas else None,
         "large_loss_rate_pct": round(large_losses / len(returns) * 100, 1) if returns else None,
@@ -276,8 +303,9 @@ def _score(summary: dict, base: dict, weights: dict, policy: dict):
     if summary["completed_episodes"] < int(policy["minimum_split_episodes"]):
         return None
     primary_ci = summary.get("primary_hit_ci90") or [None, None]
-    secondary_ci = summary.get("secondary_hit_ci90") or [None, None]
-    if primary_ci[0] is None or secondary_ci[0] is None:
+    lower_ci = summary.get("lower_hit_ci90") or [None, None]
+    upper_ci = summary.get("upper_hit_ci90") or [None, None]
+    if primary_ci[0] is None or lower_ci[0] is None or upper_ci[0] is None:
         return None
     def number(key, default):
         value = summary.get(key)
@@ -286,7 +314,8 @@ def _score(summary: dict, base: dict, weights: dict, policy: dict):
     return (
         primary_ci[0],
         number("primary_hit_rate_pct", 0),
-        secondary_ci[0],
+        lower_ci[0],
+        upper_ci[0],
         -number("large_loss_rate_pct", 100),
         number("mean_one_year_alpha_pct", -100),
         number("median_max_drawdown_pct", -100),
@@ -306,8 +335,10 @@ def _later_period_checks(current: dict, challenger: dict, policy: dict) -> list[
     challenger_primary = challenger.get("primary_hit_rate_pct")
     current_lower = (current.get("primary_hit_ci90") or [None])[0]
     challenger_lower = (challenger.get("primary_hit_ci90") or [None])[0]
-    current_secondary = current.get("secondary_hit_rate_pct")
-    challenger_secondary = challenger.get("secondary_hit_rate_pct")
+    current_lower_target = current.get("lower_hit_rate_pct")
+    challenger_lower_target = challenger.get("lower_hit_rate_pct")
+    current_upper = current.get("upper_hit_rate_pct")
+    challenger_upper = challenger.get("upper_hit_rate_pct")
     current_loss = current.get("large_loss_rate_pct")
     challenger_loss = challenger.get("large_loss_rate_pct")
     current_alpha = current.get("mean_one_year_alpha_pct")
@@ -324,10 +355,15 @@ def _later_period_checks(current: dict, challenger: dict, policy: dict) -> list[
         _check("primary_likely_floor", "No weaker lower end of the likely success range",
                None not in (current_lower, challenger_lower) and challenger_lower >= current_lower,
                current_lower, challenger_lower, "challenger must be at least current"),
-        _check("secondary_rate", f"Protect +{policy['secondary_gain_pct']:g}% one-year success",
-               None not in (current_secondary, challenger_secondary)
-               and challenger_secondary >= current_secondary - 2,
-               current_secondary, challenger_secondary, "no more than 2 percentage points worse"),
+        _check("lower_rate", f"Protect +{policy['lower_gain_pct']:g}% one-year success",
+               None not in (current_lower_target, challenger_lower_target)
+               and challenger_lower_target >= current_lower_target - 2,
+               current_lower_target, challenger_lower_target,
+               "no more than 2 percentage points worse"),
+        _check("upper_rate", f"Protect +{policy['upper_gain_pct']:g}% one-year success",
+               None not in (current_upper, challenger_upper)
+               and challenger_upper >= current_upper - 2,
+               current_upper, challenger_upper, "no more than 2 percentage points worse"),
         _check("large_losses", "Do not materially increase large losses",
                None not in (current_loss, challenger_loss) and challenger_loss <= current_loss + 2,
                current_loss, challenger_loss, "no more than 2 percentage points worse"),
@@ -491,7 +527,8 @@ def tune_sfa_observations(observations: list[dict], cfg, *, step_days: int = 30,
         "default_changed": False,
         "objective": (
             f"Improve the lower end of the likely +{policy['primary_gain_pct']:g}% one-year "
-            f"Buy-episode success range; protect +{policy['secondary_gain_pct']:g}%, losses, "
+            f"Buy-episode success range; protect +{policy['lower_gain_pct']:g}%, "
+            f"+{policy['upper_gain_pct']:g}%, losses, "
             "drawdown and one-year return versus SPY."
         ),
         "policy": policy,

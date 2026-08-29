@@ -342,7 +342,7 @@ Failure explanation and predictive-rule testing are deliberately separate:
   tests entry-date-only rules from `config/predictive_rules.json` on chronological
   development, validation and final-test periods.
 
-The deterministic runner rejects outcome fields, reports +20%, +25% and +30%
+The deterministic runner rejects outcome fields, reports +20%, +25%, +28%, +30% and +35%
 attainment through three years, checks sample size and drawdown, and never edits
 production scores or weights. An eligible rule still requires explicit human
 promotion. Every normal SFA replay now regenerates both research contracts.
@@ -361,7 +361,10 @@ The explorer uses rolling chronological folds. Thresholds are learned from all
 older folds, must reproduce on a second older validation slice, and are then
 evaluated on the next unseen fold. It tests revenue and earnings consistency,
 growth stability, margins, cash flow, several valuation measures, dilution,
-debt direction, market and sector conditions, and entry timing. Pre-declared
+debt direction, market and sector conditions, and entry timing. Point-in-time
+Business Quality and Financial Strength research now also covers gross
+profitability, cash conversion, accrual quality, ROIC, net debt to free cash
+flow and interest coverage. Pre-declared
 economic combinations are tested instead of brute-forcing every possible pair.
 
 Historical analyst-estimate revisions and next-year EPS estimates are explicitly
@@ -371,3 +374,13 @@ score effect. The explorer's changing thresholds are research hypotheses only:
 it cannot edit production scoring, weights, verdicts or configuration. A stable
 result may nominate a separate, frozen rule for the controlled validation cycle,
 but promotion remains explicit and manual.
+
+## Earliest-entry research
+
+The SFA evidence report starts each Buy episode on the earliest date the
+unchanged point-in-time model actually said Buy. It compares conservative
+valuation upside of at least 30%, 45%, 50% and 60%, first by itself and then
+with complete stable-value/no-thesis-deterioration evidence. The main outcome
+remains +30% within one year; +50% within two years and +100% within three years
+are separate longer-horizon measurements. These comparisons are research-only
+and add no score or verdict rule.

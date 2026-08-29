@@ -97,7 +97,9 @@ def test_warehouse_enrichment_uses_only_filings_and_prices_available_by_buy_date
         CREATE TABLE sfa_fundamentals(
           ticker VARCHAR, dimension VARCHAR, datekey DATE, reportperiod DATE,
           calendardate DATE, revenue DOUBLE, opinc DOUBLE, fcf DOUBLE,
-          epsdil DOUBLE, sharesbas DOUBLE, debtnc DOUBLE, assets DOUBLE
+          epsdil DOUBLE, sharesbas DOUBLE, debtnc DOUBLE, assets DOUBLE,
+          gp DOUBLE, ncfo DOUBLE, netinc DOUBLE, debt DOUBLE, cashneq DOUBLE,
+          ebit DOUBLE, intexp DOUBLE, roic DOUBLE
         )
     """)
     revenues = [50, 55, 60, 65, 75, 82.5, 90, 97.5, 120]
@@ -105,22 +107,24 @@ def test_warehouse_enrichment_uses_only_filings_and_prices_available_by_buy_date
         period = date(2022, 3, 31) + timedelta(days=index * 91)
         opinc = revenue * (0.20 if index == 8 else 0.10)
         connection.execute(
-            "INSERT INTO sfa_fundamentals VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO sfa_fundamentals VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             ["ABC", "ARQ", period + timedelta(days=30), period,
-             period, revenue, opinc, None, index + 1, 100 + index, 12 + index, 120 + index * 10],
+             period, revenue, opinc, None, index + 1, 100 + index, 12 + index,
+             120 + index * 10, None, None, None, None, None, None, None, None],
         )
     # A later amendment to an older quarter must not enter the original
     # Buy-date lag calculation.
     amended_period = date(2022, 3, 31) + timedelta(days=7 * 91)
     connection.execute(
-        "INSERT INTO sfa_fundamentals VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+        "INSERT INTO sfa_fundamentals VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         ["ABC", "ARQ", "2025-02-01", amended_period, amended_period,
-         1_000, 900, None, 100, 1_000, 900, 1_000],
+         1_000, 900, None, 100, 1_000, 900, 1_000,
+         None, None, None, None, None, None, None, None],
     )
     connection.execute(
-        "INSERT INTO sfa_fundamentals VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+        "INSERT INTO sfa_fundamentals VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         ["ABC", "ART", "2024-04-01", "2023-12-31", "2023-12-31",
-         100, 10, 20, None, None, None, None],
+         100, 10, 20, None, None, None, 200, 40, 24, 20, 30, 10, 15, -3, .20],
     )
     connection.execute("CREATE TABLE sfa_daily(ticker VARCHAR,date DATE,pe DOUBLE,ps DOUBLE,pb DOUBLE)")
     connection.execute("INSERT INTO sfa_daily VALUES ('ABC','2025-01-01',30,3,4)")
@@ -162,6 +166,12 @@ def test_warehouse_enrichment_uses_only_filings_and_prices_available_by_buy_date
     assert factors["revenue_growth_change_pp"] == pytest.approx(10)
     assert factors["operating_margin_change_qoq_pp"] == pytest.approx(10)
     assert factors["fcf_margin_pct"] == pytest.approx(20)
+    assert factors["gross_profitability_pct"] == pytest.approx(20)
+    assert factors["cash_conversion_pct"] == pytest.approx(120)
+    assert factors["accruals_to_assets_pct"] == pytest.approx(-2)
+    assert factors["net_debt_to_fcf"] == pytest.approx(1)
+    assert factors["interest_coverage"] == pytest.approx(5)
+    assert factors["roic_pct"] == pytest.approx(20)
     assert factors["pe_to_revenue_growth"] == pytest.approx(0.5)
     assert factors["positive_eps_quarters_pct"] == pytest.approx(100)
     assert factors["eps_improving_quarters_pct"] == pytest.approx(100)
