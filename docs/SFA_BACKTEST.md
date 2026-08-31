@@ -256,6 +256,39 @@ switching-cost and technical-milestone history is also unavailable in the
 current warehouse. The report therefore keeps `score_effect: 0`,
 `verdict_effect: none`, and `promotion_allowed: false`.
 
+## Exit Policy v1 research
+
+FairEntry now has one versioned exit state machine shared by paper tracking and
+the SFA research replay. It evaluates information after the close and records
+an instruction separately from its fill. Historical fills use the next
+available close plus configured exit costs; the trigger price is never treated
+as a guaranteed execution price.
+
+The fixed precedence is terminal event, hard veto, a -25% catastrophic-loss
+close, two distinct Avoid evaluations, first +30% profit, a 15% trailing close
+on the remainder, frozen Practical Target, one-year stagnation, and a 730-day
+maximum holding period. The +30% instruction realizes half the original
+position. A loss exit starts a 30-session paper re-entry cooldown. Position
+state retains entry, frozen target, peak, remaining fraction, Avoid count,
+pending instruction, fills and the policy version.
+
+Full run `sfa-03438e60bf19` evaluated 618 Buy episodes from 302 issuers. The
+policy reduced the all-history fifth-percentile completed-trade result from
+-67.38% to -29.70%, but mean episode return fell from 25.86% to 4.97%. On the
+newest untouched 20%, the loss boundary improved from -56.11% to -29.51%,
+while mean return fell from 38.37% to 2.81% and completed-trade win rate was
+47.5%. The dominant exits were 200 catastrophic-loss exits and 149 trailing
+profit exits. The mean-return promotion gate therefore failed.
+
+The published report compares this challenger with a full 730-day hold across
+chronological 60% development, 20% validation and 20% final-unseen partitions.
+It reports mean and median return, completed-trade win rate, fifth-percentile
+loss boundary, holding time and exit reasons. Licensed daily prices remain
+private. The first report is deliberately episode-level; it cannot be promoted
+until a capacity-aware portfolio replay validates cash redeployment and
+drawdown. Consequently the official score, verdict and real-money trading
+effect remain unchanged.
+
 ## Strict historical ticker identity
 
 Strategy v3 rejects a historical row when the displayed ticker did not yet

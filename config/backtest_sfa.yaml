@@ -60,3 +60,17 @@ research_cycle:
   rules: config/predictive_rules.json
 portfolio:
   max_positions: 20
+exit_policy:
+  version: exit_v1_research
+  production_effect: research_only
+  trigger_frequency: after_close
+  execution: next_available_session
+  catastrophic_loss_pct: -25
+  avoid_confirmations: 2
+  first_profit_pct: 30
+  first_profit_fraction: 0.5
+  trailing_drawdown_pct: 15
+  stagnation_days: 365
+  stagnation_max_return_pct: 10
+  maximum_holding_days: 730
+  loss_cooldown_trading_days: 30

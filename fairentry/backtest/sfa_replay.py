@@ -61,6 +61,8 @@ def _implementation_fingerprint() -> str:
         repo / "fairentry" / "pipeline" / "export.py",
         repo / "fairentry" / "backtest" / "seed.py",
         repo / "fairentry" / "backtest" / "sfa_tune.py",
+        repo / "fairentry" / "backtest" / "exit_policy_research.py",
+        repo / "fairentry" / "exit_policy.py",
         repo / "fairentry" / "sharadar" / "warehouse.py",
         repo / "scripts" / "build_all.py",
         repo / "scripts" / "build_sfa_features.py",

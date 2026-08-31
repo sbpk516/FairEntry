@@ -95,6 +95,16 @@ CREATE TABLE IF NOT EXISTS paper_portfolio (
   notes       TEXT
 );
 
+-- Versioned state for deterministic paper exits.  Keeping this separate from
+-- the legacy position row makes migrations safe and preserves a full JSON
+-- audit trail of partial profit-taking, pending instructions, and fills.
+CREATE TABLE IF NOT EXISTS paper_exit_state (
+  ticker       TEXT PRIMARY KEY,
+  policy_version TEXT NOT NULL,
+  state_json   TEXT NOT NULL,
+  updated_at   TEXT NOT NULL
+);
+
 -- The latest successfully screened universe for each defining source.  This is
 -- deliberately separate from securities: removing a name from today's active
 -- universe must never erase its metrics, signals, or backtest history.

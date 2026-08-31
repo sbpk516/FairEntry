@@ -2,7 +2,7 @@
 
 Each run: persist every name's verdict (first_seen / last_seen), detect when a
 tracked name's verdict worsens or its score drops materially (alert), and run a
-simple paper portfolio (open on Buy, close on Avoid). Reads the pipeline's
+versioned paper exit policy. Reads the pipeline's
 score_results (deterministic verdict — reproducible), writes the recommendations
 + paper_portfolio tables.
 """
@@ -11,6 +11,14 @@ from __future__ import annotations
 import json
 import hashlib
 from datetime import datetime, timezone
+
+from ..exit_policy import (
+    EXIT_POLICY_V1,
+    EXIT_POLICY_VERSION,
+    apply_execution,
+    new_position_state,
+    observe_close,
+)
 
 _RANK = {"Buy": 0, "Watch": 1, "Avoid": 2}
 _DROP_ALERT = 8.0   # score drop that counts as degradation
@@ -40,10 +48,74 @@ def refresh_tracking_quotes(store) -> dict:
     return {"requested": len(tickers), "refreshed": len(quotes), "prices": quotes}
 
 
+def _load_exit_state(store, ticker, position, practical_target=None):
+    row = store.con.execute(
+        "SELECT state_json FROM paper_exit_state WHERE ticker=?", (ticker,)
+    ).fetchone()
+    if row:
+        return json.loads(row["state_json"])
+    return new_position_state(
+        entry_date=position["entered_at"],
+        entry_price=position["entry_price"],
+        practical_target=practical_target,
+    )
+
+
+def _save_exit_state(store, ticker, state, now):
+    store.con.execute(
+        "INSERT INTO paper_exit_state(ticker,policy_version,state_json,updated_at) "
+        "VALUES(?,?,?,?) ON CONFLICT(ticker) DO UPDATE SET "
+        "policy_version=excluded.policy_version,state_json=excluded.state_json,"
+        "updated_at=excluded.updated_at",
+        (ticker, EXIT_POLICY_VERSION, json.dumps(state, sort_keys=True), now),
+    )
+
+
+def _paper_exit_step(store, ticker, strategy, stock, price, verdict, now):
+    """Advance one paper position and return signal/fill events."""
+    position = store.con.execute(
+        "SELECT entered_at,entry_price,status FROM paper_portfolio WHERE ticker=?",
+        (ticker,),
+    ).fetchone()
+    if not position or position["status"] != "open" or not isinstance(price, (int, float)):
+        return []
+    practical = (stock.get("targets") or {}).get("practical") or {}
+    state = _load_exit_state(store, ticker, position, practical.get("price"))
+    events = []
+    pending = state.get("pending_action")
+    if pending and str(pending.get("signal_date") or "") < now[:10]:
+        fill = apply_execution(
+            state, execution_date=now[:10], execution_price=float(price)
+        )
+        fill["event"] = "paper_fill"
+        events.append(fill)
+        if state.get("status") == "closed":
+            store.con.execute(
+                "UPDATE paper_portfolio SET status=?,notes=? WHERE ticker=?",
+                ("closed", f"{EXIT_POLICY_VERSION}: {fill['code']}", ticker),
+            )
+            if fill.get("loss_exit"):
+                state["cooldown_remaining_sessions"] = EXIT_POLICY_V1[
+                    "loss_cooldown_trading_days"
+                ]
+    if state.get("status") == "open" and not state.get("pending_action"):
+        instruction = observe_close(
+            state,
+            observed_date=now[:10],
+            price=float(price),
+            verdict=verdict,
+            vetoes=stock.get("vetoes") or [],
+        )
+        if instruction:
+            events.append({**instruction, "event": "paper_exit_signal"})
+    _save_exit_state(store, ticker, state, now)
+    return events
+
+
 def record(store, board: dict) -> dict:
     now = _now()
     signal_date = now[:10]
-    alerts, new_buys, near_30, exit_reviews = [], [], [], []
+    alerts, new_buys, near_30, exit_reviews, exit_actions = [], [], [], [], []
     opened, closed, signals = 0, 0, 0
     price_by = {s["ticker"]: s.get("price") for s in board.get("stocks", [])}
     action_by = {s["ticker"]: s.get("action", {}).get("action", "") for s in board.get("stocks", [])}
@@ -89,6 +161,10 @@ def record(store, board: dict) -> dict:
                                         "gain_pct": round(gain, 1),
                                         "target_price": round(position["entry_price"] * 1.30, 2),
                                         "quote_source": "yfinance_tracking"})
+                exit_actions.extend(_paper_exit_step(
+                    store, tkr, position["strategy"] or "tracking",
+                    board_by[tkr], price, None, now
+                ))
             continue
         score_rows = list(store.con.execute(
             "SELECT strategy, verdict, preliminary FROM score_results WHERE ticker=?", (tkr,)))
@@ -163,21 +239,47 @@ def record(store, board: dict) -> dict:
                                          "to": verdict,
                                          "confidence": (stock.get("confidence_tier") or {}).get("label")})
 
-            # paper portfolio: open on first Buy, close on Avoid
+            # Paper portfolio: Buy opens a versioned state machine. Exit
+            # instructions trigger after this close and fill on a later run,
+            # so the trigger price is never assumed to be guaranteed.
             held = store.con.execute(
                 "SELECT entered_at,entry_price,status FROM paper_portfolio WHERE ticker=?",
                 (tkr,)).fetchone()
-            if verdict == "Buy" and not held:
+            prior_exit = store.con.execute(
+                "SELECT state_json FROM paper_exit_state WHERE ticker=?", (tkr,)
+            ).fetchone()
+            prior_state = json.loads(prior_exit["state_json"]) if prior_exit else {}
+            cooldown = int(prior_state.get("cooldown_remaining_sessions") or 0)
+            if cooldown > 0:
+                prior_state["cooldown_remaining_sessions"] = cooldown - 1
+                _save_exit_state(store, tkr, prior_state, now)
+            if verdict == "Buy" and (not held or held["status"] != "open") and cooldown <= 0:
+                practical = (stock.get("targets") or {}).get("practical") or {}
                 store.con.execute(
                     "INSERT INTO paper_portfolio(ticker,entered_at,entry_price,strategy,status,notes) "
-                    "VALUES(?,?,?,?,?,?)", (tkr, now, price_by[tkr], strat, "open", "opened on Buy"))
+                    "VALUES(?,?,?,?,?,?) ON CONFLICT(ticker) DO UPDATE SET "
+                    "entered_at=excluded.entered_at,entry_price=excluded.entry_price,"
+                    "strategy=excluded.strategy,status=excluded.status,notes=excluded.notes",
+                    (tkr, now, price_by[tkr], strat, "open", f"opened on Buy; {EXIT_POLICY_VERSION}"))
+                _save_exit_state(store, tkr, new_position_state(
+                    entry_date=now, entry_price=price_by[tkr],
+                    practical_target=practical.get("price")
+                ), now)
                 opened += 1
             elif verdict == "Avoid" and held and held["status"] == "open":
                 review_reasons.append({"code": "avoid_verdict",
-                                       "reason": "Held stock changed to Avoid"})
-                store.con.execute(
-                    "UPDATE paper_portfolio SET status=?, notes=? WHERE ticker=?",
-                    ("closed", "closed on Avoid", tkr))
+                                       "reason": "Held stock changed to Avoid; two distinct evaluations are required for an exit"})
+
+            before = store.con.execute(
+                "SELECT status FROM paper_portfolio WHERE ticker=?", (tkr,)
+            ).fetchone()
+            exit_actions.extend(_paper_exit_step(
+                store, tkr, strat, stock, price_by.get(tkr), verdict, now
+            ))
+            after = store.con.execute(
+                "SELECT status FROM paper_portfolio WHERE ticker=?", (tkr,)
+            ).fetchone()
+            if before and after and before["status"] == "open" and after["status"] == "closed":
                 closed += 1
 
             # One-time review events for a held position. Qualitative vetoes can
@@ -241,6 +343,7 @@ def record(store, board: dict) -> dict:
     store.commit()
     return {"tracked": len(price_by), "signals": signals, "alerts": alerts,
             "new_buys": new_buys, "near_30": near_30, "exit_reviews": exit_reviews,
+            "exit_actions": exit_actions, "exit_policy_version": EXIT_POLICY_VERSION,
             "opened": opened, "closed": closed}
 
 

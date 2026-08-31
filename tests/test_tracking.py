@@ -5,7 +5,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from fairentry.store.db import Store
 from fairentry.backtest.harness import run
-from fairentry.tracking import record
+from fairentry.tracking import open_positions, record
+import fairentry.tracking as tracking
 
 
 def _board(price=100, verdict="Buy", score=76, vetoes=None, practical_target=None):
@@ -101,6 +102,32 @@ def test_record_emits_target_and_veto_reviews_once_per_position(tmp_path):
         repeated = record(store, _board(price=121, vetoes=["accounting_veto"],
                                         practical_target={"price": 120}))
         assert repeated["exit_reviews"] == []
+
+
+def test_paper_exit_policy_requires_two_avoids_and_fills_next_run(tmp_path, monkeypatch):
+    clock = iter([
+        "2024-01-02T21:00:00+00:00",
+        "2024-02-01T21:00:00+00:00",
+        "2024-03-01T21:00:00+00:00",
+        "2024-03-04T21:00:00+00:00",
+    ])
+    monkeypatch.setattr(tracking, "_now", lambda: next(clock))
+    with Store(tmp_path / "test.db") as store:
+        store.set_score_result("TEST", "quality_growth", 74, 76, "Buy", {})
+        record(store, _board(price=100, verdict="Buy", score=76))
+
+        store.set_score_result("TEST", "quality_growth", 50, 50, "Avoid", {})
+        first = record(store, _board(price=96, verdict="Avoid", score=50))
+        assert first["exit_actions"] == []
+        second = record(store, _board(price=95, verdict="Avoid", score=50))
+        assert second["exit_actions"][0]["event"] == "paper_exit_signal"
+        assert second["exit_actions"][0]["code"] == "confirmed_avoid"
+        assert open_positions(store)[0]["ticker"] == "TEST"
+
+        filled = record(store, _board(price=92, verdict="Avoid", score=50))
+        assert filled["exit_actions"][0]["event"] == "paper_fill"
+        assert filled["exit_actions"][0]["execution_price"] == 92
+        assert open_positions(store) == []
 
 
 def test_backtest_uses_signal_events(tmp_path):
