@@ -35,6 +35,7 @@ from fairentry.backtest.factor_explorer import (
     run_factor_explorer,
 )
 from fairentry.backtest.high_conviction_research import run_high_conviction_research
+from fairentry.backtest.capability_moat_research import run_capability_moat_research
 from fairentry.backtest.wma200_research import (
     attach_wma200_factors,
     run_wma200_research,
@@ -287,6 +288,10 @@ def main():
                     result.get("observations", []),
                     step_days=int(result.get("step_days") or 30),
                 )
+                result["capability_moat_research"] = run_capability_moat_research(
+                    result.get("observations", []),
+                    step_days=int(result.get("step_days") or 30),
+                )
                 wma_enrichment = attach_wma200_factors(
                     result.get("observations", []), warehouse.con
                 )
@@ -370,6 +375,10 @@ def main():
                 step_days=int(result.get("step_days") or args.step),
             )
             result["high_conviction_research"] = run_high_conviction_research(
+                result.get("observations", []),
+                step_days=int(result.get("step_days") or args.step),
+            )
+            result["capability_moat_research"] = run_capability_moat_research(
                 result.get("observations", []),
                 step_days=int(result.get("step_days") or args.step),
             )

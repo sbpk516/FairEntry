@@ -231,6 +231,31 @@ replay share the calculation in `fairentry/analytics/relative_momentum.py`; it
 adds zero official points and never changes scoring, verdicts, positions or
 alerts.
 
+## Rare Capability and Execution Moat research
+
+The SFA report ranks existing Buy episodes with a separate research-only
+Capability Moat score. Its fixed components are proven execution (30%),
+commercial-product proof (20%), a replication-barrier proxy (20%), competitive
+scarcity (15%), and productive reinvestment (15%). R&D and capital intensity
+are paired with ROIC, gross profitability, revenue consistency, margins and
+cash flow, so spending alone cannot qualify a company. Proven execution and
+commercial proof must each score at least 60, and at least 70% of component
+weight must be available.
+
+The primary concentration challenger selects at most the highest-ranked half
+of each historical Buy-date cohort. Top-three and top-one variants are reported
+separately. Every selector is compared with all official Buys using the same
++30%-within-365-days outcome, alpha, large-loss and drawdown evidence across
+chronological development, validation and untouched final-test dates.
+
+Full run `sfa-03438e60bf19` did not support promotion. All 618 Buy episodes
+reached +30% within one year at 47.6%; the eligible top-half selector reached
+44.1%. In the untouched final period, all Buys reached 54.5% versus 45.8% for
+the top half, a -8.7 percentage-point change. Dated standardized competition,
+switching-cost and technical-milestone history is also unavailable in the
+current warehouse. The report therefore keeps `score_effect: 0`,
+`verdict_effect: none`, and `promotion_allowed: false`.
+
 ## Strict historical ticker identity
 
 Strategy v3 rejects a historical row when the displayed ticker did not yet
@@ -248,7 +273,7 @@ identity metadata only and contributes no score.
 
 ## Latest completed replay
 
-Run `sfa-30db4ec7ca24` used snapshot `20260810T132048Z`. It evaluated 333
+Run `sfa-03438e60bf19` used snapshot `20260810T132048Z`. It evaluated 333
 monthly decision dates from October 1998 through June 2026, comprising 78,791
 issuer-deduplicated observations and 1,766 different stocks.
 

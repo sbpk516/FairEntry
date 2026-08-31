@@ -130,6 +130,26 @@ FACTOR_DEFINITIONS = (
         "meaning": "Trailing point-in-time ROIC from the filing warehouse; higher can indicate a more durable compounding business.",
     },
     {
+        "id": "research_intensity",
+        "label": "Research and development intensity",
+        "field": "research.rnd_to_revenue_pct",
+        "direction": "higher",
+        "unit": "%",
+        "theme": "capability_investment",
+        "category": "Capability Moat",
+        "meaning": "Trailing R&D divided by trailing revenue. Spending is evidence of capability investment, not proof that the investment is productive.",
+    },
+    {
+        "id": "capital_intensity",
+        "label": "Capital expenditure intensity",
+        "field": "research.capex_to_revenue_pct",
+        "direction": "higher",
+        "unit": "%",
+        "theme": "capability_investment",
+        "category": "Capability Moat",
+        "meaning": "Absolute trailing capital expenditure divided by trailing revenue. It is paired with return measures so heavy spending alone is not rewarded.",
+    },
+    {
         "id": "net_debt_to_fcf",
         "label": "Net debt to free cash flow",
         "field": "research.net_debt_to_fcf",
@@ -390,9 +410,15 @@ def attach_warehouse_factors(observations: list[dict], connection) -> dict:
         "decision_date": [row["decision_date"] for row in rows],
         "sector_etf": [_SECTOR_ETF.get(row.get("sector")) for row in rows],
     })
+    fundamental_columns = {
+        str(column[1]).lower()
+        for column in connection.execute("PRAGMA table_info('sfa_fundamentals')").fetchall()
+    }
+    rnd_expression = "a.rnd" if "rnd" in fundamental_columns else "NULL"
+    capex_expression = "a.capex" if "capex" in fundamental_columns else "NULL"
     connection.register("factor_observations", frame)
     try:
-        result = connection.execute("""
+        result = connection.execute(f"""
         WITH available_arq AS (
           SELECT o.observation_id,f.ticker,f.datekey,f.reportperiod,f.calendardate,
                  f.revenue,f.opinc,f.epsdil,f.sharesbas,f.debtnc,f.assets,
@@ -480,6 +506,7 @@ def attach_warehouse_factors(observations: list[dict], connection) -> dict:
                arq.sharesbas,arq.sharesbas_prev_y,
                arq.debtnc,arq.assets,arq.debtnc_prev_y,arq.assets_prev_y,
                art.revenue art_revenue,art.fcf,art.gp,art.assets art_assets,
+               art.rnd,art.capex,
                art.ncfo,art.netinc,art.debt,art.cashneq,art.ebit,art.intexp,art.roic,
                daily.pe,daily.ps,daily.pb,
                own.close,own.sma50,own.sma200,
@@ -491,7 +518,8 @@ def attach_warehouse_factors(observations: list[dict], connection) -> dict:
           WHERE a.observation_id=o.observation_id AND a.latest_rank=1
         ) arq ON true
         LEFT JOIN LATERAL (
-          SELECT ticker,datekey,reportperiod,revenue,fcf,gp,assets,ncfo,netinc,
+          SELECT ticker,datekey,reportperiod,revenue,fcf,gp,assets,
+                 {rnd_expression} AS rnd,{capex_expression} AS capex,ncfo,netinc,
                  debt,cashneq,ebit,intexp,roic
           FROM sfa_fundamentals a
           WHERE a.ticker=o.ticker AND a.datekey<=CAST(o.decision_date AS DATE)
@@ -520,7 +548,7 @@ def attach_warehouse_factors(observations: list[dict], connection) -> dict:
          opinc, opinc_prev_q, positive_eps_quarters, eps_improving_quarters,
          revenue_positive_quarters, revenue_growth_volatility, revenue_growth_min,
          sharesbas, sharesbas_prev_y, debtnc, assets, debtnc_prev_y, assets_prev_y,
-         art_revenue, fcf, gp, art_assets, ncfo, netinc, debt, cashneq, ebit,
+         art_revenue, fcf, gp, art_assets, rnd, capex, ncfo, netinc, debt, cashneq, ebit,
          intexp, roic, pe, ps, pb, own_close, own_sma50, own_sma200,
          sector_close, sector_close_3m, sector_sma50, sector_sma200,
          market_close, market_close_3m, market_sma50, market_sma200) in result:
@@ -536,7 +564,12 @@ def attach_warehouse_factors(observations: list[dict], connection) -> dict:
         current_margin = _ratio(opinc, revenue, 100)
         prior_margin = _ratio(opinc_prev_q, revenue_prev_q, 100)
         fcf_margin = _ratio(fcf, art_revenue, 100)
+        gross_margin = _ratio(gp, art_revenue, 100)
         gross_profitability = _ratio(gp, art_assets, 100)
+        rnd_intensity = _ratio(rnd, art_revenue, 100)
+        capex_number = _number(capex)
+        capex_intensity = _ratio(abs(capex_number), art_revenue, 100) \
+            if capex_number is not None else None
         netinc_number = _number(netinc)
         ncfo_number = _number(ncfo)
         cash_conversion = (_ratio(ncfo_number, netinc_number, 100)
@@ -598,8 +631,13 @@ def attach_warehouse_factors(observations: list[dict], connection) -> dict:
             "operating_margin_change_qoq_pp": round(current_margin - prior_margin, 4)
             if None not in (current_margin, prior_margin) else None,
             "fcf_margin_pct": round(fcf_margin, 4) if fcf_margin is not None else None,
+            "gross_margin_pct": round(gross_margin, 4) if gross_margin is not None else None,
             "gross_profitability_pct": round(gross_profitability, 4)
             if gross_profitability is not None else None,
+            "rnd_to_revenue_pct": round(rnd_intensity, 4)
+            if rnd_intensity is not None else None,
+            "capex_to_revenue_pct": round(capex_intensity, 4)
+            if capex_intensity is not None else None,
             "cash_conversion_pct": round(cash_conversion, 4)
             if cash_conversion is not None else None,
             "accruals_to_assets_pct": round(accruals_to_assets, 4)
