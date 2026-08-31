@@ -37,6 +37,7 @@ class BacktestStrategy:
     maximum_upside_pct: float = 100
     practical_target_policy: str = "nearest_credible"
     data_quality_mode: str = "mostly_point_in_time"
+    ticker_identity_policy: str = "provider_permanent_symbol"
     strict_excluded_sources: tuple[str, ...] = ("seed_const",)
     tuning_promotion: str = "manual"
     challenger_holds_days: tuple[int, ...] = (20, 30, 60, 90, 180)
@@ -70,6 +71,8 @@ class BacktestStrategy:
             "benchmark": ({"cohort_mean", "spy_total_return"}, self.benchmark),
             "data_quality_mode": ({"strict", "mostly_point_in_time", "experimental"},
                                   self.data_quality_mode),
+            "ticker_identity_policy": ({"provider_permanent_symbol", "strict_point_in_time"},
+                                       self.ticker_identity_policy),
             "practical_target_policy": ({"nearest_credible", "fundamental_first"},
                                          self.practical_target_policy),
         }
@@ -153,6 +156,9 @@ def load_strategy(path: str | Path | None = None) -> BacktestStrategy:
         maximum_upside_pct=float(raw.get("target", {}).get("maximum_upside_pct", 100)),
         practical_target_policy=raw.get("target", {}).get("practical_policy", "nearest_credible"),
         data_quality_mode=raw.get("data_quality", {}).get("mode", "mostly_point_in_time"),
+        ticker_identity_policy=raw.get("data_quality", {}).get(
+            "ticker_identity_policy", "provider_permanent_symbol"
+        ),
         strict_excluded_sources=tuple(raw.get("data_quality", {}).get("strict_excluded_sources", ["seed_const"])),
         tuning_promotion=raw.get("tuning", {}).get("promotion", "manual"),
         challenger_holds_days=tuple(raw.get("tuning", {}).get("challenger_holds_days", [20, 30, 60])),

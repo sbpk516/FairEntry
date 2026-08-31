@@ -50,6 +50,7 @@ Only factors marked **tested** may affect the verdict.
 | Breakout volume | tested | 20 | `breakout_volume_score` | ≥1.5× prior 50-day average | `passthrough` |
 | Relative strength | tested | 15 | `relative_strength_score` | outperform sector and SPY | `passthrough` |
 | Trend regime | tested | 15 | `trend_regime_score` | supportive moving-average trend | `passthrough` |
+| Trading liquidity quality | information_only | 0 | `avg_dollar_volume` | $20M+ average daily dollar volume | `higher_better` |
 | Institutional ownership change | information_only | 10 | `inst_trans` | positive change in reported institutional ownership | `higher_better` |
 | Smart-money SEC 13F | information_only | 5 | `thirteenf_score` | owned / added by respected tracked funds | `passthrough` |
 | Insider buying | information_only | 10 | `insider_score` | fresh / cluster / top-exec buys | `passthrough` |
@@ -61,6 +62,8 @@ Only factors marked **tested** may affect the verdict.
 | News review | information_only | 40 | `news_sentiment_score` | specific sourced event | `passthrough` |
 | Analyst consensus | information_only | 25 | `analyst_recom` | ≤ 2 (Buy) | `lower_better` |
 | Analyst target revisions | information_only | 20 | `estimate_revision_score` | mean analyst price target rising | `passthrough` |
+| Earnings and transcript review | information_only | 0 | `earnings_transcript_context` | dated results, guidance changes, management delivery and contradictions | `passthrough` |
+| Government policy | information_only | 0 | `government_policy_context` | named enacted or proposed policy with a direct business path | `passthrough` |
 | Short interest context | information_only | 15 | `short_float` | elevated but not extreme | `band` |
 
 ### Risk, Red Flags & Fragility - configured weight 0
@@ -70,9 +73,12 @@ Only factors marked **tested** may affect the verdict.
 | Forensic / accounting review | information_only | 40 | `red_flags_score` | clean | `passthrough` |
 | Short interest (risk) | information_only | 30 | `short_float` | < 10% = low | `lower_better` |
 | Macro / beta | information_only | 30 | `beta` | resilient (β near 1) | `lower_better` |
+| Operational disruption | information_only | 0 | `operational_disruption_context` | shutdown, component shortage, supply-chain or technology-transition evidence | `passthrough` |
+| External events | information_only | 0 | `external_event_context` | specific war, pandemic or natural-disaster exposure | `passthrough` |
 
 ## Tested hard vetoes
 - **distress_corroborated** - Corroborated financial distress (`altman_z < 1.8 and debt_eq > 2`)
+- **substantial_dilution** - Substantial dilution: share count increased more than 10% year over year (`share_count_yoy > 10`)
 
 ## Information-only safety warnings
 - **going_concern** - Going-concern doubt confirmed (`going_concern == True`)

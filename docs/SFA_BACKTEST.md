@@ -231,34 +231,42 @@ replay share the calculation in `fairentry/analytics/relative_momentum.py`; it
 adds zero official points and never changes scoring, verdicts, positions or
 alerts.
 
+## Strict historical ticker identity
+
+Strategy v3 rejects a historical row when the displayed ticker did not yet
+exist on that decision date. Sharadar ACTIONS `tickerchangefrom` records define
+when the current ticker became valid. For example, CLGX history before the 2010
+change from FAF is excluded instead of being presented as if CLGX traded in
+1999.
+
+The exclusion happens before universe ranking, scoring, Buy creation and target
+measurement. Each artifact publishes an identity-control audit with the number
+of removed cohort rows, affected tickers and remaining violations. The runner
+also refuses to publish an older or malformed artifact under the strict policy
+unless remaining invalid observations equal zero. Corporate-action data is
+identity metadata only and contributes no score.
+
 ## Latest completed replay
 
-Run `sfa-1b9647cb354d` used snapshot `20260810T132048Z`. It evaluated 333
-monthly decision dates from October 1998 through June 2026, comprising 99,103
-issuer-deduplicated observations and 2,312 different stocks.
+Run `sfa-30db4ec7ca24` used snapshot `20260810T132048Z`. It evaluated 333
+monthly decision dates from October 1998 through June 2026, comprising 78,791
+issuer-deduplicated observations and 1,766 different stocks.
 
-- Among completed current-weight Buy episodes, 438 of 849 (51.6%) touched a
-  net +25% within one year, 409 of 846 (48.3%) reached +28%, 392 of 846 (46.3%)
-  reached the primary +30% target, and 352 of 845 (41.7%) reached +35%.
-- All 881 Buy episodes had a recorded official FairEntry score. The historical
-  score bands were not monotonic: +30% attainment ranged from 47.7% for scores
-  72–74 to 40.3% for scores 85–89. The 90+ band was only 18 episodes and reached
-  35.3%, so a higher current score is not yet validated as a higher one-year
-  probability.
-- The best older-period weight challenger improved +30% from 44.0% to 45.5% on
-  development and from 47.6% to 54.4% on validation, but fell from 45.1% to
-  43.4% on the final untouched period. It was rejected and the live weights
-  remain unchanged.
-- Operating-cash conversion was the best new walk-forward factor hypothesis:
-  51.0% versus the 47.4% unseen baseline, a +3.6 percentage-point improvement
-  with better median drawdown. It did not meet the 5-point improvement and 55%
-  success requirements, so it remains research evidence with zero score effect.
-- Movement capacity was available for 879 of 881 earliest Buy episodes. Only
-  12 had a trailing 52-week high/low range below 30%; 1 of 11 completed cases
-  reached +30% within one year (9.1%), versus 390 of 833 (46.8%) at or above a
-  30% range. The newest chronological period contained no below-30% cases, so
-  the apparent full-history difference is too small and unconfirmed to support
-  an automatic exclusion.
+- The strict ticker-identity control removed 39,691 otherwise eligible cohort
+  rows across 1,088 displayed tickers. An independent scan found zero retained
+  observations before their recorded ticker-effective date. CLGX's earliest
+  remaining Buy is April 30, 2012, after its May 28, 2010 change from FAF.
+- Among completed current-weight Buy episodes, 319 of 597 (53.4%) touched a net
+  +25% within one year, 296 of 595 (49.7%) reached +28%, 283 of 595 (47.6%)
+  reached the primary +30% target, and 254 of 595 (42.7%) reached +35%.
+- The selected substantial-dilution veto is strictly greater than 10% YoY share
+  growth. It removed 94 observations that otherwise qualified as Buy. Relative
+  to the no-dilution-veto counterfactual, completed +30% attainment improved
+  from 46.0% to 47.6% over full history and from 51.3% to 52.1% in the newest
+  unseen period. The improvement is modest, not a guarantee.
+- The complete integrity audit scanned all 78,791 observations: 7,792 carried
+  the dilution veto across all score bands, zero substantially diluted Buy
+  observations remained, and zero ticker-identity violations remained.
 
 ## One-year weight challenger
 

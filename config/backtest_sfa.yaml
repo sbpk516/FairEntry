@@ -1,5 +1,5 @@
-version: 2
-name: fairentry_sfa_point_in_time_v2
+version: 4
+name: fairentry_sfa_point_in_time_v4
 universe:
   mode: sharadar_point_in_time
   sectors: live_enabled
@@ -27,6 +27,9 @@ target:
   practical_policy: fundamental_first
 data_quality:
   mode: strict
+  # A vendor permanent ticker can label prices from before that symbol existed.
+  # Exclude those rows until ACTIONS records the current symbol taking effect.
+  ticker_identity_policy: strict_point_in_time
   minimum_coverage_pct: 50
   strict_excluded_sources: [seed_const, current_proxy]
 tuning:

@@ -419,3 +419,33 @@ promotion requires enough completed cases and issuers, consistent validation
 and newest-period results, no material drawdown deterioration, and genuinely
 new future shadow confirmation. Missing price history is unavailable rather
 than favorable, and all measurements stop before the first Buy date.
+
+## Point-in-time ticker identity
+
+The SFA replay uses the `strict_point_in_time` ticker-identity policy. Sharadar
+can place a company's entire price history under its later permanent ticker, so
+the replay checks ACTIONS metadata before creating the historical universe. A
+displayed ticker is eligible only on or after the latest recorded change into
+that exact ticker.
+
+This identity check runs before issuer selection, screening, scoring and target
+measurement. Corporate-action metadata is used only to identify the correct
+historical security; it is never used as a predictive factor. A strict run
+fails closed when ACTIONS is unavailable, and publication is rejected unless
+the artifact reports zero remaining invalid ticker observations.
+
+## Substantial-dilution hard veto
+
+FairEntry forces Avoid when the point-in-time year-over-year share-count change
+is strictly greater than 10%. Exactly 10% passes this boundary; missing data is
+reported as unknown and does not trigger the veto. The observed percentage and
+the 10% threshold are stored with every triggered veto. The veto changes no
+numerical score.
+
+The threshold study compares 5%, 10%, 15% and 20% using chronological 60%
+development, 20% validation and 20% final-unseen periods. On the corrected
+ticker-identity sample, the 10% rule improved completed +30%-within-one-year
+attainment from 46.0% to 47.6% over full history and from 51.3% to 52.1% in the
+newest unseen period. This is a modest historical improvement. Every private
+replay is independently scanned before publication; publication fails if a
+Buy with measured dilution above 10% remains.

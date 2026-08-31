@@ -19,6 +19,11 @@ from fairentry.backtest.failure_research import build_research_queue
 from fairentry.backtest.entry_opportunity_research import (
     run_entry_opportunity_research,
 )
+from fairentry.backtest.dilution_research import (
+    SELECTED_DILUTION_VETO_PCT,
+    dilution_yoy_pct,
+    run_dilution_veto_research,
+)
 from fairentry.backtest.movement_capacity_research import (
     run_movement_capacity_research,
 )
@@ -168,6 +173,53 @@ def public_artifact(result: dict, detail_limit: int = 2000) -> dict:
     return clean
 
 
+def validate_ticker_identity_control(result: dict, required_policy: str) -> None:
+    """Fail closed before publishing a replay that violates ticker identity."""
+    if required_policy != "strict_point_in_time":
+        return
+    actual_policy = (result.get("strategy") or {}).get("ticker_identity_policy")
+    control = result.get("ticker_identity_control") or {}
+    if (
+        actual_policy != required_policy
+        or control.get("policy") != required_policy
+        or control.get("status") != "enforced"
+        or control.get("remaining_invalid_observations") != 0
+    ):
+        raise RuntimeError(
+            "Refusing to publish: strict point-in-time ticker identity was not "
+            "enforced or invalid historical ticker observations remain. Rerun "
+            "the backtest with the current strategy and Sharadar ACTIONS data."
+        )
+
+
+def validate_dilution_control(
+    result: dict, required_threshold_pct: float = SELECTED_DILUTION_VETO_PCT
+) -> None:
+    """Refuse publication when a substantially diluted observation is still Buy."""
+    report = result.get("dilution_veto_research") or {}
+    violations = [
+        row
+        for row in result.get("observations", [])
+        if row.get("verdict") == "Buy"
+        and dilution_yoy_pct(row) is not None
+        and dilution_yoy_pct(row) > required_threshold_pct
+    ]
+    if (
+        report.get("production_effect") != "tested_hard_veto"
+        or report.get("selected_threshold_pct") != required_threshold_pct
+        or violations
+    ):
+        examples = ", ".join(
+            f"{row.get('ticker')} {dilution_yoy_pct(row):.1f}%"
+            for row in violations[:5]
+        )
+        raise RuntimeError(
+            "Refusing to publish: the substantial-dilution hard veto is missing "
+            f"or {len(violations)} Buy observations exceed {required_threshold_pct:g}%"
+            + (f" ({examples})" if examples else "")
+        )
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--warehouse", default="data/sharadar/warehouse.duckdb")
@@ -194,8 +246,10 @@ def main():
         "--private-json-out", default="data/sharadar/reports/backtest-sfa-full.json"
     )
     args = ap.parse_args()
+    strategy = load_strategy(args.strategy)
     if args.publish_private:
         result = json.loads(Path(args.publish_private).read_text(encoding="utf-8"))
+        validate_ticker_identity_control(result, strategy.ticker_identity_policy)
         if result.get("ok"):
             with SharadarWarehouse(args.warehouse, read_only=True) as warehouse:
                 if not result.get("factor_explorer"):
@@ -246,6 +300,13 @@ def main():
                 result.get("observations", []),
                 step_days=int(result.get("step_days") or 30),
             )
+        if result.get("ok"):
+            result["dilution_veto_research"] = run_dilution_veto_research(
+                result.get("observations", []),
+                step_days=int(result.get("step_days") or 30),
+                production_effect="tested_hard_veto",
+            )
+            validate_dilution_control(result)
         if result.get("buy_return_achievement"):
             queue = build_research_queue(result)
             result["failure_research_queue"] = queue["summary"]
@@ -257,7 +318,6 @@ def main():
         )
         print(json.dumps({"published": str(path), "run_id": result.get("run_id")}))
         return
-    strategy = load_strategy(args.strategy)
     if args.top_n:
         from dataclasses import replace
 
@@ -277,6 +337,7 @@ def main():
             include_evidence=not args.no_evidence,
             progress=lambda row: print(json.dumps({"progress": row}), flush=True),
         )
+        validate_ticker_identity_control(result, strategy.ticker_identity_policy)
         if result.get("ok") and not args.no_evidence:
             enrichment = attach_warehouse_factors(
                 result.get("observations", []), warehouse.con
@@ -324,6 +385,13 @@ def main():
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "generator": "scripts/sfa_backtest.py",
     }
+    if result.get("ok"):
+        result["dilution_veto_research"] = run_dilution_veto_research(
+            result.get("observations", []),
+            step_days=int(result.get("step_days") or args.step),
+            production_effect="tested_hard_veto",
+        )
+        validate_dilution_control(result)
     if args.tune and result.get("ok"):
         result["weight_validation"] = tune_sfa_observations(
             result.get("observations", []), load_config(),

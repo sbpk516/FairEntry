@@ -22,7 +22,12 @@ from fairentry.config import load_config
 from fairentry.scoring.targets import build_target_plan
 from fairentry.sharadar.direct import DirectSharadarClient
 from fairentry.sharadar.snapshot import _require_ok
-from scripts.sfa_backtest import grouped_return_summary, public_artifact
+from scripts.sfa_backtest import (
+    grouped_return_summary,
+    public_artifact,
+    validate_dilution_control,
+    validate_ticker_identity_control,
+)
 
 
 def test_sfa_strategy_contract_is_operational():
@@ -35,6 +40,7 @@ def test_sfa_strategy_contract_is_operational():
     assert strategy.entry == "next_close"
     assert strategy.benchmark == "spy_total_return"
     assert strategy.universe_top_n == 500
+    assert strategy.ticker_identity_policy == "provider_permanent_symbol"
 
 
 def test_sfa_strict_policy_excludes_declared_proxies_and_counts_missing_fields():
@@ -90,6 +96,7 @@ def test_snapshot_applies_live_universe_floors_before_top_n():
         ("2", "WRONG", "Wrong sector", "Healthcare", "Biotech", "US", "Domestic Common Stock", "N", "2020-01-01", "2030-01-01"),
         ("3", "PENNY", "Penny", "Technology", "Software", "US", "Domestic Common Stock", "N", "2020-01-01", "2030-01-01"),
         ("4", "ILLIQ", "Illiquid", "Technology", "Software", "US", "Domestic Common Stock", "N", "2020-01-01", "2030-01-01"),
+        ("5", "RENAMED", "Renamed", "Technology", "Software", "US", "Domestic Common Stock", "N", "2020-01-01", "2030-01-01"),
     ])
     con.execute("""CREATE TABLE sfa_price_features(
         ticker VARCHAR,date DATE,close DOUBLE,closeadj DOUBLE,closeunadj DOUBLE,high DOUBLE,low DOUBLE,
@@ -100,6 +107,7 @@ def test_snapshot_applies_live_universe_floors_before_top_n():
         ("WRONG", "2025-01-02", 60, 60, 60, 61, 59, 1_000_000, 1000, 55, 50, 40, 1_000_000, 58, 45, 55, 45, 54),
         ("PENNY", "2025-01-02", .5, .5, .5, .6, .4, 100_000_000, 1000, .4, .3, .2, 100_000_000, .48, .35, .45, .35, .39),
         ("ILLIQ", "2025-01-02", 100, 100, 100, 101, 99, 100, 1000, 90, 80, 70, 100, 98, 80, 90, 80, 89),
+        ("RENAMED", "2025-01-02", 70, 70, 70, 71, 69, 1_000_000, 1000, 65, 60, 50, 1_000_000, 68, 55, 65, 55, 64),
     ])
     con.execute("""CREATE TABLE sfa_art_features(
         ticker VARCHAR,datekey DATE,reportperiod DATE,fxusd DOUBLE,grossmargin DOUBLE,ros DOUBLE,opinc DOUBLE,revenue DOUBLE,
@@ -113,8 +121,12 @@ def test_snapshot_applies_live_universe_floors_before_top_n():
         debtnc DOUBLE,assets DOUBLE,debt_long_prev_y DOUBLE,assets_prev_y DOUBLE)""")
     con.execute("CREATE TABLE sfa_daily(ticker VARCHAR,date DATE,marketcap DOUBLE,pe DOUBLE,ps DOUBLE,pb DOUBLE)")
     for ticker, cap, price in (("GOOD", 2000, 50), ("WRONG", 3000, 60),
-                               ("PENNY", 4000, .5), ("ILLIQ", 5000, 100)):
+                               ("PENNY", 4000, .5), ("ILLIQ", 5000, 100),
+                               ("RENAMED", 6000, 70)):
         con.execute("INSERT INTO sfa_daily VALUES (?,?,?,?,?,?)", [ticker, "2025-01-02", cap, 15, 2, 2])
+    con.execute("""CREATE TABLE sfa_actions(
+        ticker VARCHAR,date DATE,action VARCHAR,contraticker VARCHAR)""")
+    con.execute("INSERT INTO sfa_actions VALUES ('RENAMED','2025-06-01','tickerchangefrom','OLD')")
     con.execute("CREATE TABLE sfa_fund_prices(ticker VARCHAR,date DATE,closeadj DOUBLE)")
     con.execute("CREATE TABLE sfa_prices(ticker VARCHAR,date DATE,closeadj DOUBLE)")
     con.execute("""CREATE TABLE sfa_insiders(ticker VARCHAR,filingdate DATE,transactioncode VARCHAR,
@@ -122,11 +134,81 @@ def test_snapshot_applies_live_universe_floors_before_top_n():
     con.execute("""CREATE TABLE sfa_holdings_by_ticker(ticker VARCHAR,date DATE,shrunits DOUBLE,shrholders DOUBLE)""")
     replay = SFAReplay(type("Warehouse", (), {"con": con})())
     strategy = replace(BacktestStrategy(universe_mode="sharadar_point_in_time"),
-                       universe_top_n=1, screened_only=False)
+                       universe_top_n=1, screened_only=False,
+                       ticker_identity_policy="strict_point_in_time")
     candidates, universe = replay.snapshot("2025-01-02", strategy, load_config())
     assert [row["sec"]["ticker"] for row in universe] == ["GOOD"]
     assert [row["sec"]["ticker"] for row in candidates] == ["GOOD"]
+    assert replay.last_ticker_identity_exclusions == [{
+        "security_id": "5",
+        "ticker": "RENAMED",
+        "company": "Renamed",
+        "decision_date": "2025-01-02",
+        "ticker_valid_from": "2025-06-01",
+        "prior_ticker": "OLD",
+        "reason": "Displayed ticker was not valid on the historical decision date",
+    }]
+    candidates, _ = replay.snapshot("2025-06-02", strategy, load_config())
+    assert [row["sec"]["ticker"] for row in candidates] == ["RENAMED"]
     con.close()
+
+
+def test_strict_ticker_identity_fails_closed_without_actions():
+    con = duckdb.connect(":memory:")
+    replay = SFAReplay(type("Warehouse", (), {"con": con})())
+    strategy = replace(
+        BacktestStrategy(), ticker_identity_policy="strict_point_in_time"
+    )
+    with pytest.raises(RuntimeError, match="requires the Sharadar ACTIONS table"):
+        replay.snapshot("2025-01-02", strategy, load_config())
+    con.close()
+
+
+def test_strict_ticker_identity_blocks_unsafe_publication():
+    with pytest.raises(RuntimeError, match="Refusing to publish"):
+        validate_ticker_identity_control(
+            {
+                "strategy": {"ticker_identity_policy": "strict_point_in_time"},
+                "ticker_identity_control": {
+                    "policy": "strict_point_in_time",
+                    "status": "enforced",
+                    "remaining_invalid_observations": 1,
+                },
+            },
+            "strict_point_in_time",
+        )
+    validate_ticker_identity_control(
+        {
+            "strategy": {"ticker_identity_policy": "strict_point_in_time"},
+            "ticker_identity_control": {
+                "policy": "strict_point_in_time",
+                "status": "enforced",
+                "remaining_invalid_observations": 0,
+            },
+        },
+        "strict_point_in_time",
+    )
+
+
+def test_substantial_dilution_blocks_unsafe_publication():
+    result = {
+        "dilution_veto_research": {
+            "production_effect": "tested_hard_veto",
+            "selected_threshold_pct": 10.0,
+        },
+        "observations": [{
+            "ticker": "DILUTED",
+            "verdict": "Buy",
+            "categories": [{
+                "id": "survival",
+                "items": [{"id": "dilution", "actual": 12}],
+            }],
+        }],
+    }
+    with pytest.raises(RuntimeError, match="Buy observations exceed 10%"):
+        validate_dilution_control(result)
+    result["observations"][0]["verdict"] = "Avoid"
+    validate_dilution_control(result)
 
 
 def test_fundamental_first_practical_target_never_falls_back_to_generic_technical():

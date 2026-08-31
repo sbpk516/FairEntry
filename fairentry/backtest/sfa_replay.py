@@ -459,6 +459,13 @@ class SFAReplay:
     def __init__(self, warehouse):
         self.warehouse = warehouse
         self.con = warehouse.con
+        self.last_ticker_identity_exclusions: list[dict] = []
+
+    def _table_exists(self, name: str) -> bool:
+        return bool(self.con.execute(
+            "SELECT count(*) FROM information_schema.tables WHERE table_name=?",
+            [name],
+        ).fetchone()[0])
 
     def _benchmark(self, asof: str, horizon_days: int = 63, ticker: str = "SPY"):
         rows = self.con.execute(
@@ -508,6 +515,34 @@ class SFAReplay:
         return selected
 
     def snapshot(self, asof: str, strategy, cfg) -> tuple[list[dict], list[dict]]:
+        strict_ticker_identity = strategy.ticker_identity_policy == "strict_point_in_time"
+        if strict_ticker_identity and not self._table_exists("sfa_actions"):
+            raise RuntimeError(
+                "strict_point_in_time ticker identity requires the Sharadar ACTIONS table"
+            )
+        identity_join = """
+        LEFT JOIN (
+          SELECT ticker,
+                 max(date) FILTER (
+                   WHERE action='tickerchangefrom'
+                     AND contraticker IS NOT NULL
+                     AND contraticker NOT IN ('', 'N/A')
+                     AND contraticker<>ticker
+                 ) ticker_valid_from,
+                 arg_max(contraticker,date) FILTER (
+                   WHERE action='tickerchangefrom'
+                     AND contraticker IS NOT NULL
+                     AND contraticker NOT IN ('', 'N/A')
+                     AND contraticker<>ticker
+                 ) prior_ticker
+          FROM sfa_actions GROUP BY ticker
+        ) identity USING(ticker)
+        """ if strict_ticker_identity else ""
+        identity_columns = (
+            "identity.ticker_valid_from,identity.prior_ticker"
+            if strict_ticker_identity
+            else "CAST(NULL AS DATE) ticker_valid_from,CAST(NULL AS VARCHAR) prior_ticker"
+        )
         enabled = ([sector["finviz"] for sector in cfg.enabled_sectors]
                    if strategy.universe_sectors_mode == "live_enabled" else [])
         sector_clause = (" AND sector IN (" + ",".join("?" for _ in enabled) + ")"
@@ -515,10 +550,13 @@ class SFAReplay:
         frame = self.con.execute(
             f"""
         WITH u AS (
-          SELECT * FROM canonical_securities
+          SELECT s.*,{identity_columns}
+          FROM canonical_securities s
+          {identity_join}
           WHERE firstpricedate<=? AND lastpricedate>=? AND sector IS NOT NULL{sector_clause}
         )
         SELECT u.security_id,u.ticker,u.company,u.sector,u.industry,u.country,u.category,u.isdelisted,u.lastpricedate,
+               u.firstpricedate,u.ticker_valid_from,u.prior_ticker,
                p.date price_date,p.close,p.closeadj,p.closeunadj,p.high,p.low,p.volume,
                p.history_sessions,p.sma50,p.sma200,p.wma200_proxy,p.avgvol50,p.resistance50,p.support126,p.close_3m,p.close_1y,p.sma50_1m_ago,
                art.datekey,art.reportperiod,art.fxusd,meta.currency reporting_currency,
@@ -566,6 +604,27 @@ class SFAReplay:
              strategy.market_cap_min_usd, strategy.price_min_usd,
              strategy.avg_dollar_volume_min_usd],
         ).fetchdf()
+        self.last_ticker_identity_exclusions = []
+        if strict_ticker_identity and not frame.empty:
+            valid_from = pd.to_datetime(frame["ticker_valid_from"], errors="coerce")
+            invalid_mask = valid_from.notna() & (valid_from.dt.date > date.fromisoformat(asof))
+            invalid_rows = frame.loc[invalid_mask]
+            exclusions = {}
+            for row in invalid_rows.to_dict("records"):
+                key = str(row["security_id"]), str(row["ticker"])
+                exclusions[key] = {
+                    "security_id": key[0],
+                    "ticker": key[1],
+                    "company": row.get("company"),
+                    "decision_date": asof,
+                    "ticker_valid_from": str(row.get("ticker_valid_from"))[:10],
+                    "prior_ticker": (
+                        None if pd.isna(row.get("prior_ticker")) else str(row.get("prior_ticker"))
+                    ),
+                    "reason": "Displayed ticker was not valid on the historical decision date",
+                }
+            self.last_ticker_identity_exclusions = list(exclusions.values())
+            frame = frame.loc[~invalid_mask]
         spy_3m = self._benchmark(asof, 63)
         sector_returns = {sector: self._benchmark(asof, 63, ticker)
                           for sector, ticker in _SECTOR_ETF.items()
@@ -585,6 +644,18 @@ class SFAReplay:
                         "security_id": row["security_id"],
                         "isdelisted": str(row["isdelisted"]).lower() in {"y", "true", "1"},
                         "lastpricedate": str(row["lastpricedate"]),
+                        "ticker_identity": {
+                            "policy": strategy.ticker_identity_policy,
+                            "first_price_date": str(row.get("firstpricedate"))[:10],
+                            "ticker_valid_from": (
+                                None if pd.isna(row.get("ticker_valid_from"))
+                                else str(row.get("ticker_valid_from"))[:10]
+                            ),
+                            "prior_ticker": (
+                                None if pd.isna(row.get("prior_ticker"))
+                                else str(row.get("prior_ticker"))
+                            ),
+                        },
                     },
                     "metrics": _row_metrics(
                         row, asof, spy_3m, sector_returns.get(row["sector"])
@@ -888,10 +959,27 @@ def run_sfa_rolling(
         "top_n_issuers": 0,
         "screened_issuers": 0,
     }
+    ticker_identity_exclusions: dict[tuple[str, str, str | None], dict] = {}
     for entry in entries:
         decision = date.fromisoformat(entry)
         nominal_exit = (decision + timedelta(days=hold_days)).isoformat()
         snapshot, median_universe = replay.snapshot(entry, strategy, cfg)
+        for excluded in replay.last_ticker_identity_exclusions:
+            key = (
+                excluded["ticker"], excluded["ticker_valid_from"], excluded.get("prior_ticker")
+            )
+            audit = ticker_identity_exclusions.setdefault(key, {
+                "ticker": excluded["ticker"],
+                "company": excluded.get("company"),
+                "ticker_valid_from": excluded["ticker_valid_from"],
+                "prior_ticker": excluded.get("prior_ticker"),
+                "first_excluded_decision": entry,
+                "last_excluded_decision": entry,
+                "excluded_cohorts": 0,
+                "reason": excluded["reason"],
+            })
+            audit["last_excluded_decision"] = entry
+            audit["excluded_cohorts"] += 1
         universe_audit["eligible_issuers"] += len(median_universe)
         universe_audit["top_n_issuers"] += len(snapshot)
         for item in median_universe:
@@ -1057,6 +1145,7 @@ def run_sfa_rolling(
                 "excluded_share_classes": item.get("excluded_share_classes", []),
                 "company": sec["company"],
                 "sector": sec["sector"],
+                "ticker_identity": sec.get("ticker_identity"),
                 "country": (item.get("currency_conversion") or {}).get("country"),
                 "currency_conversion": item.get("currency_conversion"),
                 "strategy_key": primary,
@@ -1076,6 +1165,7 @@ def run_sfa_rolling(
                 and item["raw"].get("avgvol50") is not None else None,
                 "_entry_closeadj": p0row["closeadj"],
                 "verdict": rec["verdict"],
+                "pre_dilution_verdict": rec.get("pre_dilution_verdict", rec["verdict"]),
                 "score": rec["score"],
                 "coverage_pct": rec["factor_coverage_pct"],
                 "category_coverage_pct": rec["coverage_pct"],
@@ -1453,6 +1543,17 @@ def run_sfa_rolling(
         else None,
         "drawdown_frequency": "daily_position_paths" if include_evidence else "cohort_endpoints",
     }
+    remaining_invalid_tickers = [
+        observation
+        for observation in observations
+        if (observation.get("ticker_identity") or {}).get("ticker_valid_from")
+        and observation.get("decision_date", "")
+        < observation["ticker_identity"]["ticker_valid_from"]
+    ]
+    identity_exclusion_rows = sorted(
+        ticker_identity_exclusions.values(),
+        key=lambda row: (row["ticker"], row["ticker_valid_from"]),
+    )
     return {
         "ok": True,
         "run_id": "sfa-"
@@ -1473,6 +1574,23 @@ def run_sfa_rolling(
             "expected_factor_count": len(expected_fields),
         },
         "universe_audit": universe_audit,
+        "ticker_identity_control": {
+            "policy": strategy.ticker_identity_policy,
+            "status": (
+                "enforced"
+                if strategy.ticker_identity_policy == "strict_point_in_time"
+                else "legacy"
+            ),
+            "source": "Sharadar ACTIONS tickerchangefrom",
+            "rule": "A displayed ticker is eligible only on or after the latest recorded change into that ticker.",
+            "metadata_note": "Later corporate-action metadata is used only to map historical identity; it is never a predictive factor.",
+            "excluded_universe_rows": sum(
+                row["excluded_cohorts"] for row in identity_exclusion_rows
+            ),
+            "excluded_unique_tickers": len(identity_exclusion_rows),
+            "remaining_invalid_observations": len(remaining_invalid_tickers),
+            "exclusions": identity_exclusion_rows,
+        },
         "contract_capabilities": {
             "entry": ["snapshot_close", "next_close"],
             "target_hit": ["close"],

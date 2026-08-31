@@ -205,6 +205,15 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
             continue
         row = {"id": v["id"], "reason": v["reason"], "condition": v["when"],
                "result": True, "decision_status": v.get("decision_status", "tested")}
+        if v["id"] == "substantial_dilution":
+            observed_dilution = flat.get("share_count_yoy")
+            row["observed_value_pct"] = observed_dilution
+            row["threshold_pct"] = 10
+            if isinstance(observed_dilution, (int, float)):
+                row["reason"] = (
+                    f"Substantial dilution: share count increased "
+                    f"{observed_dilution:.1f}% year over year (>10%)."
+                )
         if row["decision_status"] == "tested":
             row["effect"] = "Force Avoid"
             vetoes.append(row)
@@ -231,6 +240,15 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
         verdict = score_band_verdict
         if verdict == "Buy" and gates:
             verdict = "Watch"
+    non_dilution_vetoes = [
+        veto for veto in vetoes if veto.get("id") != "substantial_dilution"
+    ]
+    if non_dilution_vetoes:
+        pre_dilution_verdict = "Avoid"
+    else:
+        pre_dilution_verdict = score_band_verdict
+        if pre_dilution_verdict == "Buy" and gates:
+            pre_dilution_verdict = "Watch"
 
     decision_trace = {
         "formula": "final score = round(weighted score from tested factors only)",
@@ -242,6 +260,7 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
         "final_score": round(preliminary),
         "thresholds": {"buy": buy_b, "watch": watch_b},
         "score_band_verdict": score_band_verdict,
+        "pre_dilution_verdict": pre_dilution_verdict,
         "vetoes": vetoes,
         "context_warnings": context_warnings,
         "soft_gates": gates,
@@ -257,6 +276,7 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
         "price": flat.get("price"),
         "base_score": base, "thesis_modifier": modifier, "preliminary": preliminary,
         "score": round(preliminary), "verdict": verdict,
+        "pre_dilution_verdict": pre_dilution_verdict,
         "categories": categories, "valuation": fv,
         "growth_qualification": growth_check,
         "research_metrics": {

@@ -355,6 +355,24 @@ def test_distress_corroborated_veto():
     assert r["verdict"] == "Avoid"
 
 
+def test_substantial_dilution_forces_avoid_without_changing_score():
+    cfg = load_config()
+    baseline = score_ticker(
+        cfg, _SEC, _strong_metrics(share_count_yoy=10), _MED, _SETTINGS
+    )
+    diluted = score_ticker(
+        cfg, _SEC, _strong_metrics(share_count_yoy=10.01), _MED, _SETTINGS
+    )
+    assert not any(v["id"] == "substantial_dilution" for v in baseline["vetoes"])
+    assert any(v["id"] == "substantial_dilution" for v in diluted["vetoes"])
+    veto = next(v for v in diluted["vetoes"] if v["id"] == "substantial_dilution")
+    assert veto["observed_value_pct"] == 10.01
+    assert "10.0%" in veto["reason"]
+    assert diluted["verdict"] == "Avoid"
+    assert diluted["pre_dilution_verdict"] == baseline["verdict"]
+    assert diluted["score"] == baseline["score"]
+
+
 def test_missing_veto_metric_does_not_fire():
     """A veto whose metric isn't present must not fire (unevaluable -> skipped)."""
     cfg = load_config()
