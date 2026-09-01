@@ -92,10 +92,25 @@ jobs:
           name: fairentry-db
           path: data/fairentry.db
           retention-days: 7
-      - name: Upload Pages artifact (the web app + board.json)
-        uses: actions/upload-pages-artifact@v3
+      # Build the exact single-tar artifact expected by deploy-pages. The
+      # upload-pages-artifact wrapper still pins a Node 20 upload dependency;
+      # spelling out its Linux archive step lets this workflow use Node 24.
+      - name: Archive Pages artifact (the web app + board.json)
+        run: |
+          tar --dereference --hard-dereference \
+            --directory web \
+            -cvf "$RUNNER_TEMP/artifact.tar" \
+            --exclude=.git \
+            --exclude=.github \
+            --exclude=".[^/]*" \
+            .
+      - name: Upload Pages artifact
+        uses: actions/upload-artifact@v6
         with:
-          path: web
+          name: github-pages
+          path: ${{ runner.temp }}/artifact.tar
+          retention-days: 1
+          if-no-files-found: error
   deploy:
     needs: build
     runs-on: ubuntu-latest
@@ -104,4 +119,4 @@ jobs:
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - id: deploy
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
