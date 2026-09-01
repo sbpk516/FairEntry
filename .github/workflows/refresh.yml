@@ -50,8 +50,8 @@ jobs:
       SMTP_SSL: ${{ secrets.SMTP_SSL }}
       PYTHONUTF8: "1"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - name: Install deps
@@ -63,7 +63,7 @@ jobs:
       # snapshot forever). Unique key per run always saves a new entry;
       # restore-keys picks up the latest previous one.
       - name: Restore accumulated store
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: data
           key: fairentry-store-${{ github.run_id }}
@@ -87,7 +87,7 @@ jobs:
             --hold 30 --step 7 --prospective-db data/fairentry.db \
             --json-out web/data/backtest.json
       - name: Upload master.db artifact (regenerable; not committed)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: fairentry-db
           path: data/fairentry.db

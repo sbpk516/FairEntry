@@ -67,8 +67,8 @@ jobs:
       TARGET_MODEL: ${{ github.event.inputs.target_model || 'practical' }}
       TARGET_EXPIRY: ${{ github.event.inputs.target_expiry || '365' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - name: Install deps
@@ -78,7 +78,7 @@ jobs:
       # Reuse the live store (current metrics) the refresh workflow persists.
       # Restore-only: this job must not overwrite that cache.
       - name: Restore live store
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: data
           key: fairentry-backtest-placeholder
@@ -107,7 +107,7 @@ jobs:
             --md-out "$GITHUB_STEP_SUMMARY" | tee -a backtest_result.txt
       - name: Upload backtest result
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: fairentry-backtest
           path: |
