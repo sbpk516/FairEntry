@@ -4,6 +4,7 @@ from fairentry.backtest.exit_policy_research import (
 )
 import duckdb
 from pathlib import Path
+from fairentry.exit_policy import EXIT_POLICY_V1
 
 
 def _observation(entry_date="2020-01-02", verdict="Buy", score=80):
@@ -40,12 +41,16 @@ def test_exit_research_uses_next_close_and_compares_730_day_baseline():
         {"date": "2020-01-06", "close": 68, "closeadj": 68},
         {"date": "2022-01-03", "close": 110, "closeadj": 110},
     ]}
-    report = evaluate_exit_policy([observation], paths, step_days=30)
+    report = evaluate_exit_policy(
+        [observation], paths, step_days=30, max_positions=1
+    )
     trade = report["sample_trades"][0]
     assert trade["exit_reason"] == "catastrophic_loss"
     # The -25% signal happened at 74, but the modeled fill used the next close 68.
     assert trade["candidate_return_pct"] < -31
     assert trade["baseline_return_pct"] > 9
+    portfolio = report["partitions"]["all_history"]["portfolio"]["candidate"]
+    assert abs(portfolio["total_return_pct"] - trade["candidate_return_pct"]) < .02
     assert report["production_effect"] == "none"
     assert report["promotion_eligible"] is False
 
@@ -77,7 +82,7 @@ def test_public_backtest_page_renders_exit_policy_evidence():
         encoding="utf-8"
     )
     assert "function exitPolicyResearch" in html
-    assert "Exit Policy v1 backtest" in html
+    assert "Capacity-aware portfolio replay" in html
     assert "+exitPolicyResearch(b)" in html
 
 
@@ -91,7 +96,42 @@ def test_warehouse_adapter_assigns_price_path_to_episode():
         "('TEST','2020-01-02',100,100),('TEST','2020-01-03',75,75),"
         "('TEST','2020-01-06',70,70),('TEST','2022-01-03',105,105)"
     )
-    report = run_exit_policy_research([_observation()], connection, step_days=30)
+    report = run_exit_policy_research(
+        [_observation()], connection, step_days=30, policy=EXIT_POLICY_V1
+    )
     assert report["episodes"] == 1
     assert report["sample_trades"][0]["exit_reason"] == "catastrophic_loss"
     connection.close()
+
+
+def test_capacity_replay_limits_slots_and_redeploys_closed_position_cash():
+    first = _observation("2020-01-02", score=90)
+    second = _observation("2020-01-02", score=80)
+    second.update({"ticker": "SECOND", "security_id": "SECOND.SEC",
+                   "issuer_key": "second issuer", "_exit_episode_id": "1"})
+    third = _observation("2020-02-03", score=70)
+    third.update({"ticker": "THIRD", "security_id": "THIRD.SEC",
+                  "issuer_key": "third issuer", "_exit_episode_id": "2"})
+    paths = {
+        "0": [
+            {"date": "2020-01-02", "close": 100, "closeadj": 100},
+            {"date": "2020-01-03", "close": 70, "closeadj": 70},
+            {"date": "2020-01-06", "close": 70, "closeadj": 70},
+        ],
+        "1": [
+            {"date": "2020-01-02", "close": 100, "closeadj": 100},
+            {"date": "2020-03-03", "close": 200, "closeadj": 200},
+        ],
+        "2": [
+            {"date": "2020-02-03", "close": 100, "closeadj": 100},
+            {"date": "2020-03-03", "close": 110, "closeadj": 110},
+        ],
+    }
+    report = evaluate_exit_policy(
+        [first, second, third], paths, step_days=30, max_positions=1
+    )
+    portfolio = report["partitions"]["all_history"]["portfolio"]["candidate"]
+    assert portfolio["max_positions"] == 1
+    assert portfolio["accepted_entries"] == 2
+    assert portfolio["skipped_capacity"] == 1
+    assert report["research_design"]["portfolio_capacity_tested"] is True

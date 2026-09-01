@@ -6,13 +6,14 @@ from __future__ import annotations
 import argparse
 import json
 import statistics
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from fairentry.backtest.sfa_replay import run_sfa_rolling
+from fairentry.backtest.sfa_replay import _implementation_fingerprint, run_sfa_rolling
 from fairentry.backtest.sfa_tune import policy_from_strategy, tune_sfa_observations
 from fairentry.backtest.research_cycle import run_predictive_rule_research
 from fairentry.backtest.failure_research import build_research_queue
@@ -48,6 +49,29 @@ from fairentry.backtest.valuation_research import (
 from fairentry.backtest.strategy import load_strategy
 from fairentry.config import load_config
 from fairentry.sharadar import SharadarWarehouse
+
+
+def research_provenance() -> dict:
+    """Record the exact code state used to attach post-replay research."""
+    repo = Path(__file__).resolve().parent.parent
+    try:
+        commit = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=repo, text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+        dirty = bool(subprocess.check_output(
+            ["git", "status", "--porcelain"], cwd=repo, text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip())
+    except (OSError, subprocess.CalledProcessError):
+        commit, dirty = None, None
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generator": "scripts/sfa_backtest.py --publish-private",
+        "source_commit": commit,
+        "git_dirty": dirty,
+        "implementation_fingerprint": _implementation_fingerprint(),
+    }
 
 
 def grouped_return_summary(observations: list[dict], hold_days: int) -> dict:
@@ -90,6 +114,13 @@ def public_artifact(result: dict, detail_limit: int = 2000) -> dict:
     # Python's encoder permits NaN, but browsers correctly reject it as invalid
     # JSON. Convert any missing dataframe number to null in the public copy.
     clean = json.loads(json.dumps(result), parse_constant=lambda _value: None)
+    weight_validation = clean.get("weight_validation") or {}
+    if weight_validation.get("ok"):
+        weight_validation.setdefault(
+            "research_status",
+            "ready_for_manual_review"
+            if weight_validation.get("promotion_eligible") else "closed_rejected",
+        )
 
     def public_currency_evidence(value):
         if not isinstance(value, dict):
@@ -297,6 +328,7 @@ def main():
                     result.get("observations", []),
                     warehouse.con,
                     step_days=int(result.get("step_days") or 30),
+                    max_positions=strategy.portfolio_max_positions,
                 )
                 wma_enrichment = attach_wma200_factors(
                     result.get("observations", []), warehouse.con
@@ -321,6 +353,7 @@ def main():
         if result.get("buy_return_achievement"):
             queue = build_research_queue(result)
             result["failure_research_queue"] = queue["summary"]
+        result["research_artifact"] = research_provenance()
         path = Path(args.json_out)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
@@ -392,6 +425,7 @@ def main():
                 result.get("observations", []),
                 warehouse.con,
                 step_days=int(result.get("step_days") or args.step),
+                max_positions=strategy.portfolio_max_positions,
             )
             wma_enrichment = attach_wma200_factors(
                 result.get("observations", []), warehouse.con
@@ -405,6 +439,7 @@ def main():
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "generator": "scripts/sfa_backtest.py",
     }
+    result["research_artifact"] = research_provenance()
     if result.get("ok"):
         result["dilution_veto_research"] = run_dilution_veto_research(
             result.get("observations", []),

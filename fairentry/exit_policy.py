@@ -37,6 +37,8 @@ EXIT_POLICY_V1 = {
         "stagnation",
         "maximum_holding_period",
     ],
+    "hard_veto_exit": True,
+    "practical_target_exit": True,
 }
 
 
@@ -53,10 +55,12 @@ def new_position_state(
     entry_date: str,
     entry_price: float,
     practical_target: float | None = None,
+    policy: dict | None = None,
 ) -> dict:
     """Create the auditable state needed to evaluate every v1 exit rule."""
+    selected = policy or EXIT_POLICY_V1
     return {
-        "policy_version": EXIT_POLICY_VERSION,
+        "policy_version": str(selected.get("version") or EXIT_POLICY_VERSION),
         "entry_date": str(entry_date)[:10],
         "entry_price": float(entry_price),
         "practical_target": (
@@ -76,13 +80,20 @@ def new_position_state(
     }
 
 
-def _action(code: str, label: str, fraction: float, *, loss_exit: bool = False) -> dict:
+def _action(
+    code: str,
+    label: str,
+    fraction: float,
+    *,
+    loss_exit: bool = False,
+    policy_version: str = EXIT_POLICY_VERSION,
+) -> dict:
     return {
         "code": code,
         "label": label,
         "fraction_of_original_position": round(float(fraction), 6),
         "loss_exit": bool(loss_exit),
-        "policy_version": EXIT_POLICY_VERSION,
+        "policy_version": policy_version,
     }
 
 
@@ -95,6 +106,7 @@ def observe_close(
     vetoes: list | tuple | None = None,
     terminal_event: dict | None = None,
     practical_target_reached: bool | None = None,
+    policy: dict | None = None,
 ) -> dict | None:
     """Evaluate one close and return at most one instruction by precedence.
 
@@ -106,6 +118,8 @@ def observe_close(
     if not isinstance(price, (int, float)) or price < 0:
         return None
     entry_price = float(state["entry_price"])
+    selected = policy or EXIT_POLICY_V1
+    policy_version = str(selected.get("version") or EXIT_POLICY_VERSION)
     remaining = float(state.get("remaining_fraction", 1.0))
     held_days = max(0, (_day(observed_date) - _day(state["entry_date"])).days)
     gain_pct = (float(price) / entry_price - 1) * 100 if entry_price else -100.0
@@ -125,40 +139,49 @@ def observe_close(
         instruction = _action(
             "terminal_event", "Trading ended or the security changed", remaining,
             loss_exit=terminal_event.get("terminal_return_policy") == "zero",
+            policy_version=policy_version,
         )
-    elif vetoes:
+    elif vetoes and selected.get("hard_veto_exit", True):
         instruction = _action(
             "hard_veto", "A hard veto invalidated the investment thesis", remaining,
             loss_exit=gain_pct < 0,
+            policy_version=policy_version,
         )
-    elif gain_pct <= EXIT_POLICY_V1["catastrophic_loss_pct"]:
+    elif gain_pct <= selected["catastrophic_loss_pct"]:
         instruction = _action(
             "catastrophic_loss",
             f"Closing return reached {gain_pct:.1f}%",
             remaining,
             loss_exit=True,
+            policy_version=policy_version,
         )
-    elif state["avoid_confirmations"] >= EXIT_POLICY_V1["avoid_confirmations"]:
+    elif state["avoid_confirmations"] >= selected["avoid_confirmations"]:
         instruction = _action(
-            "confirmed_avoid", "Avoid verdict was confirmed twice", remaining,
+            "confirmed_avoid",
+            f"Avoid verdict was confirmed {selected['avoid_confirmations']} times",
+            remaining,
             loss_exit=gain_pct < 0,
+            policy_version=policy_version,
         )
     elif (not state.get("profit_taken")
-          and gain_pct >= EXIT_POLICY_V1["first_profit_pct"]):
+          and gain_pct >= selected["first_profit_pct"]):
         instruction = _action(
-            "first_profit", "Net return reached +30%",
-            min(remaining, EXIT_POLICY_V1["first_profit_fraction"]),
+            "first_profit", f"Net return reached +{selected['first_profit_pct']:g}%",
+            min(remaining, selected["first_profit_fraction"]),
+            policy_version=policy_version,
         )
     elif state.get("profit_taken") and remaining > 0:
         trail_floor = float(state["peak_price"]) * (
-            1 - EXIT_POLICY_V1["trailing_drawdown_pct"] / 100
+            1 - selected["trailing_drawdown_pct"] / 100
         )
         if float(price) <= trail_floor:
             instruction = _action(
                 "trailing_profit",
-                "Price closed 15% below the highest close after profit-taking",
+                f"Price closed {selected['trailing_drawdown_pct']:g}% below the "
+                "highest close after profit-taking",
                 remaining,
                 loss_exit=gain_pct < 0,
+                policy_version=policy_version,
             )
     if instruction is None:
         target = state.get("practical_target")
@@ -167,21 +190,29 @@ def observe_close(
             if practical_target_reached is not None
             else isinstance(target, (int, float)) and float(price) >= float(target)
         )
-        if reached:
+        if reached and selected.get("practical_target_exit", True):
             instruction = _action(
                 "practical_target", "Frozen Practical Target was reached", remaining,
+                policy_version=policy_version,
             )
-    if (instruction is None and held_days >= EXIT_POLICY_V1["stagnation_days"]
-            and gain_pct < EXIT_POLICY_V1["stagnation_max_return_pct"]
+    if (instruction is None and held_days >= selected["stagnation_days"]
+            and gain_pct < selected["stagnation_max_return_pct"]
             and verdict != "Buy"):
         instruction = _action(
-            "stagnation", "Below +10% after one year and no longer Buy", remaining,
+            "stagnation",
+            f"Below +{selected['stagnation_max_return_pct']:g}% after "
+            f"{selected['stagnation_days']} days and no longer Buy",
+            remaining,
             loss_exit=gain_pct < 0,
+            policy_version=policy_version,
         )
-    if instruction is None and held_days >= EXIT_POLICY_V1["maximum_holding_days"]:
+    if instruction is None and held_days >= selected["maximum_holding_days"]:
         instruction = _action(
-            "maximum_holding_period", "Maximum 730-day holding period reached", remaining,
+            "maximum_holding_period",
+            f"Maximum {selected['maximum_holding_days']}-day holding period reached",
+            remaining,
             loss_exit=gain_pct < 0,
+            policy_version=policy_version,
         )
     if instruction:
         instruction.update({

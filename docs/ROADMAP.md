@@ -45,6 +45,12 @@ Legend: **effort** Low / Med · **impact** on verdict quality.
 ## Sequencing recommendation
 Phase A → B → C. Within A: **A1 (multi-method fair value) first** — it's the single biggest quality gain and unblocks peer-relative valuation (A3) and better entry zones. Everything here is additive (config, a new adapter, or a UI view); no core rework.
 
-## Also needs the user (not code)
-- Add GitHub Actions secrets (`FINVIZ_API_KEY`, `FINNHUB_API_KEY`, `DEEPSEEK_API_KEY`, `SEC_CONTACT_EMAIL`) + enable Pages → activates the hosted twice-daily app at `https://sbpk516.github.io/FairEntry/`.
-- First CI run: the full-universe SEC forensic pass is slow (going-concern text fetch) — bound/parallelize the enrich cap in the workflow when running it.
+## Operations status
+
+- GitHub Actions secrets for Finviz, Finnhub, DeepSeek and SEC contact are
+  configured. GitHub Pages is enabled in workflow mode at
+  `https://sbpk516.github.io/FairEntry/`.
+- The latest checked refresh/deploy and backtest workflows completed
+  successfully on 2026-08-31.
+- Full-universe SEC forensic work remains bounded by the refresh workflow and
+  persisted cache; this is an operating characteristic, not an open build phase.

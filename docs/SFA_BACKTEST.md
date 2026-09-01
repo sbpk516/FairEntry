@@ -256,13 +256,13 @@ switching-cost and technical-milestone history is also unavailable in the
 current warehouse. The report therefore keeps `score_effect: 0`,
 `verdict_effect: none`, and `promotion_allowed: false`.
 
-## Exit Policy v1 research
+## Exit-policy capacity replay and v2 research
 
-FairEntry now has one versioned exit state machine shared by paper tracking and
-the SFA research replay. It evaluates information after the close and records
-an instruction separately from its fill. Historical fills use the next
-available close plus configured exit costs; the trigger price is never treated
-as a guaranteed execution price.
+FairEntry has one versioned exit state machine shared by paper tracking and the
+SFA research replay. It evaluates information after the close and records an
+instruction separately from its fill. Historical fills use the next available
+close plus configured exit costs; the trigger price is never treated as a
+guaranteed execution price.
 
 The fixed precedence is terminal event, hard veto, a -25% catastrophic-loss
 close, two distinct Avoid evaluations, first +30% profit, a 15% trailing close
@@ -280,14 +280,29 @@ while mean return fell from 38.37% to 2.81% and completed-trade win rate was
 47.5%. The dominant exits were 200 catastrophic-loss exits and 149 trailing
 profit exits. The mean-return promotion gate therefore failed.
 
-The published report compares this challenger with a full 730-day hold across
-chronological 60% development, 20% validation and 20% final-unseen partitions.
-It reports mean and median return, completed-trade win rate, fifth-percentile
-loss boundary, holding time and exit reasons. Licensed daily prices remain
-private. The first report is deliberately episode-level; it cannot be promoted
-until a capacity-aware portfolio replay validates cash redeployment and
-drawdown. Consequently the official score, verdict and real-money trading
-effect remain unchanged.
+The capacity-aware replay is now complete. It uses 20 equal target slots,
+score-ranked entries, issuer de-duplication, actual cash availability and cash
+redeployment. Portfolio equity and drawdown are marked daily; entry and exit
+costs are included. Exit v1 returned 2.84% in the final unseen portfolio versus
+32.02% for the 730-day hold, while maximum drawdown improved from -35.44% to
+-30.87%. It failed the return gates and was not promoted.
+
+Four frozen v2 variants were then compared using development data only. The
+predeclared selector required at least five percentage points of development
+loss-tail and portfolio-drawdown improvement, then maximized capacity-aware
+return preservation. It selected `exit_v2_balanced_research`: a -35% loss
+trigger, three Avoid confirmations, 25% profit realization at +50%, a 25%
+trailing close, no Practical Target exit, 548-day stagnation and a 730-day
+maximum hold.
+
+The selected v2 policy improved final-unseen portfolio return to 58.80% versus
+32.02% for hold and slightly improved drawdown, but failed independent
+validation portfolio return by 0.16 percentage points and reduced final-unseen
+episode mean return by 22.93 points. It is therefore closed as a rejected
+challenger. Choosing another variant after seeing validation would contaminate
+the experiment. The official score, verdict, paper policy and real-money effect
+remain unchanged. A future exit experiment requires genuinely new shadow data
+and a newly frozen hypothesis.
 
 ## Strict historical ticker identity
 

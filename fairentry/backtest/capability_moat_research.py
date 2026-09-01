@@ -283,6 +283,7 @@ def run_capability_moat_research(observations: list[dict], *, step_days=30) -> d
         (row.get("capability_moat") or {}).get("full_capability_definition_complete")
         for row in selectors["top_half"]
     )
+    promotion_allowed = statistically_eligible and full_evidence
     return {
         "ok": True,
         "version": VERSION,
@@ -298,7 +299,20 @@ def run_capability_moat_research(observations: list[dict], *, step_days=30) -> d
         "promotion_checks": checks,
         "statistically_eligible": statistically_eligible,
         "full_capability_evidence_complete": full_evidence,
-        "promotion_allowed": statistically_eligible and full_evidence,
+        "promotion_allowed": promotion_allowed,
+        "research_status": (
+            "ready_for_manual_review" if promotion_allowed else "closed_rejected"
+        ),
+        "decision": (
+            "Ready for manual promotion review."
+            if promotion_allowed else
+            "Do not promote: the frozen top-half selector reduced final-test "
+            "precision and the required dated competition evidence is unavailable."
+        ),
+        "next_reconsideration": (
+            "Only after genuinely new shadow outcomes and dated standardized "
+            "competition, switching-cost and technical-milestone evidence exist."
+        ),
         "coverage": {
             "buy_episodes": len(episodes),
             "selector_eligible": sum(row["capability_moat"]["eligible_for_selector"]

@@ -89,7 +89,11 @@ Deterministic core (data → store → screen → score → UI) is complete and 
 real data. The DeepSeek reasoning layer is wired and activates when the account
 has balance. Builds now record a point-in-time signal ledger for prospective
 backtesting, and the web app includes a browser-local dummy portfolio tracker at
-`web/portfolio.html`. SEC/insider/news enrichment adapters port from BagHunter v1 next.
+`web/portfolio.html`. SEC, Form-4 insider, Finnhub news, curated-manager 13F,
+watchlist-intelligence and estimate-revision enrichment are implemented. The
+licensed SFA replay now includes strict ticker identity, dilution controls,
+development-selected research challengers, and a capacity-aware exit-policy
+portfolio replay. Research failures remain production-inert by design.
 
 See `docs/IMPLEMENTATION_PLAN.md` for the full plan and traceability matrix, and
 `docs/methodology.md` (generated from config) for the live scoring model. See

@@ -130,6 +130,8 @@ def test_selector_reduces_each_buy_cohort_and_reports_unseen_precision():
     assert result["coverage"]["selector_eligible"] == 20
     assert result["score_effect"] == 0
     assert result["verdict_effect"] == "none"
+    assert result["research_status"] in {"closed_rejected", "ready_for_manual_review"}
+    assert result["decision"]
 
 
 def test_backtest_ui_displays_capability_selector_without_score_effect():

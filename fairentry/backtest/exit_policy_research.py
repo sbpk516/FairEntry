@@ -17,6 +17,56 @@ from ..exit_policy import (
 from .evidence import _buy_episode_roots
 
 
+EXIT_POLICY_CHALLENGERS = [
+    {
+        **EXIT_POLICY_V1,
+        "version": "exit_v2_balanced_research",
+        "catastrophic_loss_pct": -35.0,
+        "avoid_confirmations": 3,
+        "first_profit_pct": 50.0,
+        "first_profit_fraction": 0.25,
+        "trailing_drawdown_pct": 25.0,
+        "stagnation_days": 548,
+        "practical_target_exit": False,
+    },
+    {
+        **EXIT_POLICY_V1,
+        "version": "exit_v2_patient_research",
+        "catastrophic_loss_pct": -40.0,
+        "avoid_confirmations": 4,
+        "first_profit_pct": 75.0,
+        "first_profit_fraction": 0.20,
+        "trailing_drawdown_pct": 30.0,
+        "stagnation_days": 730,
+        "practical_target_exit": False,
+    },
+    {
+        **EXIT_POLICY_V1,
+        "version": "exit_v2_tail_guard_research",
+        "catastrophic_loss_pct": -45.0,
+        "avoid_confirmations": 99,
+        "first_profit_pct": 10_000.0,
+        "first_profit_fraction": 0.0,
+        "trailing_drawdown_pct": 100.0,
+        "stagnation_days": 730,
+        "hard_veto_exit": False,
+        "practical_target_exit": False,
+    },
+    {
+        **EXIT_POLICY_V1,
+        "version": "exit_v2_confirmed_thesis_research",
+        "catastrophic_loss_pct": -100.0,
+        "avoid_confirmations": 3,
+        "first_profit_pct": 10_000.0,
+        "first_profit_fraction": 0.0,
+        "trailing_drawdown_pct": 100.0,
+        "stagnation_days": 730,
+        "hard_veto_exit": True,
+        "practical_target_exit": False,
+    },
+]
+
+
 def _number(value):
     return float(value) if isinstance(value, (int, float)) else None
 
@@ -96,7 +146,7 @@ def _latest_signal_index(timeline: list[dict], start: str) -> int:
 
 
 def _baseline_trade(root: dict, path: list[dict], entry_basis: float,
-                    exit_cost: float) -> dict:
+                    exit_cost: float, *, policy: dict) -> dict:
     if not path:
         return {"status": "unavailable"}
     start = date.fromisoformat(str(root["entry_date"])[:10])
@@ -109,7 +159,7 @@ def _baseline_trade(root: dict, path: list[dict], entry_basis: float,
         if terminal_date and point["date"] >= terminal_date:
             chosen, reason = point, "terminal_event"
             break
-        if elapsed >= EXIT_POLICY_V1["maximum_holding_days"]:
+        if elapsed >= policy["maximum_holding_days"]:
             chosen, reason = point, "maximum_holding_period"
             break
     if chosen is None:
@@ -119,29 +169,49 @@ def _baseline_trade(root: dict, path: list[dict], entry_basis: float,
         and reason == "terminal_event"
         else chosen["closeadj"] * (1 - exit_cost) / entry_basis
     )
+    curve = []
+    for point in path:
+        if point["date"] > chosen["date"]:
+            break
+        terminal_zero = (
+            terminal and terminal.get("terminal_return_policy") == "zero"
+            and reason == "terminal_event" and point["date"] == chosen["date"]
+        )
+        factor = 0.0 if terminal_zero else point["closeadj"] / entry_basis
+        closed_here = point["date"] == chosen["date"] and reason != "active"
+        if closed_here:
+            factor *= 1 - exit_cost
+        curve.append({
+            "date": point["date"],
+            "value_factor": factor,
+            "open_value_factor": 0.0 if closed_here else factor,
+            "realized_factor": factor if closed_here else 0.0,
+        })
     return {
         "status": "closed" if reason != "active" else "active",
         "exit_reason": reason,
         "exit_date": chosen["date"],
         "return_pct": round((value - 1) * 100, 4),
         "days_held": (date.fromisoformat(chosen["date"]) - start).days,
+        "_value_curve": curve,
     }
 
 
 def _candidate_trade(root: dict, path: list[dict], timeline: list[dict],
                      entry_basis: float, entry_closeadj: float,
-                     exit_cost: float) -> dict:
+                     exit_cost: float, *, policy: dict) -> dict:
     if len(path) < 2 or not entry_closeadj:
         return {"status": "unavailable"}
     start_text = str(root["entry_date"])[:10]
     start = date.fromisoformat(start_text)
-    state = new_position_state(entry_date=start_text, entry_price=100)
+    state = new_position_state(entry_date=start_text, entry_price=100, policy=policy)
     target = (((root.get("outcome") or {}).get("targets") or {})
               .get("practical") or {}).get("price")
     target = _number(target)
     signal_index = _latest_signal_index(timeline, str(root.get("decision_date") or start_text)[:10])
     realised = 0.0
     values = []
+    curve = []
     terminal = root.get("terminal_event") or {}
     terminal_date = str(terminal.get("date") or "")[:10]
     last_point = path[0]
@@ -160,6 +230,12 @@ def _candidate_trade(root: dict, path: list[dict], timeline: list[dict],
             )
         if state.get("status") == "closed":
             values.append(realised)
+            curve.append({
+                "date": point["date"],
+                "value_factor": realised,
+                "open_value_factor": 0.0,
+                "realized_factor": realised,
+            })
             break
 
         verdict = None
@@ -178,6 +254,7 @@ def _candidate_trade(root: dict, path: list[dict], timeline: list[dict],
             vetoes=vetoes,
             terminal_event=terminal_now,
             practical_target_reached=target_reached,
+            policy=policy,
         )
         if instruction and instruction["code"] == "terminal_event":
             fraction = float(instruction["fraction_of_original_position"])
@@ -194,6 +271,12 @@ def _candidate_trade(root: dict, path: list[dict], timeline: list[dict],
             * point["closeadj"] / entry_basis
         )
         values.append(realised + open_value)
+        curve.append({
+            "date": point["date"],
+            "value_factor": values[-1],
+            "open_value_factor": open_value,
+            "realized_factor": realised,
+        })
         if state.get("status") == "closed":
             break
 
@@ -213,6 +296,115 @@ def _candidate_trade(root: dict, path: list[dict], timeline: list[dict],
         ).days,
         "actions": state.get("actions", []),
         "remaining_fraction": state.get("remaining_fraction"),
+        "_value_curve": curve,
+    }
+
+
+def _portfolio_replay(trades: list[dict], key: str, *, max_positions: int) -> dict:
+    """Replay ranked Buy episodes through a finite-slot, cash-funded portfolio."""
+    candidates = [
+        row for row in trades
+        if row.get(key, {}).get("_value_curve")
+    ]
+    entries: dict[str, list[dict]] = {}
+    event_dates = set()
+    for row in candidates:
+        entries.setdefault(str(row["entry_date"])[:10], []).append(row)
+        event_dates.update(point["date"] for point in row[key]["_value_curve"])
+    cash = 1.0
+    positions: list[dict] = []
+    accepted = skipped_capacity = skipped_duplicate = 0
+    equity_curve = []
+    peak = 1.0
+    max_drawdown = 0.0
+
+    for observed in sorted(event_dates):
+        # Update marks and return proceeds from completed positions before new entries.
+        retained = []
+        for position in positions:
+            points = position["trade"][key]["_value_curve"]
+            while (position["curve_index"] + 1 < len(points)
+                   and points[position["curve_index"] + 1]["date"] <= observed):
+                position["curve_index"] += 1
+            point = points[position["curve_index"]]
+            new_realized = point.get("realized_factor", 0.0)
+            cash += position["capital"] * (
+                new_realized - position["realized_factor"]
+            )
+            position["realized_factor"] = new_realized
+            position["factor"] = point.get(
+                "open_value_factor", point["value_factor"]
+            )
+            trade_result = position["trade"][key]
+            if (trade_result.get("status") == "closed"
+                    and observed >= points[-1]["date"]):
+                # Realized proceeds were transferred above; no closed value
+                # remains inside the position.
+                pass
+            else:
+                retained.append(position)
+        positions = retained
+
+        marked_equity = cash + sum(
+            position["capital"] * position["factor"] for position in positions
+        )
+        active_issuers = {position["trade"]["issuer_key"] for position in positions}
+        for row in sorted(
+            entries.get(observed, []),
+            key=lambda item: (-(item.get("score") or 0), item.get("issuer_key") or ""),
+        ):
+            if row["issuer_key"] in active_issuers:
+                skipped_duplicate += 1
+                continue
+            if len(positions) >= max_positions or cash <= 1e-12:
+                skipped_capacity += 1
+                continue
+            allocation = min(cash, marked_equity / max_positions)
+            if allocation <= 1e-12:
+                skipped_capacity += 1
+                continue
+            points = row[key]["_value_curve"]
+            first_index = next(
+                (index for index, point in enumerate(points) if point["date"] >= observed),
+                None,
+            )
+            if first_index is None:
+                continue
+            cash -= allocation
+            first_point = points[first_index]
+            initial_realized = first_point.get("realized_factor", 0.0)
+            cash += allocation * initial_realized
+            positions.append({
+                "trade": row,
+                "capital": allocation,
+                "curve_index": first_index,
+                "factor": first_point.get(
+                    "open_value_factor", first_point["value_factor"]
+                ),
+                "realized_factor": initial_realized,
+            })
+            active_issuers.add(row["issuer_key"])
+            accepted += 1
+
+        equity = cash + sum(
+            position["capital"] * position["factor"] for position in positions
+        )
+        peak = max(peak, equity)
+        max_drawdown = min(max_drawdown, equity / peak - 1 if peak else -1)
+        equity_curve.append((observed, equity))
+
+    final_equity = equity_curve[-1][1] if equity_curve else 1.0
+    return {
+        "signals": len(candidates),
+        "accepted_entries": accepted,
+        "skipped_capacity": skipped_capacity,
+        "skipped_duplicate_issuer": skipped_duplicate,
+        "max_positions": max_positions,
+        "open_positions_at_end": len(positions),
+        "ending_cash_pct": round(cash / final_equity * 100, 2) if final_equity else None,
+        "total_return_pct": round((final_equity - 1) * 100, 2),
+        "max_drawdown_pct": round(max_drawdown * 100, 2),
+        "daily_mark_to_market": True,
     }
 
 
@@ -247,7 +439,10 @@ def evaluate_exit_policy(
     paths: dict[str, list[dict]],
     *,
     step_days: int,
+    max_positions: int = 20,
+    policy: dict | None = None,
 ) -> dict:
+    selected_policy = dict(policy or EXIT_POLICY_V1)
     roots = _episode_roots(observations, step_days)
     timelines = _signal_timelines(observations)
     trades = []
@@ -262,9 +457,11 @@ def evaluate_exit_policy(
         entry_basis = entry_closeadj * (1 + entry_cost)
         candidate = _candidate_trade(
             root, path, timelines.get(_issuer(root), []), entry_basis,
-            entry_closeadj, exit_cost,
+            entry_closeadj, exit_cost, policy=selected_policy,
         )
-        baseline = _baseline_trade(root, path, entry_basis, exit_cost)
+        baseline = _baseline_trade(
+            root, path, entry_basis, exit_cost, policy=selected_policy
+        )
         trades.append({
             "ticker": root.get("ticker"),
             "issuer_key": _issuer(root),
@@ -296,12 +493,56 @@ def evaluate_exit_policy(
                 and baseline["mean_return_pct"] is not None else None
             ),
         }
+        candidate_portfolio = _portfolio_replay(
+            selected, "candidate", max_positions=max_positions
+        )
+        baseline_portfolio = _portfolio_replay(
+            selected, "baseline", max_positions=max_positions
+        )
+        partitions[name]["portfolio"] = {
+            "candidate": candidate_portfolio,
+            "baseline_730_day_hold": baseline_portfolio,
+            "return_change_pp": round(
+                candidate_portfolio["total_return_pct"]
+                - baseline_portfolio["total_return_pct"], 2
+            ),
+            "drawdown_change_pp": round(
+                candidate_portfolio["max_drawdown_pct"]
+                - baseline_portfolio["max_drawdown_pct"], 2
+            ),
+        }
+    validation = partitions["validation"]
     final = partitions["final_unseen"]
     checks = [
         {
             "id": "sample",
             "passed": final["candidate"]["completed"] >= 20,
             "rule": "at least 20 completed final-test episodes",
+        },
+        {
+            "id": "validation_mean_return",
+            "passed": (validation["mean_return_change_pp"] or -999) >= 0,
+            "rule": "validation episode mean return is not below hold",
+        },
+        {
+            "id": "validation_loss_tail",
+            "passed": (
+                validation["candidate"]["loss_tail_p05_pct"] is not None
+                and validation["baseline_730_day_hold"]["loss_tail_p05_pct"] is not None
+                and validation["candidate"]["loss_tail_p05_pct"]
+                >= validation["baseline_730_day_hold"]["loss_tail_p05_pct"]
+            ),
+            "rule": "validation fifth-percentile loss boundary is not worse",
+        },
+        {
+            "id": "validation_portfolio_return",
+            "passed": validation["portfolio"]["return_change_pp"] >= 0,
+            "rule": "validation capacity-aware return is not below hold",
+        },
+        {
+            "id": "validation_portfolio_drawdown",
+            "passed": validation["portfolio"]["drawdown_change_pp"] >= 0,
+            "rule": "validation capacity-aware maximum drawdown is not worse",
         },
         {
             "id": "mean_return",
@@ -318,27 +559,44 @@ def evaluate_exit_policy(
             ),
             "rule": "final-test fifth-percentile completed-trade result is not worse",
         },
+        {
+            "id": "portfolio_return",
+            "passed": final["portfolio"]["return_change_pp"] >= 0,
+            "rule": "final-test capacity-aware return is not below the 730-day hold baseline",
+        },
+        {
+            "id": "portfolio_drawdown",
+            "passed": final["portfolio"]["drawdown_change_pp"] >= 0,
+            "rule": "final-test capacity-aware maximum drawdown is not worse",
+        },
     ]
+    eligible = all(check["passed"] for check in checks)
     return {
-        "version": 1,
-        "policy": dict(EXIT_POLICY_V1),
+        "version": 2,
+        "policy": selected_policy,
         "research_design": {
             "unit": "continuous Buy episode",
             "split": "oldest 60% development, next 20% validation, newest 20% final unseen",
             "execution": "trigger after close; fill at next available close with configured costs",
             "baseline": "hold the full position for 730 calendar days or a terminal event",
             "licensed_price_paths_published": False,
-            "portfolio_capacity_tested": False,
+            "portfolio_capacity_tested": True,
+            "portfolio_method": (
+                f"daily mark-to-market, {max_positions} equal target slots, "
+                "score-ranked entries, issuer de-duplication and cash redeployment"
+            ),
         },
         "episodes": len(trades),
         "unique_issuers": len({row["issuer_key"] for row in trades}),
         "partitions": partitions,
         "promotion_checks": checks,
-        "promotion_eligible": False,
+        "promotion_eligible": eligible,
         "decision": (
-            "Do not promote: the policy improved the severe-loss tail but materially "
-            "underperformed the 730-day hold baseline on final-unseen mean return. "
-            "A future challenger also requires capacity and cash-redeployment validation."
+            "Ready for manual promotion review: every predeclared episode and "
+            "capacity-aware portfolio gate passed."
+            if eligible else
+            "Do not promote: one or more predeclared episode or capacity-aware "
+            "portfolio gates failed on the final unseen period."
         ),
         "production_effect": "none",
         "sample_trades": [
@@ -355,7 +613,8 @@ def evaluate_exit_policy(
 
 
 def run_exit_policy_research(
-    observations: list[dict], connection, *, step_days: int
+    observations: list[dict], connection, *, step_days: int,
+    max_positions: int = 20, policy: dict | None = None,
 ) -> dict:
     roots = _episode_roots(observations, step_days)
     paths = _price_paths(connection, roots)
@@ -382,4 +641,73 @@ def run_exit_policy_research(
         episode_id = roots_by_key.get((_issuer(row), row.get("entry_date")))
         if episode_id is not None:
             row["_exit_episode_id"] = episode_id
-    return evaluate_exit_policy(observations, remapped, step_days=step_days)
+    if policy is not None:
+        return evaluate_exit_policy(
+            observations, remapped, step_days=step_days,
+            max_positions=max_positions, policy=policy,
+        )
+
+    incumbent = evaluate_exit_policy(
+        observations, remapped, step_days=step_days,
+        max_positions=max_positions, policy=EXIT_POLICY_V1,
+    )
+    evaluated = [
+        evaluate_exit_policy(
+            observations, remapped, step_days=step_days,
+            max_positions=max_positions, policy=candidate,
+        )
+        for candidate in EXIT_POLICY_CHALLENGERS
+    ]
+
+    def development_rank(report: dict) -> tuple:
+        development = report["partitions"]["development"]
+        portfolio = development["portfolio"]
+        candidate_tail = development["candidate"]["loss_tail_p05_pct"]
+        baseline_tail = development["baseline_730_day_hold"]["loss_tail_p05_pct"]
+        loss_improvement = (
+            candidate_tail - baseline_tail
+            if candidate_tail is not None and baseline_tail is not None else -999
+        )
+        drawdown_improvement = portfolio["drawdown_change_pp"]
+        risk_guardrails = loss_improvement >= 5 and drawdown_improvement >= 5
+        return (
+            risk_guardrails,
+            portfolio["return_change_pp"],
+            development["mean_return_change_pp"],
+        )
+
+    selected = max(evaluated, key=development_rank)
+    selection_rows = []
+    for report in evaluated:
+        development = report["partitions"]["development"]
+        candidate_tail = development["candidate"]["loss_tail_p05_pct"]
+        baseline_tail = development["baseline_730_day_hold"]["loss_tail_p05_pct"]
+        selection_rows.append({
+            "version": report["policy"]["version"],
+            "episode_mean_return_change_pp": development["mean_return_change_pp"],
+            "loss_tail_change_pp": (
+                round(candidate_tail - baseline_tail, 2)
+                if candidate_tail is not None and baseline_tail is not None else None
+            ),
+            "portfolio_return_change_pp": development["portfolio"]["return_change_pp"],
+            "portfolio_drawdown_change_pp": development["portfolio"]["drawdown_change_pp"],
+            "passed_development_risk_guardrails": development_rank(report)[0],
+            "selected": report is selected,
+        })
+    selected["challenger_selection"] = {
+        "selection_partition": "development only",
+        "selection_rule": (
+            "Require at least 5 percentage points of development loss-tail and "
+            "portfolio-drawdown improvement, then maximize capacity-aware return "
+            "change and episode mean-return change."
+        ),
+        "candidates": selection_rows,
+    }
+    selected["incumbent_v1"] = {
+        "version": incumbent["policy"]["version"],
+        "promotion_eligible": incumbent["promotion_eligible"],
+        "decision": incumbent["decision"],
+        "partitions": incumbent["partitions"],
+        "promotion_checks": incumbent["promotion_checks"],
+    }
+    return selected

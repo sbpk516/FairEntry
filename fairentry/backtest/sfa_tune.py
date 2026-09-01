@@ -550,6 +550,9 @@ def tune_sfa_observations(observations: list[dict], cfg, *, step_days: int = 30,
         "stability": stability,
         "segment_comparison": segment_comparison,
         "promotion_eligible": promotion_eligible,
+        "research_status": (
+            "ready_for_manual_review" if promotion_eligible else "closed_rejected"
+        ),
         "decision": "Ready for manual review" if promotion_eligible else "Keep current weights",
         "promotion_note": (
             "The configured default is unchanged. A person must review and explicitly promote "
