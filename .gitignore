@@ -38,4 +38,4 @@ web/data/backtest-evidence/
 
 # All local data is regenerable, private, licensed, or test output. Public UI
 # artifacts that belong in source control live under web/data instead.
-data/
+/data/
