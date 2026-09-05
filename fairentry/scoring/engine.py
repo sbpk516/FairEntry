@@ -113,6 +113,85 @@ def _safe_eval(expr, ns):
         return None   # unevaluable (e.g. metric missing) -> treated as not firing
 
 
+def buy_entry_alignment(scoring: dict, cat_scores: dict, flat: dict,
+                        valuation: dict) -> dict:
+    """Evaluate the complete, configurable production Buy-entry rule."""
+    policy = scoring.get("buy_entry_alignment") or {}
+    category_minimum = float(policy.get("category_minimum", 70))
+    category_ids = policy.get("categories") or ["quality", "survival", "growth"]
+    method_minimum = int(policy.get("fair_value_method_minimum", 1))
+    proximity = float(policy.get("ema_proximity_pct", 5))
+    ema_metrics = policy.get("monthly_ema_metrics") or ["ema_9month", "ema_20month"]
+    ema_policy = policy.get("ema_policy", "any")
+    obv_metric = policy.get("obv_metric", "obv_above_20week_ema")
+    price = flat.get("price")
+
+    category_checks = {
+        cid: {
+            "value": cat_scores.get(cid),
+            "minimum": category_minimum,
+            "passes": isinstance(cat_scores.get(cid), (int, float))
+            and cat_scores[cid] >= category_minimum,
+        }
+        for cid in category_ids
+    }
+    fundamentals_pass = all(row["passes"] for row in category_checks.values())
+
+    fair_base = valuation.get("fair_base")
+    method_count = valuation.get("method_count") or 0
+    valuation_pass = (
+        isinstance(price, (int, float)) and price > 0
+        and isinstance(fair_base, (int, float)) and fair_base > 0
+        and method_count >= method_minimum and price <= fair_base
+    )
+
+    ema_checks = {}
+    for metric in ema_metrics:
+        average = flat.get(metric)
+        distance = (
+            (price / average - 1) * 100
+            if isinstance(price, (int, float)) and price > 0
+            and isinstance(average, (int, float)) and average > 0 else None
+        )
+        ema_checks[metric] = {
+            "value": average,
+            "distance_pct": None if distance is None else round(distance, 2),
+            "maximum_absolute_distance_pct": proximity,
+            "passes": distance is not None and abs(distance) <= proximity,
+        }
+    ema_results = [row["passes"] for row in ema_checks.values()]
+    ema_pass = all(ema_results) if ema_policy == "all" else any(ema_results)
+
+    obv_value = flat.get(obv_metric)
+    obv_pass = obv_value is True or obv_value == 1
+    checks = {
+        "fundamentals": fundamentals_pass,
+        "valuation": valuation_pass,
+        "monthly_ema": ema_pass,
+        "weekly_obv": obv_pass,
+    }
+    return {
+        "passes": all(checks.values()),
+        "checks": checks,
+        "categories": category_checks,
+        "valuation": {
+            "price": price,
+            "fair_base": fair_base,
+            "method_count": method_count,
+            "minimum_method_count": method_minimum,
+            "passes": valuation_pass,
+        },
+        "monthly_emas": ema_checks,
+        "ema_policy": ema_policy,
+        "weekly_obv": {"metric": obv_metric, "value": obv_value, "passes": obv_pass},
+        "policy": {
+            "category_minimum": category_minimum,
+            "ema_proximity_pct": proximity,
+            "valuation_rule": "current price <= calculated fair-value base",
+        },
+    }
+
+
 def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
     """Return the full scored record for one ticker (trace + verdict)."""
     mos = settings.get("margin_of_safety_pct", 15)
@@ -231,24 +310,44 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
                           "condition": g["when"], "result": None,
                           "effect": "Cap Buy to Watch because required data is missing"})
 
+    alignment = buy_entry_alignment(cfg.scoring, cat_scores, flat, fv)
+    alignment_gate_specs = (
+        ("fundamentals_below_minimum", "Quality, Financial Strength, and Growth must each be at least 70", "fundamentals"),
+        ("price_above_fair_value_base", "Current price must be at or below a calculated fair-value base", "valuation"),
+        ("monthly_ema_not_aligned", "Price must be within 5% of either the 9-month or 20-month EMA", "monthly_ema"),
+        ("weekly_obv_not_confirmed", "Weekly OBV must be above its 20-week EMA", "weekly_obv"),
+    )
+    gates.extend({
+        "id": gate_id,
+        "reason": reason,
+        "condition": check,
+        "result": False,
+        "effect": "Blocks Buy entry",
+    } for gate_id, reason, check in alignment_gate_specs
+      if not alignment["checks"][check])
+
     buy_b, watch_b = cfg.verdict_bands["buy"], cfg.verdict_bands["watch"]
+    score_band_verdict = (
+        "Buy" if preliminary >= buy_b else
+        "Watch" if preliminary >= watch_b else "Avoid"
+    )
     if vetoes:
-        score_band_verdict = "Buy" if preliminary >= buy_b else "Watch" if preliminary >= watch_b else "Avoid"
         verdict = "Avoid"
+    elif alignment["passes"]:
+        verdict = "Buy"
     else:
-        score_band_verdict = "Buy" if preliminary >= buy_b else "Watch" if preliminary >= watch_b else "Avoid"
-        verdict = score_band_verdict
-        if verdict == "Buy" and gates:
-            verdict = "Watch"
+        verdict = "Watch" if score_band_verdict in {"Buy", "Watch"} else "Avoid"
     non_dilution_vetoes = [
         veto for veto in vetoes if veto.get("id") != "substantial_dilution"
     ]
     if non_dilution_vetoes:
         pre_dilution_verdict = "Avoid"
+    elif alignment["passes"]:
+        pre_dilution_verdict = "Buy"
     else:
-        pre_dilution_verdict = score_band_verdict
-        if pre_dilution_verdict == "Buy" and gates:
-            pre_dilution_verdict = "Watch"
+        pre_dilution_verdict = (
+            "Watch" if score_band_verdict in {"Buy", "Watch"} else "Avoid"
+        )
 
     decision_trace = {
         "formula": "final score = round(weighted score from tested factors only)",
@@ -264,10 +363,11 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
         "vetoes": vetoes,
         "context_warnings": context_warnings,
         "soft_gates": gates,
+        "buy_entry_alignment": alignment,
         "final_verdict": verdict,
         "explanation": ("A hard veto forced Avoid." if vetoes else
-                        "A soft gate capped Buy to Watch." if score_band_verdict == "Buy" and gates else
-                        "The final verdict follows the configured score band."),
+                        "All fundamental, fair-value, monthly-EMA, and weekly-OBV conditions aligned." if alignment["passes"] else
+                        "One or more required Buy-entry conditions did not align."),
     }
 
     return {
@@ -279,6 +379,7 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
         "pre_dilution_verdict": pre_dilution_verdict,
         "categories": categories, "valuation": fv,
         "growth_qualification": growth_check,
+        "buy_entry_alignment": alignment,
         "research_metrics": {
             "debt_to_assets_pct": flat.get("debt_to_assets_pct"),
             "debt_to_assets_yago_pct": flat.get("debt_to_assets_yago_pct"),

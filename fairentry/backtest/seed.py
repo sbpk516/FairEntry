@@ -11,8 +11,9 @@ write a metrics snapshot:
   * ``fwd_pe / ps_ratio / pb_ratio / pfcf_ratio`` — today's ratio scaled by
         ``price_then / price_now``. Exact IF earnings/sales/book/FCF were ~flat
         over the window (a P/E moves with price when E is constant).
-  * ``perf_year / sma50 / sma200 / dist_200wma_pct`` — derived from the price
-        series itself, so these are fully point-in-time correct.
+  * ``perf_year / sma50 / sma200 / dist_200wma_pct`` plus the 9/20-month EMAs
+        and weekly OBV confirmation — derived from the price/volume path itself,
+        so these are fully point-in-time correct.
   * with ``use_sec_history=True``, core filing fundamentals are reconstructed
         from SEC companyfacts using the filing date as the availability date:
         margins, ROIC proxy, leverage/liquidity, dilution, and valuation ratios
@@ -277,7 +278,17 @@ def sec_fundamental_snapshots(facts: dict, closes: list[tuple[str, float]],
     return out
 
 
-def snapshots_for(closes: list[tuple[str, float]], price_now: float,
+def _ema(values: list[float], span: int) -> float | None:
+    if len(values) < span:
+        return None
+    alpha = 2 / (span + 1)
+    value = values[0]
+    for item in values[1:]:
+        value = alpha * item + (1 - alpha) * value
+    return value
+
+
+def snapshots_for(closes: list[tuple], price_now: float,
                   fundamentals: dict) -> tuple[dict, list[tuple[str, dict]]]:
     """PURE (no network): turn a weekly close series into point-in-time snapshots.
 
@@ -289,9 +300,17 @@ def snapshots_for(closes: list[tuple[str, float]], price_now: float,
       constants = {field_id: value} to write ONCE at the earliest date, and
       per_date  = [(date_str, {field_id: value})] price/valuation/momentum each week.
     """
-    prices = [p for _, p in closes]
+    normalized = [
+        (row[0], float(row[1]), float(row[2]) if len(row) > 2 and row[2] is not None else None)
+        for row in closes
+    ]
+    prices = [p for _, p, _ in normalized]
     per_date: list[tuple[str, dict]] = []
-    for i, (d, px) in enumerate(closes):
+    obv = 0.0
+    obv_history = []
+    month_closes: list[float] = []
+    active_month = None
+    for i, (d, px, volume) in enumerate(normalized):
         if not px or px <= 0:
             continue
         snap: dict = {"price": round(px, 4)}
@@ -313,6 +332,28 @@ def snapshots_for(closes: list[tuple[str, float]], price_now: float,
             snap["sma200"] = round((px / ma40 - 1) * 100, 2)
         if ma200:
             snap["dist_200wma_pct"] = round((px / ma200 - 1) * 100, 2)
+        month = d[:7]
+        if active_month is None:
+            active_month = month
+        elif month != active_month:
+            month_closes.append(prices[i - 1])
+            active_month = month
+        current_months = month_closes + [px]
+        ema9 = _ema(current_months, 9)
+        ema20 = _ema(current_months, 20)
+        if ema9:
+            snap["ema_9month"] = round(ema9, 4)
+            snap["dist_9month_ema_pct"] = round((px / ema9 - 1) * 100, 4)
+        if ema20:
+            snap["ema_20month"] = round(ema20, 4)
+            snap["dist_20month_ema_pct"] = round((px / ema20 - 1) * 100, 4)
+        if volume is not None:
+            direction = 0 if i == 0 else (1 if px > prices[i - 1] else -1 if px < prices[i - 1] else 0)
+            obv += direction * volume
+            obv_history.append(obv)
+            obv_ema20 = _ema(obv_history, 20)
+            if obv_ema20 is not None:
+                snap["obv_above_20week_ema"] = obv > obv_ema20
         # Point-in-time analogues of the live breakout_v2 price factors. Weekly
         # snapshots do not contain volume, so volume/flow items remain missing
         # and the normal scoring renormalization documents that absence.
@@ -346,15 +387,18 @@ def snapshots_for(closes: list[tuple[str, float]], price_now: float,
     return constants, per_date
 
 
-def weekly_closes(ticker: str, weeks: int = 208) -> list[tuple[str, float]]:
-    """Fetch weekly closes from yfinance (network). Returns [] on any failure."""
+def weekly_closes(ticker: str, weeks: int = 208) -> list[tuple[str, float, float]]:
+    """Fetch weekly adjusted closes and volume. Returns [] on any failure."""
     try:
         import yfinance as yf
         hist = yf.Ticker(ticker).history(period=f"{weeks}wk", interval="1wk", auto_adjust=True)
         if hist is None or hist.empty:
             return []
-        closes = hist["Close"].dropna()
-        return [(idx.strftime("%Y-%m-%d"), float(v)) for idx, v in closes.items() if v == v]
+        rows = hist[["Close", "Volume"]].dropna(subset=["Close"])
+        return [
+            (idx.strftime("%Y-%m-%d"), float(row["Close"]), float(row["Volume"]))
+            for idx, row in rows.iterrows() if row["Close"] == row["Close"]
+        ]
     except Exception:
         return []
 

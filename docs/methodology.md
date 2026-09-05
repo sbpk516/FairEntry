@@ -84,12 +84,17 @@ Only factors marked **tested** may affect the verdict.
 - **going_concern** - Going-concern doubt confirmed (`going_concern == True`)
 - **critical_red_flag** - Critical accounting / fraud flag (`red_flags_critical > 0`)
 
-## Tested soft gates
-- **survival_floor** - Financial condition is extremely weak (`category_survival < 20`)
-- **growth_floor** - Business direction is not yet stable or meaningfully improving (`growth_qualified == False`)
-- **upside_below_target** - Upside below target (`upside_pct < target_upside`)
-- **no_confirmation** - No market confirmation (`category_confirmation < 35`)
-- **expensive** - Valuation is expensive (`valuation_label == 'expensive'`)
+## Production Buy-entry alignment
+
+Every condition below must pass; any missing required value blocks Buy:
+
+- Business Quality, Financial Strength, and Growth each >= 70.
+- Current price is at or below the fair-value base from at least 1 tested valuation method.
+- Current price is within +/-5% of either the 9-month or 20-month EMA.
+- Weekly OBV is above its 20-week EMA.
+- No tested hard veto is active.
+
+## Additional tested soft gates
 
 ## AI and news review
 

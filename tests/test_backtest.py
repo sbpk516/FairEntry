@@ -107,7 +107,8 @@ def _weekly_dates(n, start=date(2023, 1, 2)):
 
 def _seed(store, ticker, sector, closes_dates, fundamentals):
     price_now = closes_dates[-1][1]
-    consts, per = snapshots_for(closes_dates, price_now, fundamentals)
+    priced_volume = [(day, price, 1_000_000) for day, price in closes_dates]
+    consts, per = snapshots_for(priced_volume, price_now, fundamentals)
     store.upsert_security(ticker, ticker, sector)
     earliest = per[0][0]
     for fid, v in consts.items():
@@ -145,8 +146,8 @@ def test_rolling_backtest_detects_buy_alpha():
                 pb_ratio=2.5, pfcf_ratio=16, target_price=78, analyst_recom=2.3,
                 red_flags_score=85, red_flags_critical=0, short_float=8, beta=1.1)
 
-    for i in range(12):   # winners: cheap + quality, price rises ~1.2%/wk
-        closes = [(dts[w], round(50 * (1.012 ** w), 4)) for w in range(weeks)]
+    for i in range(12):   # winners: cheap + quality, price stays near monthly EMA
+        closes = [(dts[w], round(50 * (1.002 ** w), 4)) for w in range(weeks)]
         _seed(store, f"WIN{i}", "Technology", closes, WIN)
     for i in range(12):   # losers: weak + expensive, price falls ~1.2%/wk
         closes = [(dts[w], round(100 * (0.988 ** w), 4)) for w in range(weeks)]
@@ -193,7 +194,7 @@ def test_screened_only_reduces_population():
                  pb_ratio=5, pfcf_ratio=35, target_price=40, analyst_recom=3.2,
                  red_flags_score=50, red_flags_critical=1, short_float=25, beta=2.0)
     for i in range(15):
-        _seed(store, f"WIN{i}", "Technology", [(dts[w], round(50 * 1.012 ** w, 4)) for w in range(weeks)], WIN)
+        _seed(store, f"WIN{i}", "Technology", [(dts[w], round(50 * 1.002 ** w, 4)) for w in range(weeks)], WIN)
     for i in range(15):
         _seed(store, f"LOSE{i}", "Technology", [(dts[w], round(100 * 0.988 ** w, 4)) for w in range(weeks)], LOSE)
     store.commit()

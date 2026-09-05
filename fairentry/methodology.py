@@ -46,7 +46,21 @@ def generate() -> str:
     for veto in cfg.scoring.get("vetoes", []):
         if veto.get("decision_status", "tested") != "tested":
             lines.append(f"- **{veto['id']}** - {veto['reason']} (`{veto['when']}`)")
-    lines.extend(["", "## Tested soft gates"])
+    alignment = cfg.scoring.get("buy_entry_alignment") or {}
+    lines.extend([
+        "",
+        "## Production Buy-entry alignment",
+        "",
+        "Every condition below must pass; any missing required value blocks Buy:",
+        "",
+        f"- Business Quality, Financial Strength, and Growth each >= {alignment.get('category_minimum', 70)}.",
+        f"- Current price is at or below the fair-value base from at least {alignment.get('fair_value_method_minimum', 1)} tested valuation method.",
+        f"- Current price is within +/-{alignment.get('ema_proximity_pct', 5)}% of either the 9-month or 20-month EMA.",
+        "- Weekly OBV is above its 20-week EMA.",
+        "- No tested hard veto is active.",
+        "",
+        "## Additional tested soft gates",
+    ])
     for gate in cfg.scoring.get("soft_gates", []):
         if gate.get("decision_status", "tested") == "tested":
             lines.append(f"- **{gate['id']}** - {gate['reason']} (`{gate['when']}`)")

@@ -18,7 +18,9 @@ def _seed_world(store):
         return {a: {"value": v} for a, v in k.items()}
 
     def seed(t, closes, fund):
-        c, per = snapshots_for(closes, closes[-1][1], fund)
+        c, per = snapshots_for(
+            [(day, price, 1_000_000) for day, price in closes], closes[-1][1], fund
+        )
         store.upsert_security(t, t, "Technology")
         for fid, v in c.items():
             store.set_metric(t, fid, v, "c", per[0][0])
@@ -36,7 +38,7 @@ def _seed_world(store):
             rev_growth_qoq=5, eps_growth_next_y=8, fwd_pe=18, ps_ratio=3, pb_ratio=2.5, pfcf_ratio=16,
             target_price=78, analyst_recom=2.3, red_flags_score=85, red_flags_critical=0, short_float=8, beta=1.1)
     for i in range(12):
-        seed(f"WIN{i}", [(dts[w], round(50 * 1.012 ** w, 4)) for w in range(60)], WIN)
+        seed(f"WIN{i}", [(dts[w], round(50 * 1.002 ** w, 4)) for w in range(60)], WIN)
     for i in range(12):
         seed(f"LOSE{i}", [(dts[w], round(100 * 0.988 ** w, 4)) for w in range(60)], LOSE)
     for i in range(8):

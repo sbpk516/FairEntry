@@ -88,13 +88,20 @@ vetoes:
   - {id: substantial_dilution,  when: "share_count_yoy > 10", reason: "Substantial dilution: share count increased more than 10% year over year"}
   - {id: critical_red_flag,    when: "red_flags_critical > 0",        reason: "Critical accounting / fraud flag", decision_status: information_only}
 
-# Soft gates -> cap Buy to Watch.
-soft_gates:
-  - {id: survival_floor,   when: "category_survival < 20",  reason: "Financial condition is extremely weak"}
-  - {id: growth_floor,     when: "growth_qualified == False", reason: "Business direction is not yet stable or meaningfully improving"}
-  - {id: upside_below_target, when: "upside_pct < target_upside", reason: "Upside below target"}
-  - {id: no_confirmation,  when: "category_confirmation < 35", reason: "No market confirmation"}
-  - {id: expensive,        when: "valuation_label == 'expensive'", reason: "Valuation is expensive"}
+# Production Buy entry rule. Every condition is required; missing data fails
+# the entry alignment and leaves an otherwise eligible name at Watch.
+buy_entry_alignment:
+  category_minimum: 70
+  categories: [quality, survival, growth]
+  fair_value_method_minimum: 1
+  ema_proximity_pct: 5
+  ema_policy: any
+  monthly_ema_metrics: [ema_9month, ema_20month]
+  obv_metric: obv_above_20week_ema
+
+# Retained for compatibility with config consumers. The production Buy rule
+# above replaces the former upside, growth and confirmation soft gates.
+soft_gates: []
 
 # Presets — bias the weights per strategy (user can pick / edit in the UI).
 presets:

@@ -103,7 +103,7 @@ def refresh(cfg, store, run_id=None, wma_tickers=None, sec_tickers=None, verbose
 
     universe = [s["ticker"] for s in securities]
 
-    # --- yfinance: 200-week MA on requested tickers --------------------------
+    # --- yfinance: monthly EMA and weekly OBV entry indicators ---------------
     if wma_tickers:
         targets = [t for t in wma_tickers if t in set(universe)]
         t0 = time.time()
@@ -119,7 +119,7 @@ def refresh(cfg, store, run_id=None, wma_tickers=None, sec_tickers=None, verbose
             store.log_fetch(run_id, "yfinance", True, len(m), time.time() - t0)
             summary["sources"]["yfinance"] = {"ok": True, "tickers": len(m), "values": n}
             if verbose:
-                print(f"  yfinance: {len(m)} tickers 200wma ({time.time()-t0:.1f}s)")
+                print(f"  yfinance: {len(m)} tickers entry indicators ({time.time()-t0:.1f}s)")
         except Exception as e:
             store.log_fetch(run_id, "yfinance", False, 0, time.time() - t0, str(e))
             summary["sources"]["yfinance"] = {"ok": False, "error": str(e)}

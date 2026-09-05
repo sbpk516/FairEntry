@@ -5,13 +5,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from fairentry.config import load_config
 from fairentry.scoring.rules import apply_rule
-from fairentry.scoring.engine import score_ticker, growth_qualification
+from fairentry.scoring.engine import score_ticker, growth_qualification, buy_entry_alignment
 from fairentry.scoring.fair_value import fair_value
 from fairentry.pipeline.export import _export_categories, _labels, _map
 
 _SEC = {"ticker": "T", "company": "Test", "sector": "Technology"}
 _SETTINGS = {"margin_of_safety_pct": 15, "target_upside_pct": 30}
-_MED = {"Technology": {"gross_margin": 40}}
+_MED = {"Technology": {"gross_margin": 40, "roic": 10, "rev_growth_qoq": 5}}
 
 
 def _strong_metrics(**over):
@@ -24,7 +24,9 @@ def _strong_metrics(**over):
          "rev_growth_qoq": {"value": 20}, "eps_growth_next_y": {"value": 25},
          "perf_year": {"value": 20}, "pfcf_ratio": {"value": 10},
          "ps_ratio": {"value": 2}, "red_flags_score": {"value": 100},
-         "red_flags_critical": {"value": 0}, "analyst_recom": {"value": 1.5}}
+         "red_flags_critical": {"value": 0}, "analyst_recom": {"value": 1.5},
+         "ema_9month": {"value": 100}, "ema_20month": {"value": 120},
+         "obv_above_20week_ema": {"value": 1}}
     m.update({k: {"value": v} for k, v in over.items()})
     return m
 
@@ -94,6 +96,43 @@ def test_reproducible():
     assert r1["preliminary"] == r2["preliminary"]
     assert r1["verdict"] == r2["verdict"]
     assert r1["base_score"] > 0
+
+
+def test_buy_requires_complete_entry_alignment_and_accepts_either_monthly_ema():
+    cfg = load_config()
+    aligned = score_ticker(cfg, _SEC, _strong_metrics(), _MED, _SETTINGS)
+    assert aligned["verdict"] == "Buy"
+    assert aligned["buy_entry_alignment"]["passes"] is True
+    assert aligned["buy_entry_alignment"]["monthly_emas"]["ema_9month"]["passes"] is True
+    assert aligned["buy_entry_alignment"]["monthly_emas"]["ema_20month"]["passes"] is False
+
+    no_obv = score_ticker(
+        cfg, _SEC, _strong_metrics(obv_above_20week_ema=0), _MED, _SETTINGS
+    )
+    assert no_obv["verdict"] == "Watch"
+    assert any(g["id"] == "weekly_obv_not_confirmed" for g in no_obv["soft_gates"])
+
+
+def test_buy_requires_price_at_or_below_replayable_fair_value_base():
+    cfg = load_config()
+    expensive = score_ticker(
+        cfg, _SEC, _strong_metrics(price=190, ema_9month=190, pfcf_ratio=25), _MED, _SETTINGS
+    )
+    assert expensive["valuation"]["method_count"] >= 1
+    assert expensive["price"] > expensive["valuation"]["fair_base"]
+    assert expensive["verdict"] != "Buy"
+    assert any(g["id"] == "price_above_fair_value_base" for g in expensive["soft_gates"])
+
+
+def test_missing_calculated_fair_value_cannot_use_price_fallback_to_buy():
+    result = buy_entry_alignment(
+        {"buy_entry_alignment": {}},
+        {"quality": 80, "survival": 80, "growth": 80},
+        {"price": 100, "ema_9month": 100, "obv_above_20week_ema": True},
+        {"fair_base": 100, "method_count": 0},
+    )
+    assert result["valuation"]["passes"] is False
+    assert result["passes"] is False
 
 
 def test_sfa_percent_weights_preserve_the_previous_display_scale_decision():
@@ -391,7 +430,7 @@ def test_analyst_target_is_not_used_as_tested_fair_value():
     assert round(r["valuation"]["upside_pct"]) == 0
     analyst = next(x for x in r["valuation"]["methods"] if x["key"] == "analyst")
     assert analyst["decision_status"] == "information_only"
-    assert any(g["id"] == "upside_below_target" for g in r["soft_gates"])
+    assert any(g["id"] == "price_above_fair_value_base" for g in r["soft_gates"])
     assert r["verdict"] != "Buy"
 
 
@@ -408,7 +447,7 @@ def test_missing_survival_data_caps_buy():
                      {"weights": weights})
     assert r["preliminary"] >= cfg.verdict_bands["buy"]
     assert r["verdict"] == "Watch"
-    assert any(g["id"] == "survival_floor" and "missing data" in g["reason"]
+    assert any(g["id"] == "fundamentals_below_minimum"
                for g in r["soft_gates"])
 
 

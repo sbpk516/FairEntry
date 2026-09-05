@@ -575,6 +575,7 @@ def _map(rec, strategies, strategy_key):
         "coverage_confidence": rec.get("coverage_confidence"),
         "decision_trace": dict(rec.get("decision_trace") or {},
                                thesis_evidence=qualitative if breakout else []),
+        "buy_entry_alignment": rec.get("buy_entry_alignment"),
         "growth_qualification": rec.get("growth_qualification"),
         "debt_direction": {
             "current_pct": (rec.get("research_metrics") or {}).get("debt_to_assets_pct"),

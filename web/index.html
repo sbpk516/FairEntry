@@ -668,21 +668,12 @@ var STOCKS=[
 function baseScore(s){ var num=0,den=0; s.cats.forEach(function(c){
   if(c.score==null||!isFinite(Number(c.score)))return; var w=S.weights[c.id]; num+=w*c.score; den+=w; }); return den?num/den:0; }
 function thesisMod(){ return 0; }
-// Mirror the backend soft-gates (engine.score_ticker): expensive, survival<30,
-// no-confirmation<35, upside<target - INCLUDING the backend's "missing data"
-// behaviour, where a category with no scored items (absent from s.cats because
-// the exporter drops null-score categories) caps a Buy just like a low score.
-function softGates(s){ var g=[];
-  if(s.valuation&&s.valuation.label==='expensive') g.push('Valuation is expensive');
-  var surv=s.cats.find(function(c){return c.id==='survival';});
-  if(!surv) g.push('Financial condition is extremely weak (missing data)');
-  else if(surv.score<20) g.push('Financial condition is extremely weak');
-  if(!s.growth_qualification||s.growth_qualification.qualified!==true) g.push('Business direction is not yet stable or meaningfully improving');
-  var conf=s.cats.find(function(c){return c.id==='confirmation';});
-  if(!conf) g.push('No market confirmation (missing data)');
-  else if(conf.score<35) g.push('No market confirmation');
-  if(s.valuation.upside < S.target) g.push('Valuation upside '+s.valuation.upside+'% < target '+S.target+'%');
-  return g; }
+// Buy is now an all-or-nothing entry alignment calculated by the backend:
+// Quality/Financial Strength/Growth >=70, price <= calculated fair-value base,
+// price within 5% of either monthly EMA, weekly OBV confirmation, and no veto.
+function softGates(s){
+  return (s.soft||[]).map(function(g){return g.reason||g.id||'Buy entry condition not aligned';});
+}
 // Has the USER moved the model off its recommended baseline? Compare against the
 // mode's preset (via the userTuned/userBands flags), NOT DEFAULTS - because
 // syncModelToMode() loads the mode's preset weights, which legitimately differ
@@ -705,8 +696,9 @@ function compute(s){
   var out={base:base, mod:mod, prelim:prelim, gates:[], vetoed:false};
   if(s.vetoes.length){ out.verdict='Avoid'; out.vetoed=true; return out; }
   out.gates=softGates(s);
-  var v = prelim>=S.buyBand?'Buy':prelim>=S.watchBand?'Watch':'Avoid';
-  if(v==='Buy' && out.gates.length){ v='Watch'; out.capped=true; }
+  var aligned=!!(s.buy_entry_alignment&&s.buy_entry_alignment.passes===true);
+  var v=aligned?'Buy':prelim>=S.watchBand?'Watch':'Avoid';
+  if(!aligned && prelim>=S.buyBand){ out.capped=true; }
   out.verdict=v; return out; }
 
 /* ---------- board render ---------- */
