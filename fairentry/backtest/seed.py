@@ -160,8 +160,8 @@ def _latest(entries: list[dict], asof: str):
     return sorted(vals, key=lambda x: (x["filed"], x["end"]))[-1]
 
 
-def _price_asof(closes: list[tuple[str, float]], asof: str):
-    vals = [p for d, p in closes if d <= asof and p and p > 0]
+def _price_asof(closes: list[tuple], asof: str):
+    vals = [row[1] for row in closes if row[0] <= asof and row[1] and row[1] > 0]
     return vals[-1] if vals else None
 
 

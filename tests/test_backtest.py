@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from fairentry.config import load_config
 from fairentry.store import Store
-from fairentry.backtest.seed import snapshots_for, sec_fundamental_snapshots, _ma
+from fairentry.backtest.seed import snapshots_for, sec_fundamental_snapshots, _ma, _price_asof
 from fairentry.backtest.harness import run_rolling, _quality_metrics, _settings_for_strategy
 from fairentry.backtest.strategy import BacktestStrategy
 
@@ -17,6 +17,13 @@ from fairentry.backtest.strategy import BacktestStrategy
 def test_ma():
     assert _ma([1, 2, 3, 4], 2) == 3.5
     assert _ma([1, 2], 5) is None
+
+
+def test_price_asof_accepts_weekly_rows_with_volume():
+    assert _price_asof(
+        [("2026-01-02", 10.0, 1000), ("2026-01-09", 11.0, 1200)],
+        "2026-01-05",
+    ) == 10.0
 
 
 def test_snapshots_scale_ratios_with_price():
