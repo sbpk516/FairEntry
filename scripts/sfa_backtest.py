@@ -35,6 +35,9 @@ from fairentry.backtest.factor_explorer import (
     attach_warehouse_factors,
     run_factor_explorer,
 )
+from fairentry.backtest.business_health_challenger import (
+    run_challenger as run_business_health_challenger,
+)
 from fairentry.backtest.high_conviction_research import run_high_conviction_research
 from fairentry.backtest.capability_moat_research import run_capability_moat_research
 from fairentry.backtest.exit_policy_research import run_exit_policy_research
@@ -168,6 +171,15 @@ def public_artifact(result: dict, detail_limit: int = 2000) -> dict:
         observation.pop("security_id", None)
         observation.pop("avg_dollar_volume", None)
         observation.pop("research_factors", None)
+        if observation.get("business_health_challenger"):
+            challenger = observation["business_health_challenger"]
+            observation["business_health_challenger"] = {
+                key: challenger.get(key) for key in (
+                    "model_id", "production_effect", "score", "score_band_verdict",
+                    "verdict", "coverage_eligible", "coverage_requirement_pct",
+                    "quality", "growth", "market_share",
+                )
+            }
         observation.get("outcome", {}).pop("path", None)
         observation["categories"] = [
             {k: category.get(k) for k in ("id", "label", "weight", "score", "coverage")}
@@ -294,6 +306,15 @@ def main():
                         step_days=int(result.get("step_days") or 30),
                     )
                     result["factor_explorer"]["enrichment"] = enrichment
+                if not result.get("business_health_challenger"):
+                    if not any(row.get("research_factors")
+                               for row in result.get("observations", [])):
+                        attach_warehouse_factors(
+                            result.get("observations", []), warehouse.con
+                        )
+                    result["business_health_challenger"] = run_business_health_challenger(
+                        result.get("observations", [])
+                    )
                 valuation_enrichment = attach_valuation_factors(
                     result.get("observations", []), warehouse.con
                 )
@@ -391,6 +412,9 @@ def main():
                 step_days=int(result.get("step_days") or args.step),
             )
             result["factor_explorer"]["enrichment"] = enrichment
+            result["business_health_challenger"] = run_business_health_challenger(
+                result.get("observations", [])
+            )
             valuation_enrichment = attach_valuation_factors(
                 result.get("observations", []), warehouse.con
             )

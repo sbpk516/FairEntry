@@ -25,7 +25,7 @@ def _fields_by_adapter(cfg):
 
 def refresh(cfg, store, run_id=None, wma_tickers=None, sec_tickers=None, verbose=True):
     """Refresh the store. Returns a summary dict.
-    wma_tickers: tickers to run the (network-heavy) yfinance 200wma on.
+    wma_tickers: tickers to run the network-heavy moving-average indicators on.
     sec_tickers: tickers to run the (expensive) SEC forensic panel on. Both are
     bounded by the caller; missing values are handled gracefully by scoring.
     """

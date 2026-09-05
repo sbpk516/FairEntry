@@ -1,4 +1,4 @@
-"""Actionable alerts for shortlisted stocks near their 200-week average."""
+"""Actionable alerts for strong Buy/Watch stocks near moving-average zones."""
 from __future__ import annotations
 
 import json
@@ -9,40 +9,20 @@ import urllib.request
 from email.message import EmailMessage
 
 
-def wma_alerts(stocks: list[dict], metrics_by_ticker: dict, threshold_pct: float = 3.0) -> list[dict]:
-    """Return Buy/Watch names whose latest price is within the threshold of 200 WMA."""
-    alerts = []
-    for stock in stocks:
-        if stock.get("verdict") not in {"Buy", "Watch"}:
-            continue
-        metrics = metrics_by_ticker.get(stock.get("ticker"), {})
-        wma_metric = metrics.get("sma_200week") or {}
-        wma = wma_metric.get("value") if isinstance(wma_metric, dict) else wma_metric
-        price = stock.get("price")
-        if not isinstance(wma, (int, float)) or wma <= 0 or not isinstance(price, (int, float)):
-            continue
-        distance = (price / wma - 1) * 100
-        if abs(distance) > threshold_pct:
-            continue
-        alerts.append({
-            "ticker": stock["ticker"], "company": stock.get("company"),
-            "verdict": stock["verdict"], "price": round(price, 2),
-            "wma_200": round(wma, 2),
-            "distance_pct": round(distance, 1),
-        })
-    return sorted(alerts, key=lambda item: abs(item["distance_pct"]))
+_MOVING_AVERAGE_ZONES = (
+    ("sma_9month", "9-month SMA"),
+    ("sma_20month", "20-month SMA"),
+    ("sma_200week", "200-week SMA"),
+)
 
 
-def strong_business_wma_candidates(stocks: list[dict], metrics_by_ticker: dict,
+def moving_average_zone_candidates(stocks: list[dict], metrics_by_ticker: dict,
                                    threshold_pct: float = 3.0) -> list[dict]:
-    """Return research candidates with strong tested fundamentals near 200 WMA.
-
-    This deliberately ignores the current verdict: a fundamentally strong name
-    may be Watch/Avoid because valuation or price confirmation has not cleared.
-    The result is information-only and must never manufacture a Buy.
-    """
+    """Return strong Buy/Watch names near at least one configured SMA zone."""
     candidates = []
     for stock in stocks:
+        if stock.get("verdict") not in {"Buy", "Watch"} or stock.get("vetoes"):
+            continue
         scores = {
             category.get("id"): category.get("score")
             for category in stock.get("categories", [])
@@ -50,42 +30,56 @@ def strong_business_wma_candidates(stocks: list[dict], metrics_by_ticker: dict,
         if any(not isinstance(scores.get(key), (int, float)) or scores[key] < 70
                for key in ("quality", "survival", "growth")):
             continue
-        if stock.get("vetoes"):
-            continue
         metrics = metrics_by_ticker.get(stock.get("ticker"), {})
-        wma_metric = metrics.get("sma_200week") or {}
-        wma = wma_metric.get("value") if isinstance(wma_metric, dict) else wma_metric
         price = stock.get("price")
-        if not isinstance(wma, (int, float)) or wma <= 0 or not isinstance(price, (int, float)):
+        if not isinstance(price, (int, float)) or price <= 0:
             continue
-        distance = (price / wma - 1) * 100
-        if abs(distance) > threshold_pct:
+        zones = []
+        for metric_id, label in _MOVING_AVERAGE_ZONES:
+            metric = metrics.get(metric_id) or {}
+            average = metric.get("value") if isinstance(metric, dict) else metric
+            if not isinstance(average, (int, float)) or average <= 0:
+                continue
+            distance = (price / average - 1) * 100
+            if abs(distance) <= threshold_pct:
+                zones.append({
+                    "id": metric_id,
+                    "label": label,
+                    "average": round(average, 2),
+                    "distance_pct": round(distance, 1),
+                })
+        if not zones:
             continue
+        zones.sort(key=lambda zone: abs(zone["distance_pct"]))
         candidates.append({
             "ticker": stock["ticker"],
             "company": stock.get("company"),
             "verdict": stock.get("verdict"),
             "price": round(price, 2),
-            "wma_200": round(wma, 2),
-            "distance_pct": round(distance, 1),
+            "nearest_zone": zones[0],
+            "zones": zones,
             "quality_score": scores["quality"],
             "financial_strength_score": scores["survival"],
             "growth_score": scores["growth"],
             "production_effect": "none",
         })
-    return sorted(candidates, key=lambda item: abs(item["distance_pct"]))
+    return sorted(candidates, key=lambda item: (
+        abs(item["nearest_zone"]["distance_pct"]), item["ticker"]
+    ))
 
 
 def email_wma_alerts(alerts: list[dict]) -> bool:
     """Email the alert list through Resend, or SMTP as a fallback."""
     if not alerts:
         return False
-    lines = ["Shortlisted Buy/Watch stocks near their 200-week moving average:", ""]
+    lines = ["Fundamentally strong Buy/Watch stocks near an SMA zone:", ""]
     for item in alerts:
-        side = "above" if item["distance_pct"] >= 0 else "below"
+        zone = item["nearest_zone"]
+        side = "above" if zone["distance_pct"] >= 0 else "below"
         lines.append(f"{item['ticker']} ({item['verdict']}): ${item['price']:.2f}; "
-                     f"200 WMA ${item['wma_200']:.2f}; {abs(item['distance_pct']):.1f}% {side}")
-    return _send_email(f"FairEntry: {len(alerts)} stock(s) near the 200 WMA", lines)
+                     f"{zone['label']} ${zone['average']:.2f}; "
+                     f"{abs(zone['distance_pct']):.1f}% {side}")
+    return _send_email(f"FairEntry: {len(alerts)} stock(s) near an SMA zone", lines)
 
 
 def _send_email(subject: str, lines: list[str]) -> bool:

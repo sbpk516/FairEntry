@@ -14,7 +14,7 @@ from ..analytics.chart_history import write_chart_files
 from ..analytics.demand_momentum import build_context as build_demand_momentum
 from ..analytics.high_conviction import build_high_conviction_research
 from ..analytics.valuation_context import build_valuation_context
-from ..alerts import strong_business_wma_candidates, wma_alerts
+from ..alerts import moving_average_zone_candidates
 from ..scoring.engine import sector_medians, score_ticker
 from ..scoring.targets import build_target_plan
 from ..screeners import REGISTRY as SCREENERS
@@ -903,9 +903,8 @@ def build_board(cfg, store, settings=None, reason=False, *, source="finviz",
     }
 
     stocks.sort(key=lambda r: -(r["cats"] and sum(c["score"] for c in r["cats"]) or 0))
-    threshold = float(cfg.defaults.get("wma_alert_threshold_pct", 3.0))
-    proximity_alerts = wma_alerts(stocks, metrics_by_ticker, threshold)
-    strong_wma_candidates = strong_business_wma_candidates(
+    threshold = float(cfg.defaults.get("moving_average_zone_threshold_pct", 3.0))
+    zone_candidates = moving_average_zone_candidates(
         stocks, metrics_by_ticker, threshold
     )
     return {"meta": {"generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -921,13 +920,13 @@ def build_board(cfg, store, settings=None, reason=False, *, source="finviz",
                      },
                      "reasoning": reasoning_summary,
                      "ai_review": ai_review,
-                     "wma_alerts": proximity_alerts,
-                     "strong_business_wma_candidates": strong_wma_candidates,
-                     "strong_business_wma_rule": (
+                     "moving_average_zone_candidates": zone_candidates,
+                     "moving_average_zone_rule": (
                          "Business Quality >=70, Financial Strength >=70, "
-                         "Growth >=70, no tested veto; research-only"
+                         "Growth >=70, no tested veto, verdict Buy/Watch, and "
+                         "within the threshold of 9-month, 20-month, or 200-week SMA"
                      ),
-                     "wma_alert_threshold_pct": threshold,
+                     "moving_average_zone_threshold_pct": threshold,
                      "price_freshness": {
                          "limit_hours": price_limit_h,
                          "excluded_count": len(price_issues),

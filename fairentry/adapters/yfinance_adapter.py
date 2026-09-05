@@ -1,63 +1,27 @@
 """Keyless price-history indicators for shortlisted names.
 
 The daily adjusted history is resampled without future observations to produce
-the 9/20-month EMAs and weekly OBV confirmation used by the Buy-entry rule.
+the monthly SMA/EMA zones and weekly indicators used by discovery and entry.
 """
 from __future__ import annotations
 
+from ..analytics.entry_alignment import compute_entry_alignment_from_history
 from .cache_lite import cache_get, cache_put
 
 OWNS = "yfinance"
-_CACHE_NS = "yf_entry_alignment_v1"
+_CACHE_NS = "yf_entry_alignment_v2"
 _TTL_DAYS = 7
 
 
 def _compute_from_history(hist):
     """Return indicators from an ascending daily adjusted OHLCV frame."""
-    import pandas as pd
-
-    if hist is None or hist.empty or "Close" not in hist:
+    result = compute_entry_alignment_from_history(hist)
+    if not result:
         return None
-    frame = hist[[c for c in ("Close", "Volume") if c in hist]].copy()
-    frame["Close"] = pd.to_numeric(frame["Close"], errors="coerce")
-    if "Volume" not in frame:
-        frame["Volume"] = 0.0
-    frame["Volume"] = pd.to_numeric(frame["Volume"], errors="coerce").fillna(0.0)
-    frame = frame.dropna(subset=["Close"]).sort_index()
-    if frame.empty or float(frame["Close"].iloc[-1]) <= 0:
-        return None
-
-    latest = float(frame["Close"].iloc[-1])
-    monthly = frame["Close"].resample("ME").last().dropna()
-    weekly = frame.resample("W-FRI").agg({"Close": "last", "Volume": "sum"})
-    weekly = weekly.dropna(subset=["Close"])
-    out = {}
-
-    if len(weekly) >= 200:
-        sma = float(weekly["Close"].tail(200).mean())
-        if sma > 0:
-            out.update({
-                "sma_200week": round(sma, 4),
-                "dist_200wma_pct": round((latest / sma - 1) * 100, 4),
-            })
-
-    for span, key in ((9, "ema_9month"), (20, "ema_20month")):
-        if len(monthly) < span:
-            continue
-        ema = float(monthly.ewm(span=span, adjust=False, min_periods=span).mean().iloc[-1])
-        if ema > 0:
-            out[key] = round(ema, 4)
-            out[f"dist_{span}month_ema_pct"] = round((latest / ema - 1) * 100, 4)
-
-    if len(weekly) >= 20:
-        direction = weekly["Close"].diff().apply(
-            lambda change: 1.0 if change > 0 else (-1.0 if change < 0 else 0.0)
-        )
-        obv = (direction * weekly["Volume"]).fillna(0.0).cumsum()
-        obv_ema = obv.ewm(span=20, adjust=False, min_periods=20).mean()
-        if pd.notna(obv_ema.iloc[-1]):
-            out["obv_above_20week_ema"] = bool(obv.iloc[-1] > obv_ema.iloc[-1])
-    return out or None
+    # Historical audit fields are useful to replay but are not catalog metrics.
+    filtered = {key: value for key, value in result.items()
+                if not key.startswith("entry_alignment_")}
+    return filtered or None
 
 
 def _compute(ticker: str):

@@ -435,7 +435,7 @@
       <button data-v="Watch">Watch</button>
       <button data-v="Avoid">Avoid</button>
     </div>
-    <button class="iconbtn" id="wmafilter" type="button" aria-pressed="false">Near 200 WMA</button>
+    <button class="iconbtn" id="wmafilter" type="button" aria-pressed="false" title="Fundamentally strong Buy/Watch stocks within the configured distance of the 9-month, 20-month, or 200-week SMA.">9M / 20M / 200W SMA</button>
     <button class="iconbtn" id="highfilter" type="button" aria-pressed="false" title="Information-only research subset: Buy, Financial Strength at least 70, and no hard veto. The rule is not validated and does not change scores or verdicts.">High confidence · not validated</button>
     <select id="sort">
       <option value="score">Sort: Score</option>
@@ -861,12 +861,11 @@ function tileHTML(s){ var c=compute(s), em=s.emerging_candidate||null,
 
 function currentList(){
   var q=$('#search').value.trim().toLowerCase(), sec=$('#sector').value, vf=$('#vfilter .on').dataset.v, sort=$('#sort').value;
-  var wmaTickers={}; (META.wma_alerts||[]).forEach(function(a){wmaTickers[a.ticker]=true;});
-  (META.strong_business_wma_candidates||[]).forEach(function(a){wmaTickers[a.ticker]=true;});
+  var wmaTickers={}; (META.moving_average_zone_candidates||[]).forEach(function(a){wmaTickers[a.ticker]=true;});
   var source=MODE==='emerging'?EMERGING_STOCKS:ACTIVE_STOCKS;
   var list=source.filter(function(s){ return MODE==='all' || MODE==='emerging' || s.strategy.indexOf(MODE)>=0; })
     .map(function(s){ return {s:s, c:compute(s)}; })
-    .filter(function(o){ var em=o.s.emerging_candidate||{}; if(MODE==='emerging'&&(em.matched_variants||[]).indexOf(EM_VARIANT)<0)return false; if(MODE==='emerging'&&EM_LIQUIDITY!=='all'){if(EM_LIQUIDITY==='5m_to_20m'&&['5m_to_10m','10m_to_20m'].indexOf(em.liquidity_band)<0)return false; if(EM_LIQUIDITY!=='5m_to_20m'&&em.liquidity_band!==EM_LIQUIDITY)return false;} if(WMA_ONLY&&!wmaTickers[o.s.ticker])return false; if(HIGH_ONLY&&!highConfidenceResearchMatch(o.s,o.c))return false; if(sec!=='all'&&o.s.sector!==sec)return false; if(MODE!=='emerging'&&vf!=='all'&&o.c.verdict!==vf)return false;
+    .filter(function(o){ var em=o.s.emerging_candidate||{}; if(MODE==='emerging'&&(em.matched_variants||[]).indexOf(EM_VARIANT)<0)return false; if(MODE==='emerging'&&EM_LIQUIDITY!=='all'){if(EM_LIQUIDITY==='5m_to_20m'&&['5m_to_10m','10m_to_20m'].indexOf(em.liquidity_band)<0)return false; if(EM_LIQUIDITY!=='5m_to_20m'&&em.liquidity_band!==EM_LIQUIDITY)return false;} if(WMA_ONLY&&(!wmaTickers[o.s.ticker]||o.c.verdict==='Avoid'))return false; if(HIGH_ONLY&&!highConfidenceResearchMatch(o.s,o.c))return false; if(sec!=='all'&&o.s.sector!==sec)return false; if(MODE!=='emerging'&&vf!=='all'&&o.c.verdict!==vf)return false;
       if(q&&(o.s.ticker.toLowerCase().indexOf(q)<0&&o.s.company.toLowerCase().indexOf(q)<0))return false; return true; });
   var rank={Buy:0,Watch:1,Avoid:2};
   list.sort(function(a,b){ if(sort==='upside')return b.s.valuation.upside-a.s.valuation.upside;
@@ -884,17 +883,15 @@ function renderBoard(){ var list=currentList();
   var byv={Buy:0,Watch:0,Avoid:0}; list.forEach(function(o){byv[o.c.verdict]++;});
   var emNames={broad:'Basic Match',balanced:'Strong Match',selective:'Strict Match'};
   $('#count').textContent=MODE==='emerging'?(list.length+' '+emNames[EM_VARIANT]+' candidates · '+EM_LIQUIDITY.replace(/_/g,' ')+' · research only'):
-    (list.length+' shown'+(WMA_ONLY?' near 200 WMA':'')+(HIGH_ONLY?' high-confidence research (not validated)':'')+' - '+byv.Buy+' Buy - '+byv.Watch+' Watch - '+byv.Avoid+' Avoid');
+    (list.length+' shown'+(WMA_ONLY?' near an SMA zone':'')+(HIGH_ONLY?' high-confidence research (not validated)':'')+' - '+byv.Buy+' Buy - '+byv.Watch+' Watch - '+byv.Avoid+' Avoid');
 }
 function renderWmaAlerts(meta){
-  var box=$('#wma-alerts'), alerts=meta.wma_alerts||[], strong=meta.strong_business_wma_candidates||[];
-  if(!alerts.length&&!strong.length){ box.className='wma-alerts'; box.innerHTML=''; return; }
+  var box=$('#wma-alerts'), candidates=meta.moving_average_zone_candidates||[];
+  if(!candidates.length){ box.className='wma-alerts'; box.innerHTML=''; return; }
   box.className='wma-alerts on';
-  var general=alerts.length?'<div><b>Buy/Watch near 200-week moving average</b> (within '+esc(meta.wma_alert_threshold_pct)+'%): '+
-    alerts.map(function(a){ var side=a.distance_pct>=0?'above':'below'; return '<span><b>'+esc(a.ticker)+'</b> '+esc(a.verdict)+' - $'+esc(a.price)+' / WMA $'+esc(a.wma_200)+' ('+Math.abs(a.distance_pct)+'% '+side+')</span>'; }).join('')+'</div>':'';
-  var qualified=strong.length?'<div><b>Strong-business 200-week research candidates</b> — not automatic Buys: '+
-    strong.map(function(a){var side=a.distance_pct>=0?'above':'below';return '<span><b>'+esc(a.ticker)+'</b> '+esc(a.verdict)+' - Q '+esc(a.quality_score)+' / FS '+esc(a.financial_strength_score)+' / G '+esc(a.growth_score)+' - '+Math.abs(a.distance_pct)+'% '+side+'</span>';}).join('')+'</div>':'';
-  box.innerHTML=general+qualified;
+  var threshold=meta.moving_average_zone_threshold_pct;
+  box.innerHTML='<div><b>Fundamentally strong Buy/Watch stocks near an SMA zone</b> (within '+esc(threshold)+'% of 9-month, 20-month, or 200-week SMA): '+
+    candidates.map(function(a){var z=a.nearest_zone||{},side=z.distance_pct>=0?'above':'below',all=(a.zones||[]).map(function(x){return x.label;}).join(' / ');return '<span title="Qualified zones: '+esc(all)+'"><b>'+esc(a.ticker)+'</b> '+esc(a.verdict)+' - $'+esc(a.price)+' / '+esc(z.label)+' $'+esc(z.average)+' ('+Math.abs(z.distance_pct)+'% '+side+') - Q '+esc(a.quality_score)+' / FS '+esc(a.financial_strength_score)+' / G '+esc(a.growth_score)+'</span>';}).join('')+'</div>';
 }
 function today(){ return new Date().toISOString().slice(0,10); }
 function portfolioLoad(){ try{return JSON.parse(localStorage.getItem(PORTKEY)||'[]');}catch(e){return [];} }

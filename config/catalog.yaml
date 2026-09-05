@@ -54,6 +54,10 @@ fields:
   # ---- derived / slow (own transforms) --------------------------------------
   - {id: sma_200week,      entity: security, source: yfinance, adapter: yfinance, cadence: weekly,  unit: usd,   transform: sma_200week,    freshness_limit_h: 200, required_for: [market_confirmation], cost_tier: medium}
   - {id: dist_200wma_pct,  entity: security, source: yfinance, adapter: yfinance, cadence: weekly,  unit: pct,   transform: dist_from_200wma, freshness_limit_h: 200, required_for: [market_confirmation], cost_tier: medium}
+  - {id: sma_9month,       entity: security, source: yfinance, adapter: yfinance, cadence: daily,   unit: usd,   transform: sma_9month, freshness_limit_h: 200, required_for: [moving_average_zones], cost_tier: medium}
+  - {id: sma_20month,      entity: security, source: yfinance, adapter: yfinance, cadence: daily,   unit: usd,   transform: sma_20month, freshness_limit_h: 200, required_for: [moving_average_zones], cost_tier: medium}
+  - {id: dist_9month_sma_pct, entity: security, source: yfinance, adapter: yfinance, cadence: daily, unit: pct, transform: dist_from_9month_sma, freshness_limit_h: 200, required_for: [moving_average_zones], cost_tier: medium}
+  - {id: dist_20month_sma_pct, entity: security, source: yfinance, adapter: yfinance, cadence: daily, unit: pct, transform: dist_from_20month_sma, freshness_limit_h: 200, required_for: [moving_average_zones], cost_tier: medium}
   - {id: ema_9month,       entity: security, source: yfinance, adapter: yfinance, cadence: daily,   unit: usd,   transform: ema_9month, freshness_limit_h: 200, required_for: [buy_entry_alignment], cost_tier: medium}
   - {id: ema_20month,      entity: security, source: yfinance, adapter: yfinance, cadence: daily,   unit: usd,   transform: ema_20month, freshness_limit_h: 200, required_for: [buy_entry_alignment], cost_tier: medium}
   - {id: dist_9month_ema_pct, entity: security, source: yfinance, adapter: yfinance, cadence: daily, unit: pct, transform: dist_from_9month_ema, freshness_limit_h: 200, required_for: [buy_entry_alignment], cost_tier: medium}

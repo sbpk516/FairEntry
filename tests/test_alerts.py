@@ -1,49 +1,41 @@
 import json
 
-from fairentry.alerts import _send_email, strong_business_wma_candidates, wma_alerts
+from fairentry.alerts import _send_email, moving_average_zone_candidates
 
 
-def test_wma_alerts_only_include_shortlisted_names_inside_threshold():
-    stocks = [
-        {"ticker": "BUY", "company": "Buy Co", "verdict": "Buy", "price": 102.0},
-        {"ticker": "WATCH", "company": "Watch Co", "verdict": "Watch", "price": 98.0},
-        {"ticker": "FAR", "company": "Far Co", "verdict": "Buy", "price": 120.0},
-        {"ticker": "AVOID", "company": "Avoid Co", "verdict": "Avoid", "price": 100.0},
-    ]
-    metrics = {
-        "BUY": {"sma_200week": {"value": 100.0}},
-        "WATCH": {"sma_200week": {"value": 100.0}},
-        "FAR": {"sma_200week": {"value": 100.0}},
-        "AVOID": {"sma_200week": {"value": 100.0}},
-    }
-    alerts = wma_alerts(stocks, metrics, threshold_pct=3.0)
-    assert [a["ticker"] for a in alerts] == ["BUY", "WATCH"]
-    assert alerts[0]["wma_200"] == 100.0
-
-
-def test_strong_business_wma_candidates_do_not_require_a_buy_verdict():
+def test_moving_average_zones_require_strong_buy_or_watch_and_any_zone():
     categories = [
         {"id": "quality", "score": 80},
         {"id": "survival", "score": 75},
         {"id": "growth", "score": 90},
     ]
     stocks = [
-        {"ticker": "STRONG", "company": "Strong Co", "verdict": "Watch",
-         "price": 101.0, "categories": categories, "vetoes": []},
-        {"ticker": "WEAK", "company": "Weak Co", "verdict": "Buy",
-         "price": 100.0, "categories": [{**c, "score": 40} for c in categories],
-         "vetoes": []},
+        {"ticker": "BUY", "company": "Buy Co", "verdict": "Buy", "price": 102.0,
+         "categories": categories, "vetoes": []},
+        {"ticker": "WATCH", "company": "Watch Co", "verdict": "Watch", "price": 98.0,
+         "categories": categories, "vetoes": []},
+        {"ticker": "FAR", "company": "Far Co", "verdict": "Watch", "price": 120.0,
+         "categories": categories, "vetoes": []},
+        {"ticker": "AVOID", "company": "Avoid Co", "verdict": "Avoid", "price": 100.0,
+         "categories": categories, "vetoes": []},
+        {"ticker": "WEAK", "company": "Weak Co", "verdict": "Watch", "price": 100.0,
+         "categories": [{**row, "score": 40} for row in categories], "vetoes": []},
     ]
     metrics = {
-        "STRONG": {"sma_200week": {"value": 100.0}},
-        "WEAK": {"sma_200week": {"value": 100.0}},
+        "BUY": {"sma_9month": {"value": 100.0}, "sma_200week": {"value": 101.0}},
+        "WATCH": {"sma_20month": {"value": 100.0}},
+        "FAR": {"sma_200week": {"value": 100.0}},
+        "AVOID": {"sma_200week": {"value": 100.0}},
+        "WEAK": {"sma_9month": {"value": 100.0}},
     }
-
-    rows = strong_business_wma_candidates(stocks, metrics, threshold_pct=3.0)
-
-    assert [row["ticker"] for row in rows] == ["STRONG"]
-    assert rows[0]["verdict"] == "Watch"
-    assert rows[0]["production_effect"] == "none"
+    rows = moving_average_zone_candidates(stocks, metrics, threshold_pct=3.0)
+    assert [row["ticker"] for row in rows] == ["BUY", "WATCH"]
+    assert rows[0]["nearest_zone"]["label"] == "200-week SMA"
+    assert [zone["label"] for zone in rows[0]["zones"]] == [
+        "200-week SMA", "9-month SMA"
+    ]
+    assert rows[1]["nearest_zone"]["label"] == "20-month SMA"
+    assert all(row["verdict"] in {"Buy", "Watch"} for row in rows)
 
 
 def test_send_email_prefers_resend(monkeypatch):

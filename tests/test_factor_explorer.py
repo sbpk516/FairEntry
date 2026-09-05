@@ -102,10 +102,14 @@ def test_warehouse_enrichment_uses_only_filings_and_prices_available_by_buy_date
           ebit DOUBLE, intexp DOUBLE, roic DOUBLE
         )
     """)
-    revenues = [50, 55, 60, 65, 75, 82.5, 90, 97.5, 120]
+    # Sixteen quarters allow a true current-TTM versus TTM-three-years-ago
+    # diluted-EPS comparison. The final nine revenue values preserve the
+    # existing growth assertions below.
+    revenues = [20, 22, 24, 26, 30, 35, 40,
+                50, 55, 60, 65, 75, 82.5, 90, 97.5, 120]
     for index, revenue in enumerate(revenues):
-        period = date(2022, 3, 31) + timedelta(days=index * 91)
-        opinc = revenue * (0.20 if index == 8 else 0.10)
+        period = date(2020, 6, 30) + timedelta(days=index * 91)
+        opinc = revenue * (0.20 if index == len(revenues) - 1 else 0.10)
         connection.execute(
             "INSERT INTO sfa_fundamentals VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             ["ABC", "ARQ", period + timedelta(days=30), period,
@@ -115,6 +119,16 @@ def test_warehouse_enrichment_uses_only_filings_and_prices_available_by_buy_date
     # A later amendment to an older quarter must not enter the original
     # Buy-date lag calculation.
     amended_period = date(2022, 3, 31) + timedelta(days=7 * 91)
+    for index in range(12):
+        period = date(2020, 12, 31) + timedelta(days=index * 91)
+        art_revenue = 40 + index * 4
+        connection.execute(
+            "INSERT INTO sfa_fundamentals VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            ["ABC", "ART", period + timedelta(days=30), period, period,
+             art_revenue, art_revenue * .10, 8 + index, None, None, None,
+             160 + index * 3, art_revenue * .40, 10 + index, 9 + index,
+             30, 10, 15, -3, .12 + index * .005],
+        )
     connection.execute(
         "INSERT INTO sfa_fundamentals VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         ["ABC", "ARQ", "2025-02-01", amended_period, amended_period,
@@ -162,19 +176,32 @@ def test_warehouse_enrichment_uses_only_filings_and_prices_available_by_buy_date
 
     assert status == {"observations": 1, "enriched": 1}
     assert factors["revenue_growth_yoy_pct"] == pytest.approx(60)
+    assert factors["revenue_cagr_3y_pct"] == pytest.approx(35.7209)
+    assert factors["fcf_cagr_3y_pct"] == pytest.approx(35.7209)
+    assert factors["positive_fcf_history_pct"] == pytest.approx(100)
+    assert factors["fcf_history_observations"] == 12
     assert factors["prior_revenue_growth_yoy_pct"] == pytest.approx(50)
     assert factors["revenue_growth_change_pp"] == pytest.approx(10)
     assert factors["operating_margin_change_qoq_pp"] == pytest.approx(10)
     assert factors["fcf_margin_pct"] == pytest.approx(20)
+    assert factors["net_profit_margin_pct"] == pytest.approx(20)
+    assert factors["net_profit_margin_change_yoy_pp"] is not None
     assert factors["gross_profitability_pct"] == pytest.approx(20)
     assert factors["cash_conversion_pct"] == pytest.approx(120)
     assert factors["accruals_to_assets_pct"] == pytest.approx(-2)
     assert factors["net_debt_to_fcf"] == pytest.approx(1)
     assert factors["interest_coverage"] == pytest.approx(5)
     assert factors["roic_pct"] == pytest.approx(20)
+    assert factors["roic_5y_median_pct"] == pytest.approx(15)
+    assert factors["roic_5y_observations"] == 13
     assert factors["pe_to_revenue_growth"] == pytest.approx(0.5)
     assert factors["positive_eps_quarters_pct"] == pytest.approx(100)
     assert factors["eps_improving_quarters_pct"] == pytest.approx(100)
+    assert factors["eps_ttm_diluted"] == pytest.approx(58)
+    assert factors["eps_ttm_diluted_3y_ago"] == pytest.approx(10)
+    assert factors["eps_cagr_3y_pct"] == pytest.approx(79.6702)
+    assert factors["eps_recovery"] is False
+    assert factors["eps_deterioration"] is False
     assert factors["revenue_growth_positive_quarters_pct"] == pytest.approx(100)
     assert factors["trailing_pe"] == pytest.approx(30)
     assert factors["price_to_sales"] == pytest.approx(3)

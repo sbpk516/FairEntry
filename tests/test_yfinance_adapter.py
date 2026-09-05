@@ -15,6 +15,9 @@ def test_monthly_ema_and_weekly_obv_are_computed_from_adjusted_daily_history():
     result = _compute_from_history(history)
 
     assert result["ema_9month"] > result["ema_20month"] > 0
+    assert result["sma_9month"] > result["sma_20month"] > 0
+    assert "dist_9month_sma_pct" in result
+    assert "dist_20month_sma_pct" in result
     assert abs(result["dist_9month_ema_pct"]) < abs(result["dist_20month_ema_pct"])
     assert result["obv_above_20week_ema"] is True
     assert result["sma_200week"] > 0

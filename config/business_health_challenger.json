@@ -1,0 +1,45 @@
+{
+  "id": "business_health_v1",
+  "status": "research_only",
+  "production_effect": "none",
+  "buy_threshold": 72,
+  "minimum_category_coverage_pct": 60,
+  "top_level_weights": {
+    "quality": 22.5,
+    "survival": 6.25,
+    "growth": 33.75,
+    "valuation": 18.75,
+    "confirmation": 18.75
+  },
+  "quality_weights": {
+    "roic_quality": 40,
+    "operating_margin_level": 25,
+    "margin_trend": 20,
+    "fcf_quality": 15
+  },
+  "growth_weights": {
+    "revenue_growth": 29.4118,
+    "eps_growth": 29.4118,
+    "fcf_growth": 23.5294,
+    "growth_acceleration": 17.647
+  },
+  "market_share": {
+    "proposed_weight": 15,
+    "decision_status": "information_only",
+    "reason": "No broad, point-in-time historical series with consistent issuer coverage."
+  },
+  "thresholds": {
+    "roic_level_pct": {"floor": 5, "full": 20},
+    "roic_stability_stddev_pct": {"full": 2, "floor": 10},
+    "roic_trend_3y_pp": {"floor": -10, "full": 2},
+    "operating_margin_pct": {"floor": -5, "full": 20},
+    "operating_margin_trend_yoy_pp": {"floor": -5, "full": 3},
+    "fcf_margin_pct": {"floor": 0, "full": 15},
+    "cash_conversion_pct": {"floor": 50, "full": 100},
+    "positive_fcf_history_pct": {"floor": 25, "full": 100},
+    "revenue_growth_pct": {"floor": -5, "full": 25},
+    "eps_growth_pct": {"floor": -10, "full": 30},
+    "fcf_growth_pct": {"floor": -20, "full": 30},
+    "growth_acceleration_pp": {"floor": -15, "full": 10}
+  }
+}

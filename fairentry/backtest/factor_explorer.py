@@ -12,11 +12,39 @@ import statistics
 
 from fairentry.analytics.demand_momentum import _SECTOR_ETF
 from fairentry.backtest.evidence import _fixed_horizon_evaluation
-from fairentry.backtest.research_cycle import _number, _target_summary, _wilson, factor_value
+from fairentry.backtest.eps_growth_challenger import ttm_eps_growth
+from fairentry.backtest.research_cycle import _number, _target_summary, factor_value
 from fairentry.backtest.sfa_tune import _episode_roots
 
 
 FACTOR_DEFINITIONS = (
+    {
+        "id": "model_score",
+        "label": "Overall FairEntry score",
+        "field": "score",
+        "direction": "higher",
+        "unit": "/100",
+        "theme": "production_model",
+        "meaning": "The complete deterministic score recorded on the first Buy date.",
+    },
+    *(
+        {
+            "id": f"category_{category_id}",
+            "label": f"{label} category score",
+            "field": f"category.{category_id}",
+            "direction": "higher",
+            "unit": "/100",
+            "theme": "production_model",
+            "meaning": f"The recorded point-in-time {label} category score.",
+        }
+        for category_id, label in (
+            ("quality", "Business Quality"),
+            ("survival", "Financial Strength"),
+            ("growth", "Growth"),
+            ("valuation", "Valuation"),
+            ("confirmation", "Market Confirmation"),
+        )
+    ),
     {
         "id": "growth_deceleration",
         "label": "Revenue growth acceleration / deceleration",
@@ -72,6 +100,15 @@ FACTOR_DEFINITIONS = (
         "meaning": "Share of the latest four quarters whose diluted EPS exceeded the same quarter one year earlier.",
     },
     {
+        "id": "eps_growth_3y_ttm",
+        "label": "Three-year TTM diluted-EPS CAGR",
+        "field": "research.eps_cagr_3y_pct",
+        "direction": "higher",
+        "unit": "%",
+        "theme": "earnings_growth",
+        "meaning": "CAGR of reported trailing-12-month diluted EPS versus the comparable TTM period three years earlier; calculated only when both totals are positive.",
+    },
+    {
         "id": "margin_direction",
         "label": "Operating-margin direction",
         "field": "research.operating_margin_change_qoq_pp",
@@ -88,6 +125,24 @@ FACTOR_DEFINITIONS = (
         "unit": "%",
         "theme": "cash_flow_quality",
         "meaning": "Trailing free cash flow divided by trailing revenue, using the filing available on the Buy date.",
+    },
+    {
+        "id": "net_profit_margin",
+        "label": "Net profit margin",
+        "field": "research.net_profit_margin_pct",
+        "direction": "higher",
+        "unit": "%",
+        "theme": "profitability",
+        "meaning": "Trailing net income divided by trailing revenue from the filing available on the Buy date.",
+    },
+    {
+        "id": "net_profit_margin_trend",
+        "label": "Net profit-margin direction",
+        "field": "research.net_profit_margin_change_yoy_pp",
+        "direction": "higher",
+        "unit": "percentage points",
+        "theme": "profitability",
+        "meaning": "Current trailing net profit margin minus the comparable trailing margin one year earlier; positive means improving.",
     },
     {
         "id": "gross_profitability",
@@ -398,8 +453,11 @@ def _ratio(numerator, denominator, scale=1.0):
 
 def attach_warehouse_factors(observations: list[dict], connection) -> dict:
     """Attach derived as-of-date ratios to Buy observations in one warehouse query."""
+    # Enrich every scored observation. The factor explorer below still studies
+    # the production Buy episodes, while separately versioned challengers need
+    # the same point-in-time inputs for Watch/Avoid observations too.
     rows = [row for row in observations
-            if row.get("verdict") == "Buy" and row.get("ticker") and row.get("decision_date")]
+            if row.get("ticker") and row.get("decision_date")]
     if not rows:
         return {"observations": 0, "enriched": 0}
     import pandas as pd
@@ -414,8 +472,8 @@ def attach_warehouse_factors(observations: list[dict], connection) -> dict:
         str(column[1]).lower()
         for column in connection.execute("PRAGMA table_info('sfa_fundamentals')").fetchall()
     }
-    rnd_expression = "a.rnd" if "rnd" in fundamental_columns else "NULL"
-    capex_expression = "a.capex" if "capex" in fundamental_columns else "NULL"
+    rnd_expression = "f.rnd" if "rnd" in fundamental_columns else "NULL"
+    capex_expression = "f.capex" if "capex" in fundamental_columns else "NULL"
     connection.register("factor_observations", frame)
     try:
         result = connection.execute(f"""
@@ -438,6 +496,8 @@ def attach_warehouse_factors(observations: list[dict], connection) -> dict:
                  lag(revenue,8) OVER w AS revenue_prev_2y,
                  lag(opinc) OVER w AS opinc_prev_q,
                  lag(epsdil,4) OVER w AS epsdil_prev_y,
+                 lag(epsdil,8) OVER w AS epsdil_prev_2y,
+                 lag(epsdil,12) OVER w AS epsdil_prev_3y,
                  lag(sharesbas,4) OVER w AS sharesbas_prev_y,
                  lag(debtnc,4) OVER w AS debtnc_prev_y,
                  lag(assets,4) OVER w AS assets_prev_y
@@ -449,7 +509,11 @@ def attach_warehouse_factors(observations: list[dict], connection) -> dict:
         ), arq_rates AS (
           SELECT *,
                  CASE WHEN revenue_prev_y>0
-                      THEN (revenue-revenue_prev_y)*100.0/revenue_prev_y END AS revenue_growth_yoy_pct
+                      THEN (revenue-revenue_prev_y)*100.0/revenue_prev_y END AS revenue_growth_yoy_pct,
+                 CASE WHEN epsdil_prev_y>0
+                      THEN (epsdil-epsdil_prev_y)*100.0/epsdil_prev_y END AS eps_growth_yoy_pct,
+                 CASE WHEN epsdil_prev_2y>0
+                      THEN (epsdil_prev_y-epsdil_prev_2y)*100.0/epsdil_prev_2y END AS prior_eps_growth_yoy_pct
           FROM arq_lags
         ), arq_history AS (
           SELECT *,
@@ -463,6 +527,10 @@ def attach_warehouse_factors(observations: list[dict], connection) -> dict:
                  avg(CASE WHEN epsdil IS NULL OR epsdil_prev_y IS NULL THEN NULL
                           WHEN epsdil>epsdil_prev_y THEN 100.0 ELSE 0.0 END)
                    OVER w4 AS eps_improving_quarters_pct,
+                 CASE WHEN count(epsdil) OVER w4=4
+                      THEN sum(epsdil) OVER w4 END AS eps_ttm_diluted,
+                 CASE WHEN count(epsdil) OVER w4_3y=4
+                      THEN sum(epsdil) OVER w4_3y END AS eps_ttm_diluted_prev_3y,
                  row_number() OVER (
                    PARTITION BY observation_id
                    ORDER BY coalesce(calendardate,reportperiod) DESC,datekey DESC
@@ -470,7 +538,45 @@ def attach_warehouse_factors(observations: list[dict], connection) -> dict:
           FROM arq_rates
           WINDOW
             w4 AS (PARTITION BY observation_id ORDER BY coalesce(calendardate,reportperiod),datekey ROWS BETWEEN 3 PRECEDING AND CURRENT ROW),
+            w4_3y AS (PARTITION BY observation_id ORDER BY coalesce(calendardate,reportperiod),datekey ROWS BETWEEN 15 PRECEDING AND 12 PRECEDING),
             w8 AS (PARTITION BY observation_id ORDER BY coalesce(calendardate,reportperiod),datekey ROWS BETWEEN 7 PRECEDING AND CURRENT ROW)
+        ), available_art AS (
+          SELECT o.observation_id,f.ticker,f.datekey,f.reportperiod,f.calendardate,
+                 f.revenue,f.opinc,f.fcf,f.gp,f.assets,
+                 {rnd_expression} AS rnd,{capex_expression} AS capex,
+                 f.ncfo,f.netinc,f.debt,f.cashneq,f.ebit,f.intexp,f.roic,
+                 row_number() OVER (
+                   PARTITION BY o.observation_id,coalesce(f.calendardate,f.reportperiod)
+                   ORDER BY f.datekey DESC,f.reportperiod DESC
+                 ) AS revision_rank
+          FROM factor_observations o
+          JOIN sfa_fundamentals f
+            ON f.ticker=o.ticker AND f.dimension='ART'
+           AND f.datekey<=CAST(o.decision_date AS DATE)
+        ), art_history AS (
+          SELECT *,
+                 lag(revenue,4) OVER w AS revenue_prev_y,
+                 lag(revenue,12) OVER w AS revenue_prev_3y,
+                 lag(fcf,4) OVER w AS fcf_prev_y,
+                 lag(fcf,12) OVER w AS fcf_prev_3y,
+                 lag(roic,12) OVER w AS roic_prev_3y,
+                 lag(opinc,4) OVER w AS opinc_prev_y,
+                 lag(netinc,4) OVER w AS netinc_prev_y,
+                 median(roic) OVER w20 AS roic_5y_median,
+                 stddev_samp(roic) OVER w20 AS roic_5y_stddev,
+                 count(roic) OVER w20 AS roic_5y_observations,
+                 avg(CASE WHEN fcf IS NULL THEN NULL WHEN fcf>0 THEN 100.0 ELSE 0.0 END)
+                   OVER w12 AS positive_fcf_history_pct,
+                 count(fcf) OVER w12 AS fcf_history_observations,
+                 row_number() OVER (
+                   PARTITION BY observation_id
+                   ORDER BY coalesce(calendardate,reportperiod) DESC,datekey DESC
+                 ) AS latest_rank
+          FROM available_art WHERE revision_rank=1
+          WINDOW
+            w AS (PARTITION BY observation_id ORDER BY coalesce(calendardate,reportperiod),datekey),
+            w12 AS (PARTITION BY observation_id ORDER BY coalesce(calendardate,reportperiod),datekey ROWS BETWEEN 11 PRECEDING AND CURRENT ROW),
+            w20 AS (PARTITION BY observation_id ORDER BY coalesce(calendardate,reportperiod),datekey ROWS BETWEEN 19 PRECEDING AND CURRENT ROW)
         ), benchmark_history AS (
           SELECT o.observation_id,'sector' AS kind,p.date,p.closeadj
           FROM factor_observations o
@@ -500,14 +606,24 @@ def attach_warehouse_factors(observations: list[dict], connection) -> dict:
         SELECT o.observation_id,
                arq.revenue,arq.revenue_prev_q,arq.revenue_prev_y,arq.revenue_prev_2y,
                arq.opinc,arq.opinc_prev_q,
+               arq.epsdil,arq.epsdil_prev_y,arq.epsdil_prev_3y,
+               arq.eps_ttm_diluted,arq.eps_ttm_diluted_prev_3y,
+               arq.eps_growth_yoy_pct,arq.prior_eps_growth_yoy_pct,
                arq.positive_eps_quarters_pct,arq.eps_improving_quarters_pct,
                arq.revenue_growth_positive_quarters_pct,
                arq.revenue_growth_volatility_pct,arq.revenue_growth_min_pct,
                arq.sharesbas,arq.sharesbas_prev_y,
                arq.debtnc,arq.assets,arq.debtnc_prev_y,arq.assets_prev_y,
-               art.revenue art_revenue,art.fcf,art.gp,art.assets art_assets,
+               art.revenue art_revenue,art.revenue_prev_y art_revenue_prev_y,
+               art.revenue_prev_3y art_revenue_prev_3y,
+               art.fcf,art.fcf_prev_y,art.fcf_prev_3y,
+               art.opinc art_opinc,art.gp,art.assets art_assets,
                art.rnd,art.capex,
-               art.ncfo,art.netinc,art.debt,art.cashneq,art.ebit,art.intexp,art.roic,
+               art.ncfo,art.netinc,art.netinc_prev_y,
+               art.debt,art.cashneq,art.ebit,art.intexp,art.roic,
+               art.roic_prev_3y,art.roic_5y_median,art.roic_5y_stddev,
+               art.roic_5y_observations,art.positive_fcf_history_pct,
+               art.fcf_history_observations,art.opinc_prev_y,
                daily.pe,daily.ps,daily.pb,
                own.close,own.sma50,own.sma200,
                sector.close,sector.close_3m,sector.sma50,sector.sma200,
@@ -518,13 +634,8 @@ def attach_warehouse_factors(observations: list[dict], connection) -> dict:
           WHERE a.observation_id=o.observation_id AND a.latest_rank=1
         ) arq ON true
         LEFT JOIN LATERAL (
-          SELECT ticker,datekey,reportperiod,revenue,fcf,gp,assets,
-                 {rnd_expression} AS rnd,{capex_expression} AS capex,ncfo,netinc,
-                 debt,cashneq,ebit,intexp,roic
-          FROM sfa_fundamentals a
-          WHERE a.ticker=o.ticker AND a.datekey<=CAST(o.decision_date AS DATE)
-            AND a.dimension='ART'
-          ORDER BY a.reportperiod DESC,a.datekey DESC LIMIT 1
+          SELECT * FROM art_history a
+          WHERE a.observation_id=o.observation_id AND a.latest_rank=1
         ) art ON true
         LEFT JOIN LATERAL (
           SELECT pe,ps,pb FROM sfa_daily d
@@ -545,11 +656,19 @@ def attach_warehouse_factors(observations: list[dict], connection) -> dict:
         connection.unregister("factor_observations")
     by_id = {}
     for (observation_id, revenue, revenue_prev_q, revenue_prev_y, revenue_prev_2y,
-         opinc, opinc_prev_q, positive_eps_quarters, eps_improving_quarters,
+         opinc, opinc_prev_q, epsdil, epsdil_prev_y, epsdil_prev_3y,
+         eps_ttm_diluted, eps_ttm_diluted_prev_3y,
+         eps_growth_yoy, prior_eps_growth_yoy,
+         positive_eps_quarters, eps_improving_quarters,
          revenue_positive_quarters, revenue_growth_volatility, revenue_growth_min,
          sharesbas, sharesbas_prev_y, debtnc, assets, debtnc_prev_y, assets_prev_y,
-         art_revenue, fcf, gp, art_assets, rnd, capex, ncfo, netinc, debt, cashneq, ebit,
-         intexp, roic, pe, ps, pb, own_close, own_sma50, own_sma200,
+         art_revenue, art_revenue_prev_y, art_revenue_prev_3y,
+         fcf, fcf_prev_y, fcf_prev_3y, art_opinc, gp, art_assets, rnd, capex,
+         ncfo, netinc, netinc_prev_y,
+         debt, cashneq, ebit, intexp, roic, roic_prev_3y, roic_5y_median,
+         roic_5y_stddev, roic_5y_observations, positive_fcf_history,
+         fcf_history_observations, opinc_prev_y, pe, ps, pb,
+         own_close, own_sma50, own_sma200,
          sector_close, sector_close_3m, sector_sma50, sector_sma200,
          market_close, market_close_3m, market_sma50, market_sma200) in result:
         revenue_number = _number(revenue)
@@ -563,6 +682,7 @@ def attach_warehouse_factors(observations: list[dict], connection) -> dict:
                         if None not in (revenue_prev_y_number, revenue_prev_2y_number) else None)
         current_margin = _ratio(opinc, revenue, 100)
         prior_margin = _ratio(opinc_prev_q, revenue_prev_q, 100)
+        annual_margin = _ratio(opinc_prev_y, art_revenue_prev_y, 100)
         fcf_margin = _ratio(fcf, art_revenue, 100)
         gross_margin = _ratio(gp, art_revenue, 100)
         gross_profitability = _ratio(gp, art_assets, 100)
@@ -572,6 +692,12 @@ def attach_warehouse_factors(observations: list[dict], connection) -> dict:
             if capex_number is not None else None
         netinc_number = _number(netinc)
         ncfo_number = _number(ncfo)
+        net_profit_margin = _ratio(netinc_number, art_revenue, 100)
+        prior_net_profit_margin = _ratio(netinc_prev_y, art_revenue_prev_y, 100)
+        net_profit_margin_change = (
+            net_profit_margin - prior_net_profit_margin
+            if None not in (net_profit_margin, prior_net_profit_margin) else None
+        )
         cash_conversion = (_ratio(ncfo_number, netinc_number, 100)
                            if netinc_number is not None and netinc_number > 0 else None)
         accruals_to_assets = (
@@ -591,6 +717,12 @@ def attach_warehouse_factors(observations: list[dict], connection) -> dict:
             if interest_expense not in {None, 0} else None
         )
         roic_pct = _number(roic) * 100 if _number(roic) is not None else None
+        roic_prior_3y_pct = (_number(roic_prev_3y) * 100
+                             if _number(roic_prev_3y) is not None else None)
+        roic_median_pct = (_number(roic_5y_median) * 100
+                           if _number(roic_5y_median) is not None else None)
+        roic_stddev_pct = (_number(roic_5y_stddev) * 100
+                           if _number(roic_5y_stddev) is not None else None)
         pe_number = _number(pe)
         ps_number = _number(ps)
         pb_number = _number(pb)
@@ -605,6 +737,23 @@ def attach_warehouse_factors(observations: list[dict], connection) -> dict:
         market_return = (_ratio(_number(market_close) - _number(market_close_3m),
                                 market_close_3m, 100)
                          if None not in (_number(market_close), _number(market_close_3m)) else None)
+        eps_ttm_growth = ttm_eps_growth(
+            _number(eps_ttm_diluted), _number(eps_ttm_diluted_prev_3y)
+        )
+
+        def cagr(current, prior, years=3):
+            current, prior = _number(current), _number(prior)
+            if current is None or prior is None or current <= 0 or prior <= 0:
+                return None
+            return ((current / prior) ** (1 / years) - 1) * 100
+
+        art_revenue_yoy = (_ratio(_number(art_revenue) - _number(art_revenue_prev_y),
+                                  art_revenue_prev_y, 100)
+                           if None not in (_number(art_revenue),
+                                           _number(art_revenue_prev_y)) else None)
+        fcf_yoy = (_ratio(_number(fcf) - _number(fcf_prev_y), fcf_prev_y, 100)
+                   if None not in (_number(fcf), _number(fcf_prev_y))
+                   and _number(fcf_prev_y) > 0 else None)
 
         def trend_score(close, sma50, sma200):
             close, sma50, sma200 = _number(close), _number(sma50), _number(sma200)
@@ -630,7 +779,44 @@ def attach_warehouse_factors(observations: list[dict], connection) -> dict:
             if None not in (current_growth, prior_growth) else None,
             "operating_margin_change_qoq_pp": round(current_margin - prior_margin, 4)
             if None not in (current_margin, prior_margin) else None,
+            "operating_margin_pct": round(_ratio(opinc, revenue, 100), 4)
+            if _ratio(opinc, revenue, 100) is not None else None,
+            "operating_margin_change_yoy_pp": round(
+                _ratio(art_opinc, art_revenue, 100) - annual_margin, 4
+            ) if None not in (_ratio(art_opinc, art_revenue, 100), annual_margin) else None,
+            "revenue_cagr_3y_pct": round(cagr(art_revenue, art_revenue_prev_3y), 4)
+            if cagr(art_revenue, art_revenue_prev_3y) is not None else None,
+            "revenue_ttm_growth_yoy_pct": round(art_revenue_yoy, 4)
+            if art_revenue_yoy is not None else None,
+            "eps_growth_yoy_pct": round(_number(eps_growth_yoy), 4)
+            if _number(eps_growth_yoy) is not None else None,
+            "eps_ttm_diluted": round(_number(eps_ttm_diluted), 4)
+            if _number(eps_ttm_diluted) is not None else None,
+            "eps_ttm_diluted_3y_ago": round(_number(eps_ttm_diluted_prev_3y), 4)
+            if _number(eps_ttm_diluted_prev_3y) is not None else None,
+            "eps_recovery": eps_ttm_growth["state"] == "recovery",
+            "eps_deterioration": eps_ttm_growth["state"] == "deterioration",
+            "eps_growth_state": eps_ttm_growth["state"],
+            "eps_cagr_3y_pct": eps_ttm_growth["cagr_pct"],
+            "eps_growth_change_pp": round(
+                _number(eps_growth_yoy) - _number(prior_eps_growth_yoy), 4
+            ) if None not in (_number(eps_growth_yoy),
+                              _number(prior_eps_growth_yoy)) else None,
+            "fcf_growth_yoy_pct": round(fcf_yoy, 4) if fcf_yoy is not None else None,
+            "fcf_recovery": bool(_number(fcf) is not None and _number(fcf) > 0
+                                 and _number(fcf_prev_y) is not None
+                                 and _number(fcf_prev_y) <= 0),
+            "fcf_cagr_3y_pct": round(cagr(fcf, fcf_prev_3y), 4)
+            if cagr(fcf, fcf_prev_3y) is not None else None,
+            "positive_fcf_history_pct": round(_number(positive_fcf_history), 4)
+            if _number(positive_fcf_history) is not None else None,
+            "fcf_history_observations": int(fcf_history_observations)
+            if _number(fcf_history_observations) is not None else 0,
             "fcf_margin_pct": round(fcf_margin, 4) if fcf_margin is not None else None,
+            "net_profit_margin_pct": round(net_profit_margin, 4)
+            if net_profit_margin is not None else None,
+            "net_profit_margin_change_yoy_pp": round(net_profit_margin_change, 4)
+            if net_profit_margin_change is not None else None,
             "gross_margin_pct": round(gross_margin, 4) if gross_margin is not None else None,
             "gross_profitability_pct": round(gross_profitability, 4)
             if gross_profitability is not None else None,
@@ -647,6 +833,14 @@ def attach_warehouse_factors(observations: list[dict], connection) -> dict:
             "interest_coverage": round(interest_coverage, 4)
             if interest_coverage is not None else None,
             "roic_pct": round(roic_pct, 4) if roic_pct is not None else None,
+            "roic_5y_median_pct": round(roic_median_pct, 4)
+            if roic_median_pct is not None else None,
+            "roic_5y_stddev_pct": round(roic_stddev_pct, 4)
+            if roic_stddev_pct is not None else None,
+            "roic_5y_observations": int(roic_5y_observations)
+            if _number(roic_5y_observations) is not None else 0,
+            "roic_change_3y_pp": round(roic_pct - roic_prior_3y_pct, 4)
+            if None not in (roic_pct, roic_prior_3y_pct) else None,
             "pe_to_revenue_growth": round(pe_number / current_growth, 4)
             if pe_number is not None and pe_number > 0
             and current_growth is not None and current_growth > 0 else None,

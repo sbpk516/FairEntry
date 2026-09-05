@@ -128,7 +128,8 @@ def test_snapshot_applies_live_universe_floors_before_top_n():
         ticker VARCHAR,date DATE,action VARCHAR,contraticker VARCHAR)""")
     con.execute("INSERT INTO sfa_actions VALUES ('RENAMED','2025-06-01','tickerchangefrom','OLD')")
     con.execute("CREATE TABLE sfa_fund_prices(ticker VARCHAR,date DATE,closeadj DOUBLE)")
-    con.execute("CREATE TABLE sfa_prices(ticker VARCHAR,date DATE,closeadj DOUBLE)")
+    con.execute("""CREATE TABLE sfa_prices(
+        ticker VARCHAR,date DATE,close DOUBLE,closeadj DOUBLE,volume DOUBLE)""")
     con.execute("""CREATE TABLE sfa_insiders(ticker VARCHAR,filingdate DATE,transactioncode VARCHAR,
         transactionvalue DOUBLE,ownername VARCHAR,transactiondate DATE,officertitle VARCHAR)""")
     con.execute("""CREATE TABLE sfa_holdings_by_ticker(ticker VARCHAR,date DATE,shrunits DOUBLE,shrholders DOUBLE)""")

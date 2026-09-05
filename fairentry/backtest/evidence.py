@@ -1020,7 +1020,7 @@ def _return_attainment_view(
     for threshold in thresholds:
         horizon_rows = {}
         for horizon in horizons:
-            completed, reached, excluded, days = [], [], [], []
+            completed, reached, excluded, days, drawdowns = [], [], [], [], []
             for row in rows:
                 milestone = row.get("return_milestones") or {}
                 first = (milestone.get("first_hit_days") or {}).get(str(threshold))
@@ -1030,6 +1030,11 @@ def _return_attainment_view(
                     excluded.append(row)
                 if evaluation["counted_in_success_rate"]:
                     completed.append(row)
+                    drawdown = (milestone.get("max_drawdown_pct_by_horizon") or {}).get(
+                        str(horizon)
+                    )
+                    if isinstance(drawdown, (int, float)):
+                        drawdowns.append(float(drawdown))
                     if hit:
                         reached.append(row)
                         days.append(int(first))
@@ -1053,6 +1058,13 @@ def _return_attainment_view(
                     row.get("issuer_key") or row.get("security_id") or row.get("ticker")
                     for row in completed
                 }),
+                "drawdown_sample": len(drawdowns),
+                "median_max_drawdown_pct": (
+                    round(statistics.median(drawdowns), 1) if drawdowns else None
+                ),
+                "worst_max_drawdown_pct": (
+                    round(min(drawdowns), 1) if drawdowns else None
+                ),
             }
         matrix[str(threshold)] = horizon_rows
     return {"observations": len(rows), "matrix": matrix}

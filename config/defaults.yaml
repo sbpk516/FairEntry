@@ -2,8 +2,8 @@
 # user change them (with recommended / impact / reset shown per setting).
 version: 1
 
-# Alert Buy/Watch shortlist names when price is this close to the true 200-week MA.
-wma_alert_threshold_pct: 3.0
+# Show fundamentally strong Buy/Watch names this close to a moving-average zone.
+moving_average_zone_threshold_pct: 3.0
 
 settings:
   margin_of_safety_pct:

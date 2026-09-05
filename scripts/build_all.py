@@ -64,12 +64,32 @@ def _candidates(cfg, store, cap):
     return priority + remaining[:max(0, cap - len(priority))]
 
 
+def _moving_average_candidates(cfg, store):
+    """Cover every screened name that could appear in the SMA-zone view."""
+    candidates = _candidates(cfg, store, 0)
+    securities = {s["ticker"]: s for s in store.active_securities()}
+    medians = sector_medians(cfg, store)
+    defaults = {
+        key: value.get("default")
+        for key, value in (cfg.defaults.get("settings") or {}).items()
+        if isinstance(value, dict) and "default" in value
+    }
+    selected = []
+    for ticker in candidates:
+        security = securities[ticker]
+        record = score_ticker(cfg, security, store.metrics_for(ticker), medians, defaults)
+        checks = (record.get("buy_entry_alignment") or {}).get("checks") or {}
+        if not record.get("vetoes") and checks.get("fundamentals"):
+            selected.append(ticker)
+    return selected
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--refresh", action="store_true", help="refresh universe (Finviz) before scoring")
     ap.add_argument("--reason", action="store_true", help="run the LLM reasoning layer on the shortlist")
     ap.add_argument("--enrich-cap", type=int, default=60,
-                    help="how many top candidates to enrich with SEC forensic + 200wma (0=all)")
+                    help="how many top candidates to enrich with SEC forensic data (0=all)")
     args = ap.parse_args()
     cfg = load_config()
     with Store() as store:
@@ -78,8 +98,10 @@ def main():
             refresh(cfg, store)
         if args.enrich_cap != 0 or args.refresh:
             cand = _candidates(cfg, store, args.enrich_cap)
-            print(f"Enriching {len(cand)} candidates (SEC forensic + 200wma; cached)…")
-            refresh(cfg, store, sec_tickers=cand, wma_tickers=cand)
+            technical = sorted(set(cand) | set(_moving_average_candidates(cfg, store)))
+            print(f"Enriching {len(cand)} SEC candidates and {len(technical)} "
+                  "moving-average candidates (cached)…")
+            refresh(cfg, store, sec_tickers=cand, wma_tickers=technical)
         from fairentry.tracking import refresh_tracking_quotes
         quote_refresh = refresh_tracking_quotes(store)
         print(f"Tracking quotes: {quote_refresh['refreshed']}/{quote_refresh['requested']} refreshed "
@@ -97,12 +119,12 @@ def main():
                                      "signals": track.get("signals", 0)}
         path = write_board(board)
         from fairentry.alerts import email_trading_alerts, email_wma_alerts
-        wma_alerts = board["meta"].get("wma_alerts", [])
+        wma_alerts = board["meta"].get("moving_average_zone_candidates", [])
         try:
             emailed = email_wma_alerts(wma_alerts)
         except Exception as exc:
             emailed = False
-            print(f"200 WMA email failed: {exc}")
+            print(f"SMA-zone email failed: {exc}")
         try:
             trading_emailed = email_trading_alerts(track.get("new_buys", []),
                                                    track.get("near_30", []),
@@ -119,7 +141,7 @@ def main():
     for a in track["alerts"][:8]:
         print(f"  ALERT {a['ticker']} ({a['strategy']}): {a['from']} -> {a['to']} "
               f"(score {a['score_from']} -> {a['score_to']})")
-    print(f"200 WMA alerts: {len(wma_alerts)}" + (" (email sent)" if emailed else ""))
+    print(f"SMA-zone candidates: {len(wma_alerts)}" + (" (email sent)" if emailed else ""))
     print(f"New Buy alerts: {len(track.get('new_buys', []))}" +
           (" (email sent)" if trading_emailed["new_buys"] else ""))
     print(f"Near +30% alerts: {len(track.get('near_30', []))}" +

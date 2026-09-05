@@ -16,6 +16,7 @@ import pandas as pd
 import numpy as np
 
 from ..analytics.demand_momentum import _SECTOR_ETF
+from ..analytics.entry_alignment import compute_entry_alignment_from_history
 from ..analytics.breakout_setup import (breakout_price_metric,
     breakout_volume_metric, relative_strength_metric, trend_regime_metric)
 from ..scoring.engine import medians_from, score_ticker
@@ -58,6 +59,7 @@ def _implementation_fingerprint() -> str:
         repo / "requirements.txt",
         repo / "fairentry" / "analytics" / "breakout_setup.py",
         repo / "fairentry" / "analytics" / "demand_momentum.py",
+        repo / "fairentry" / "analytics" / "entry_alignment.py",
         repo / "fairentry" / "pipeline" / "export.py",
         repo / "fairentry" / "backtest" / "seed.py",
         repo / "fairentry" / "backtest" / "sfa_tune.py",
@@ -671,6 +673,67 @@ class SFAReplay:
         self._enrich_point_in_time(candidates, asof)
         return candidates, out
 
+    def _enrich_entry_alignment(self, items: list[dict], asof: str) -> None:
+        """Add the production EMA/OBV inputs using daily rows known at ``asof``."""
+        tickers = sorted({item["sec"]["ticker"] for item in items})
+        if not tickers:
+            return
+        requested = pd.DataFrame({"ticker": tickers})
+        self.con.register("entry_alignment_tickers", requested)
+        start = (pd.Timestamp(asof) - pd.DateOffset(years=5)).date().isoformat()
+        try:
+            prices = self.con.execute("""
+              SELECT p.ticker,p.date,p.close,p.closeadj,p.volume
+              FROM sfa_prices p JOIN entry_alignment_tickers r USING(ticker)
+              WHERE p.date BETWEEN ? AND ?
+              ORDER BY p.ticker,p.date
+            """, [start, asof]).fetchdf()
+        finally:
+            self.con.unregister("entry_alignment_tickers")
+
+        by_ticker = {}
+        for ticker, group in prices.groupby("ticker", sort=False):
+            history = group.set_index("date")[["closeadj", "volume"]].rename(
+                columns={"closeadj": "Close", "volume": "Volume"}
+            )
+            calculated = compute_entry_alignment_from_history(history, asof=asof)
+            if calculated:
+                by_ticker[str(ticker)] = calculated
+
+        for item in items:
+            ticker = item["sec"]["ticker"]
+            calculated = by_ticker.get(ticker)
+            if not calculated:
+                continue
+            metrics = item["metrics"]
+            adjusted_price = calculated.get("entry_alignment_price")
+            raw_price = (metrics.get("price") or {}).get("value")
+            scale = (
+                float(raw_price) / float(adjusted_price)
+                if isinstance(raw_price, (int, float)) and raw_price > 0
+                and isinstance(adjusted_price, (int, float)) and adjusted_price > 0
+                else 1.0
+            )
+            effective = calculated.get("entry_alignment_price_date") or asof
+            for key in ("ema_9month", "ema_20month"):
+                value = calculated.get(key)
+                if isinstance(value, (int, float)):
+                    # score_ticker compares the raw price with the EMA. Scale the
+                    # adjusted-history EMA into the raw-price basis; this leaves
+                    # the price/EMA distance unchanged through later splits.
+                    metrics[key] = _metric(
+                        float(value) * scale,
+                        "sharadar_sep_daily_point_in_time",
+                        effective,
+                    )
+            for key in ("dist_9month_ema_pct", "dist_20month_ema_pct",
+                        "obv_above_20week_ema"):
+                value = calculated.get(key)
+                if value is not None:
+                    metrics[key] = _metric(
+                        value, "sharadar_sep_daily_point_in_time", effective
+                    )
+
     def _enrich_point_in_time(self, items: list[dict], asof: str) -> None:
         """Add historical flow and beta factors available in the licensed bundle."""
         tickers = [item["sec"]["ticker"] for item in items]
@@ -949,6 +1012,9 @@ def run_sfa_rolling(
         for item in category["items"]
     } | {"price", "fwd_pe", "ps_ratio", "pb_ratio", "pfcf_ratio",
          "perf_year", "gross_margin", "debt_eq", "rev_growth_qoq"}
+    expected_fields |= {
+        "ema_9month", "ema_20month", "obv_above_20week_ema"
+    }
     alpha = {"Buy": [], "Watch": [], "Avoid": []}
     raw = {k: [] for k in alpha}
     per_obs, cohorts, observations = {}, [], []
@@ -998,6 +1064,24 @@ def run_sfa_rolling(
         medians = medians_from(
             cfg, [(x["sec"]["sector"], x["metrics"]) for x in median_universe]
         )
+        # EMA/OBV cannot change categories, fair value, or vetoes. Calculate the
+        # comparatively expensive daily-history features only for names that
+        # can still become Buy, then run the production scorer again below.
+        technical_candidates = []
+        for item in filtered:
+            primary = _live_primary_strategy(item["memberships"])
+            preliminary_settings, _ = _settings_for_strategy(
+                cfg, settings, primary
+            )
+            preliminary = score_ticker(
+                cfg, item["sec"], item["metrics"], medians,
+                preliminary_settings,
+            )
+            checks = (preliminary.get("buy_entry_alignment") or {}).get("checks") or {}
+            if (checks.get("fundamentals") and checks.get("valuation")
+                    and not preliminary.get("vetoes")):
+                technical_candidates.append(item)
+        replay._enrich_entry_alignment(technical_candidates, entry)
         fixed_horizons = tuple(sorted(set(strategy.horizons_days + (hold_days,))))
         fixed = replay.fixed_outcomes(
             [x["sec"]["ticker"] for x in filtered],
@@ -1178,6 +1262,7 @@ def run_sfa_rolling(
                 "vetoes": rec["vetoes"],
                 "context_warnings": rec.get("context_warnings", []),
                 "soft_gates": rec["soft_gates"],
+                "buy_entry_alignment": rec.get("buy_entry_alignment"),
                 "growth_qualification": rec.get("growth_qualification"),
                 "debt_direction": rec.get("research_metrics"),
                 "categories": _compact_categories(rec["categories"]),
@@ -1619,6 +1704,16 @@ def run_sfa_rolling(
             "exit_transaction_cost_bps": strategy.exit_transaction_cost_bps,
             "return_basis": "dividend_adjusted_return_with_entry_and_exit_costs",
             "stock_and_benchmark_dates_aligned": True,
+        },
+        "buy_entry_alignment_replay": {
+            "version": 1,
+            "scorer": "fairentry.scoring.engine.score_ticker",
+            "point_in_time": True,
+            "price_input": "Sharadar SEP daily adjusted close through decision date",
+            "monthly_rule": "9/20-month EMA from daily bars resampled at month end, including only the partial month known at decision time",
+            "weekly_rule": "weekly OBV and 20-week OBV EMA from daily bars through decision time; no incomplete-week future rows",
+            "ema_policy": "any",
+            "valuation_rule": "price at or below fair-value base with at least one replayable method",
         },
         "cohorts": len(cohorts),
         "window": [cohorts[0]["entry"], cohorts[-1]["exit"]],
