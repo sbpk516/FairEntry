@@ -17,11 +17,16 @@ from fairentry.pipeline.export import build_board, write_board
 from fairentry.pipeline.emerging import build_emerging_candidates
 from fairentry.screeners import REGISTRY as SCREENERS
 from fairentry.backtest.universe import deduplicate_issuers
+from fairentry.scoring.engine import score_ticker, sector_medians
 
 
 def _candidates(cfg, store, cap):
-    """Screened tickers (union), top-`cap` by market cap — the set worth the
-    expensive SEC/yfinance enrichment."""
+    """Choose enrichment names without excluding possible aligned Buys.
+
+    Every screened name already passing fundamentals, fair value, and vetoes is
+    prioritized for the EMA/OBV fetch. Remaining capacity is filled by market
+    cap, preserving the previous bounded enrichment behavior.
+    """
     cand = set()
     for mod in SCREENERS.values():
         for s in store.active_securities():
@@ -35,8 +40,28 @@ def _candidates(cfg, store, cap):
         {"sec": security, "metrics": store.metrics_for(security["ticker"])}
         for security in store.active_securities() if security["ticker"] in cand
     ])
-    cand = [item["sec"]["ticker"] for item in representatives]
-    return sorted(cand, key=capval, reverse=True)[:cap] if cap else sorted(cand)
+    securities = [item["sec"] for item in representatives]
+    medians = sector_medians(cfg, store)
+    defaults = {
+        key: value.get("default")
+        for key, value in (cfg.defaults.get("settings") or {}).items()
+        if isinstance(value, dict) and "default" in value
+    }
+    prequalified = []
+    for security in securities:
+        record = score_ticker(
+            cfg, security, store.metrics_for(security["ticker"]), medians, defaults
+        )
+        checks = (record.get("buy_entry_alignment") or {}).get("checks") or {}
+        if not record.get("vetoes") and checks.get("fundamentals") and checks.get("valuation"):
+            prequalified.append(security["ticker"])
+
+    ordered = sorted((security["ticker"] for security in securities), key=capval, reverse=True)
+    if not cap:
+        return ordered
+    priority = sorted(prequalified, key=capval, reverse=True)
+    remaining = [ticker for ticker in ordered if ticker not in set(priority)]
+    return priority + remaining[:max(0, cap - len(priority))]
 
 
 def main():
