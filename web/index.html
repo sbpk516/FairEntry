@@ -90,8 +90,22 @@
 
   /* board */
   .board{ display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:14px; padding:14px 20px 60px; }
-  .wma-alerts{display:none;margin:14px 20px 0;padding:12px 14px;border:1px solid var(--buy-line);background:var(--buy-bg);border-radius:10px;color:var(--ink)}
-  .wma-alerts.on{display:block}.wma-alerts b{color:var(--buy-text)}.wma-alerts span{display:inline-block;margin:5px 12px 0 0}
+  .wma-alerts{display:none;margin:14px 20px 0;border:1px solid var(--buy-line);background:var(--buy-bg);border-radius:12px;color:var(--ink);overflow:hidden}
+  .wma-alerts.on{display:block}
+  .wma-alert-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:13px 15px;border-bottom:1px solid var(--buy-line)}
+  .wma-alert-title{font-weight:800;color:var(--buy-text)}
+  .wma-alert-note{font-size:12px;color:var(--ink-soft);margin-top:3px}
+  .wma-alert-count{font-family:var(--mono);font-size:11px;font-weight:750;color:var(--buy-text);background:var(--panel);border:1px solid var(--buy-line);border-radius:999px;padding:4px 9px;white-space:nowrap}
+  .wma-alert-table-wrap{overflow-x:auto;background:var(--panel)}
+  .wma-alert-table{width:100%;border-collapse:collapse;font-size:12.5px}
+  .wma-alert-table th{padding:8px 12px;text-align:left;color:var(--ink-faint);font-size:10px;text-transform:uppercase;letter-spacing:.05em;background:var(--panel-2);white-space:nowrap}
+  .wma-alert-table td{padding:9px 12px;border-top:1px solid var(--line-soft);white-space:nowrap}
+  .wma-alert-table tbody tr:hover{background:var(--buy-bg)}
+  .wma-alert-table .ticker{font-family:var(--mono);font-weight:850;color:var(--buy-text)}
+  .wma-alert-table .num{text-align:right;font-family:var(--mono)}
+  .wma-alert-table .scores{font-family:var(--mono);color:var(--ink-soft)}
+  .wma-alert-table .distance{font-family:var(--mono);font-weight:750;color:var(--buy-text)}
+  @media (max-width:720px){.wma-alerts{margin:10px 12px 0}.wma-alert-head{padding:12px}.wma-alert-table th,.wma-alert-table td{padding:8px 10px}}
   .tile{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:0; overflow:hidden;
     cursor:pointer; transition:border-color .15s, transform .1s; position:relative; }
   .tile:hover{ border-color:var(--accent); transform:translateY(-1px); }
@@ -890,8 +904,11 @@ function renderWmaAlerts(meta){
   if(!candidates.length){ box.className='wma-alerts'; box.innerHTML=''; return; }
   box.className='wma-alerts on';
   var threshold=meta.moving_average_zone_threshold_pct;
-  box.innerHTML='<div><b>Fundamentally strong Buy/Watch stocks near an SMA zone</b> (within '+esc(threshold)+'% of 9-month, 20-month, or 200-week SMA): '+
-    candidates.map(function(a){var z=a.nearest_zone||{},side=z.distance_pct>=0?'above':'below',all=(a.zones||[]).map(function(x){return x.label;}).join(' / ');return '<span title="Qualified zones: '+esc(all)+'"><b>'+esc(a.ticker)+'</b> '+esc(a.verdict)+' - $'+esc(a.price)+' / '+esc(z.label)+' $'+esc(z.average)+' ('+Math.abs(z.distance_pct)+'% '+side+') - Q '+esc(a.quality_score)+' / FS '+esc(a.financial_strength_score)+' / G '+esc(a.growth_score)+'</span>';}).join('')+'</div>';
+  var rows=candidates.map(function(a){
+    var z=a.nearest_zone||{},distance=Number(z.distance_pct),side=distance>=0?'above':'below',all=(a.zones||[]).map(function(x){return x.label;}).join(' / '),vk=String(a.verdict||'').toLowerCase();
+    return '<tr title="Qualified zones: '+esc(all)+'"><td class="ticker">'+esc(a.ticker)+'</td><td><span class="vpill bg-'+esc(vk)+' v-'+esc(vk)+'">'+esc(a.verdict)+'</span></td><td class="num">$'+esc(a.price)+'</td><td>'+esc(z.label)+' <span class="meta">$'+esc(z.average)+'</span></td><td class="distance">'+Math.abs(distance).toFixed(1)+'% '+side+'</td><td class="scores">Q '+esc(a.quality_score)+' &nbsp; FS '+esc(a.financial_strength_score)+' &nbsp; G '+esc(a.growth_score)+'</td></tr>';
+  }).join('');
+  box.innerHTML='<div class="wma-alert-head"><div><div class="wma-alert-title">Fundamentally strong stocks near an SMA zone</div><div class="wma-alert-note">Within '+esc(threshold)+'% of the 9-month, 20-month, or 200-week SMA</div></div><span class="wma-alert-count">'+candidates.length+' matches</span></div><div class="wma-alert-table-wrap"><table class="wma-alert-table"><thead><tr><th>Stock</th><th>Verdict</th><th class="num">Price</th><th>Nearest support zone</th><th>Distance</th><th>Fundamentals</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
 function today(){ return new Date().toISOString().slice(0,10); }
 function portfolioLoad(){ try{return JSON.parse(localStorage.getItem(PORTKEY)||'[]');}catch(e){return [];} }
