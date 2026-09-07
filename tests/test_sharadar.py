@@ -10,6 +10,7 @@ from fairentry.backtest.sfa_replay import (
     SFAReplay,
     _fcf_currency_conversion,
     _implementation_fingerprint,
+    _terminal_horizon_values,
     _row_metrics,
 )
 from fairentry.backtest.sfa_tune import (
@@ -84,6 +85,30 @@ def test_specific_terminal_cause_wins_over_generic_delisted_row():
     assert event["action"] == "acquisitionby"
     assert event["terminal_return_policy"] == "last_total_return_close"
     con.close()
+
+
+def test_terminal_horizon_return_uses_terminal_price_not_primary_hold_return():
+    price, return_pct = _terminal_horizon_values(
+        {"last_close": 150.0, "last_closeadj": 150.0},
+        entry_closeadj=100.0,
+        entry_cost=0.0015,
+        exit_cost=0.0015,
+        policy="last_total_return_close",
+    )
+    assert price == 150.0
+    assert return_pct == pytest.approx(
+        ((150.0 * 0.9985) / (100.0 * 1.0015) - 1) * 100
+    )
+
+
+def test_bankruptcy_terminal_horizon_is_total_loss():
+    assert _terminal_horizon_values(
+        {"last_close": 3.0, "last_closeadj": 3.0},
+        entry_closeadj=100.0,
+        entry_cost=0.0015,
+        exit_cost=0.0015,
+        policy="zero",
+    ) == (0.0, -100.0)
 
 
 def test_snapshot_applies_live_universe_floors_before_top_n():

@@ -26,6 +26,13 @@ python scripts/build_sfa_features.py
 python scripts/sfa_backtest.py --step 30 --hold 30
 python scripts/emerging_candidate_backtest.py  # fixed Broad/Balanced/Selective replay
 
+# independently recalculate recorded SFA Buy returns with VectorBT Community
+pip install -r requirements-research.txt
+python scripts/vectorbt_crosscheck.py --require-complete
+# optional full-verdict audits (larger, memory-bounded internally)
+python scripts/vectorbt_crosscheck.py --verdicts Watch --require-complete --json-out data/reports/vectorbt-crosscheck-watch.json
+python scripts/vectorbt_crosscheck.py --verdicts Avoid --require-complete --json-out data/reports/vectorbt-crosscheck-avoid.json
+
 # view the app
 cd web && python -m http.server 8795   # open http://localhost:8795
 # portfolio tracker: http://localhost:8795/portfolio.html

@@ -41,6 +41,39 @@ from .targets import targets_for
 from .universe import deduplicate_issuers, issuer_key
 
 
+def _net_return_pct(
+    entry_closeadj: float,
+    exit_closeadj: float,
+    entry_cost: float,
+    exit_cost: float,
+) -> float:
+    """Calculate a cost-adjusted total return from two adjusted closes."""
+    return (
+        (float(exit_closeadj) * (1 - exit_cost))
+        / (float(entry_closeadj) * (1 + entry_cost))
+        - 1
+    ) * 100
+
+
+def _terminal_horizon_values(
+    prices: dict,
+    entry_closeadj: float,
+    entry_cost: float,
+    exit_cost: float,
+    policy: str,
+) -> tuple[float | None, float | None]:
+    """Return the terminal price/return, never an earlier primary-hold return."""
+    if policy == "zero":
+        return 0.0, -100.0
+    terminal_close = prices.get("last_close")
+    terminal_closeadj = prices.get("last_closeadj") or terminal_close
+    if terminal_close is None or terminal_closeadj is None:
+        return None, None
+    return float(terminal_close), _net_return_pct(
+        entry_closeadj, terminal_closeadj, entry_cost, exit_cost
+    )
+
+
 def _implementation_fingerprint() -> str:
     """Fingerprint replay/scoring code and live model config for reproducibility."""
     repo = Path(__file__).resolve().parents[2]
@@ -1162,8 +1195,9 @@ def run_sfa_rolling(
             )
             entry_cost = (strategy.slippage_bps + strategy.transaction_cost_bps) / 10000
             exit_cost = (strategy.exit_slippage_bps + strategy.exit_transaction_cost_bps) / 10000
-            raw_return = ((p1row["closeadj"] * (1 - exit_cost)) /
-                          (p0row["closeadj"] * (1 + entry_cost)) - 1) * 100
+            raw_return = _net_return_pct(
+                p0row["closeadj"], p1row["closeadj"], entry_cost, exit_cost
+            )
             benchmark_key = (p0row["date"], p1row["date"])
             if benchmark_key not in benchmark_cache:
                 benchmark_cache[benchmark_key] = replay.benchmark_return(*benchmark_key)
@@ -1178,8 +1212,9 @@ def run_sfa_rolling(
                 observed = prices.get(f"date_{horizon}")
                 if close and closeadj and observed:
                     horizon_exit = observed.isoformat()
-                    horizon_return = ((float(closeadj) * (1 - exit_cost)) /
-                                      (p0row["closeadj"] * (1 + entry_cost)) - 1) * 100
+                    horizon_return = _net_return_pct(
+                        p0row["closeadj"], float(closeadj), entry_cost, exit_cost
+                    )
                     key = (p0row["date"], horizon_exit)
                     if key not in benchmark_cache:
                         benchmark_cache[key] = replay.benchmark_return(*key)
@@ -1194,15 +1229,25 @@ def run_sfa_rolling(
                 elif terminal and terminal["date"] <= (
                     date.fromisoformat(p0row["date"]) + timedelta(days=horizon)
                 ).isoformat():
-                    terminal_return = (-100.0 if terminal["terminal_return_policy"] == "zero"
-                                       else raw_return)
+                    terminal_price, terminal_return = _terminal_horizon_values(
+                        prices,
+                        p0row["closeadj"],
+                        entry_cost,
+                        exit_cost,
+                        terminal["terminal_return_policy"],
+                    )
+                    if terminal_return is None:
+                        horizon_results[str(horizon)] = {
+                            "status": "insufficient_forward_history"
+                        }
+                        continue
                     key = (p0row["date"], terminal["date"])
                     if key not in benchmark_cache:
                         benchmark_cache[key] = replay.benchmark_return(*key)
                     horizon_benchmark = benchmark_cache[key]
                     horizon_results[str(horizon)] = {
                         "date": terminal["date"],
-                        "price": 0 if terminal["terminal_return_policy"] == "zero" else round(p1row["close"], 2),
+                        "price": round(terminal_price, 2),
                         "return_pct": round(terminal_return, 2),
                         "benchmark_return_pct": round(horizon_benchmark, 2) if horizon_benchmark is not None else None,
                         "alpha_pct": round(terminal_return - horizon_benchmark, 2) if horizon_benchmark is not None else None,

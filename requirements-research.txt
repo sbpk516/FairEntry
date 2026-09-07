@@ -1,0 +1,6 @@
+-r requirements.txt
+
+# Independent portfolio-engine cross-checks. VectorBT 1.1.0 still references
+# Plotly's pre-v7 scattermapbox template, so keep Plotly below 7.
+vectorbt==1.1.0
+plotly>=6,<7
