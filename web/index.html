@@ -834,6 +834,10 @@ function contextChips(s){ var c=s.context||{};
   if(s.demand_momentum&&s.demand_momentum.tone){
     parts.push('<span class="ctag '+dmToneClass(s.demand_momentum.tone)+'">Read - Price demand '+esc(s.demand_momentum.tone)+esc(dmShort(s.demand_momentum))+'</span>');
   }
+  var momentumShadow=(s.demand_momentum||{}).high_confidence_buy_shadow;
+  if(s.verdict==='Buy'&&momentumShadow){
+    parts.unshift('<span class="ctag '+(momentumShadow.eligible?'good':'warn')+'" title="Frozen research-only confirmation · 0 points · official Buy unchanged">'+esc(momentumShadow.label||'Momentum shadow unavailable')+'</span>');
+  }
   if(s.entry_exit_evidence&&s.entry_exit_evidence.entry_alignment){
     var ee=s.entry_exit_evidence, entryTone=(ee.entry_alignment==='supportive'||ee.entry_alignment==='constructive')?'good':ee.entry_alignment==='cautionary'?'bad':'warn';
     parts.push('<span class="ctag '+entryTone+'">Evidence - Entry '+esc(ee.entry_alignment)+' · Exit pressure '+esc(ee.exit_pressure||'unknown')+'</span>');
@@ -1126,10 +1130,14 @@ function demandMomentumHTML(s){
       '<td'+signedStyle(r.market_alpha_pct)+'>'+pct2(r.market_alpha_pct)+'</td>'+
       '<td'+signedStyle(r.sector_alpha_pct)+'>'+pct2(r.sector_alpha_pct)+'</td></tr>';
   }).join('');
-  var vol=d.volume||{}, tone=d.tone||'mixed';
+  var vol=d.volume||{}, tone=d.tone||'mixed', rel=d.six_month_sector_confirmation||{}, shadow=d.high_confidence_buy_shadow||{};
   var lab=tone==='strong'||tone==='improving'?'good':tone==='weak'?'bad':'warn';
+  var relLab=rel.classification==='improving'?'good':rel.classification==='deteriorating'?'bad':rel.classification==='unavailable'?'info':'warn';
+  var shadowLab=shadow.eligible?'good':shadow.status==='momentum_not_confirmed'?'warn':'info';
   return '<div class="sub-h">Demand &amp; Momentum <span style="font-weight:400;color:var(--ink-faint);font-size:12px">(context only &mdash; NOT scored; does not affect Buy / Watch / Avoid)</span></div>'+
-    '<div class="dm-box"><div class="dm-head"><span class="lab '+lab+'">'+esc(tone)+'</span><div class="dm-summary">'+esc(d.summary||'Demand context unavailable.')+'</div><span class="dm-note">not scored</span></div>'+
+    '<div class="dm-box"><div class="dm-head"><span class="lab '+shadowLab+'">'+esc(shadow.label||'Momentum shadow unavailable')+'</span><div class="dm-summary">'+esc(shadow.reason||'The research-only Buy confirmation is unavailable.')+'</div><span class="dm-note">0 points · no verdict effect</span></div>'+
+    '<div class="dm-head"><span class="lab '+relLab+'">Sector momentum '+esc(rel.display_direction||'Unavailable')+'</span><div class="dm-summary">Six-month stock minus '+esc(rel.sector_benchmark||d.sector_benchmark||'sector ETF')+': <b>'+pct2(rel.relative_momentum_6m_pct)+'</b>; one month earlier: <b>'+pct2(rel.prior_relative_momentum_6m_pct)+'</b>; change: <b>'+pct2(rel.relative_momentum_change_1m_pp)+'</b>.</div><span class="dm-note">frozen rule · research only</span></div>'+
+    '<div class="dm-head"><span class="lab '+lab+'">'+esc(tone)+'</span><div class="dm-summary">'+esc(d.summary||'Demand context unavailable.')+'</div><span class="dm-note">not scored</span></div>'+
     '<div class="dm-grid"><table class="dm-table"><thead><tr><th>Period</th><th>Stock</th><th>vs SPY</th><th>vs sector</th></tr></thead><tbody>'+rows+'</tbody></table>'+
     '<div class="dm-side">'+
       '<div class="k">Market benchmark</div><div class="v">'+esc(d.market_benchmark||'SPY')+'</div>'+

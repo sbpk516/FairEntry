@@ -12,7 +12,10 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from fairentry.analytics.demand_momentum import _SECTOR_ETF
-from fairentry.analytics.relative_momentum import calculate_relative_momentum
+from fairentry.analytics.relative_momentum import (
+    build_high_confidence_shadow,
+    calculate_relative_momentum,
+)
 from fairentry.backtest.research_cycle import _partition, _split_dates, _target_summary
 from fairentry.backtest.sfa_tune import _episode_roots
 
@@ -20,7 +23,7 @@ from fairentry.backtest.sfa_tune import _episode_roots
 ROOT = Path(__file__).resolve().parents[2]
 REGISTRY_PATH = ROOT / "config" / "relative_momentum_experiments.json"
 EXPERIMENT_ID = "six_month_sector_relative_momentum_v1"
-VERSION = 1
+VERSION = 2
 MINIMUM_COMPLETED_PER_GROUP = 30
 MINIMUM_UNIQUE_ISSUERS_PER_GROUP = 20
 MINIMUM_IMPROVEMENT_PP = 5.0
@@ -28,7 +31,12 @@ MAXIMUM_DRAWDOWN_DETERIORATION_PP = 2.0
 OUTCOME_CONTRACTS = (
     ("primary_30_within_one_year", 30, 365),
     ("secondary_25_within_one_year", 25, 365),
+    ("secondary_40_within_one_year", 40, 365),
+    ("secondary_50_within_one_year", 50, 365),
+    ("secondary_25_within_two_years", 25, 730),
     ("secondary_30_within_two_years", 30, 730),
+    ("secondary_40_within_two_years", 40, 730),
+    ("secondary_50_within_two_years", 50, 730),
 )
 GROUPS = (
     ("improving", "Supportive · improving"),
@@ -219,6 +227,7 @@ def _group_results(rows: list[dict]) -> dict:
 
 def _detail(row: dict) -> dict:
     factor = row.get("relative_momentum_factors") or {}
+    shadow = build_high_confidence_shadow("Buy", factor)
     hits = (row.get("return_milestones") or {}).get("first_hit_days") or {}
     return {
         "ticker": row.get("ticker"),
@@ -241,6 +250,7 @@ def _detail(row: dict) -> dict:
         "unavailable_reason": factor.get("reason"),
         "score_effect": 0,
         "verdict_effect": "none",
+        "high_confidence_shadow": shadow,
         "days_to_25_pct": hits.get("25"),
         "days_to_30_pct": hits.get("30"),
     }
@@ -344,6 +354,16 @@ def run_relative_momentum_research(
             "deteriorating relative momentum."
         ),
         "factor_definition": experiment,
+        "outcome_contracts": [
+            {
+                "key": key,
+                "label": f"+{target}% within {'one year' if horizon == 365 else 'two years'}",
+                "target_pct": target,
+                "horizon_days": horizon,
+                "primary": key == "primary_30_within_one_year",
+            }
+            for key, target, horizon in OUTCOME_CONTRACTS
+        ],
         "measurement_boundary": "Latest common stock/sector trading session strictly before the earliest Buy; no same-day or future close is used.",
         "missing_history_policy": "Missing sector mapping or fewer than 148 aligned sessions is unavailable, never neutral or supportive.",
         "experiment_registry": {

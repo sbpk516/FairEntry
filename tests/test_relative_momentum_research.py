@@ -2,7 +2,10 @@ from datetime import date, timedelta
 
 import duckdb
 
-from fairentry.analytics.relative_momentum import calculate_relative_momentum
+from fairentry.analytics.relative_momentum import (
+    build_high_confidence_shadow,
+    calculate_relative_momentum,
+)
 from fairentry.backtest.relative_momentum_research import (
     attach_relative_momentum_factors,
     calculate_history_relative_momentum,
@@ -78,6 +81,25 @@ def test_relative_momentum_can_be_deteriorating_or_unavailable():
     assert deteriorating["display_direction"] == "Contradictory"
     assert unavailable["available"] is False
     assert unavailable["classification"] == "unavailable"
+
+
+def test_high_confidence_shadow_requires_official_buy_and_supportive_momentum():
+    supportive = calculate_relative_momentum(_series(1), [100] * 160)
+
+    confirmed = build_high_confidence_shadow("Buy", supportive)
+    watch = build_high_confidence_shadow("Watch", supportive)
+    neutral_buy = build_high_confidence_shadow(
+        "Buy", {"classification": "neutral", "display_direction": "Neutral"}
+    )
+
+    assert confirmed["eligible"] is True
+    assert confirmed["status"] == "high_confidence_buy"
+    assert confirmed["score_effect"] == 0
+    assert confirmed["verdict_effect"] == "none"
+    assert watch["eligible"] is False
+    assert watch["status"] == "not_applicable"
+    assert neutral_buy["eligible"] is False
+    assert neutral_buy["status"] == "momentum_not_confirmed"
 
 
 def test_history_calculation_aligns_stock_and_sector_dates():
@@ -175,3 +197,13 @@ def test_frozen_experiment_reports_chronological_results_and_trial_count():
     assert all_history["supportive_minus_contradictory_pp"] == 100
     assert len(result["episode_details"]) == 120
     assert load_experiment_registry()["experiments"][0]["id"] == result["experiment_id"]
+    contracts = {row["key"] for row in result["outcome_contracts"]}
+    assert {
+        "secondary_25_within_one_year",
+        "secondary_40_within_one_year",
+        "secondary_50_within_one_year",
+        "secondary_25_within_two_years",
+        "secondary_30_within_two_years",
+        "secondary_40_within_two_years",
+        "secondary_50_within_two_years",
+    } <= contracts

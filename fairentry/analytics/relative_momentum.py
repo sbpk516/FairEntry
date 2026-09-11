@@ -101,3 +101,50 @@ def calculate_relative_momentum(
         "prior_relative_momentum_6m_pct": round(prior_relative, 2),
         "relative_momentum_change_1m_pp": round(change, 2),
     }
+
+
+def build_high_confidence_shadow(official_verdict: str | None, evidence: dict | None) -> dict:
+    """Translate the frozen evidence into a visible, zero-effect shadow label.
+
+    The label is intentionally conditional on an existing official Buy. It
+    does not manufacture a Buy from momentum and it cannot alter scoring.
+    """
+    evidence = evidence or {}
+    classification = evidence.get("classification", "unavailable")
+    display = evidence.get("display_direction", "Unavailable")
+    is_official_buy = official_verdict == "Buy"
+    eligible = bool(is_official_buy and classification == "improving")
+    if eligible:
+        status = "high_confidence_buy"
+        label = "High-Confidence Buy · shadow"
+        reason = (
+            "The official Buy also has positive six-month sector-relative "
+            "momentum that improved versus 21 trading sessions earlier."
+        )
+    elif is_official_buy:
+        status = "momentum_not_confirmed"
+        label = f"Official Buy · momentum {str(display).lower()}"
+        reason = (
+            "The official Buy remains unchanged, but the frozen sector-relative "
+            "momentum rule is not supportive."
+        )
+    else:
+        status = "not_applicable"
+        label = "Not an official Buy"
+        reason = "Momentum cannot create a Buy when the official FairEntry verdict is not Buy."
+    return {
+        "status": status,
+        "label": label,
+        "eligible": eligible,
+        "official_verdict": official_verdict,
+        "momentum_classification": classification,
+        "momentum_label": display,
+        "research_only": True,
+        "score_effect": 0,
+        "verdict_effect": "none",
+        "reason": reason,
+        "promotion_policy": (
+            "Keep in shadow mode until the frozen rule has adequate new outcomes "
+            "and passes the documented sample, improvement, and drawdown checks."
+        ),
+    }
