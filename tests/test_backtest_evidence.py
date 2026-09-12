@@ -80,6 +80,17 @@ def test_backtest_ui_displays_one_score_probability_ladder():
     assert "successContract(b)+scoreBandCalibration(b)" in html
 
 
+def test_board_opens_sfa_backtest_and_relative_momentum_result_is_prominent():
+    root = Path(__file__).resolve().parents[1]
+    board = (root / "web" / "index.html").read_text(encoding="utf-8")
+    backtest = (root / "web" / "backtest.html").read_text(encoding="utf-8")
+
+    assert 'href="backtest.html?source=sfa">Backtest</a>' in board
+    assert "SOURCE=REQUESTED_SOURCE==='legacy'?'legacy':'sfa'" in backtest
+    assert "Newest held-out result:" in backtest
+    assert "small-sample result—not a guaranteed success rate" in backtest
+
+
 @pytest.mark.parametrize(("upside", "years"), [
     (30, 1), (30.1, 2), (70, 2), (70.1, 3),
     (120, 3), (120.1, 5), (271, 5), (500, 7),
