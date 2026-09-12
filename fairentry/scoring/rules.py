@@ -41,8 +41,10 @@ def apply_rule(rule: dict, value, sector_median=None):
             # fall back to an absolute-ish read so we still produce a score
             return 50.0, "no sector median — neutral"
         delta = value - sector_median
-        if rule.get("lower_better"):
-            delta = -delta
+        # The configured full/floor deltas already express the desired
+        # direction.  For example, a lower-is-better P/S rule uses
+        # full_delta=-1 and floor_delta=4.  Flipping the observed delta here
+        # would reward an expensive multiple and is therefore incorrect.
         s = _lerp(delta, rule["floor_delta"], rule["full_delta"])
         sign = "+" if delta >= 0 else ""
         return s, f"{sign}{delta:.1f} vs sector median ({sector_median:.1f})"

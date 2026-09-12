@@ -458,7 +458,7 @@
       <option value="sma_20month">20-month SMA</option>
       <option value="sma_200week">200-week SMA</option>
     </select>
-    <button class="iconbtn" id="highfilter" type="button" aria-pressed="false" title="Information-only research subset: Buy, Financial Strength at least 70, and no hard veto. The rule is not validated and does not change scores or verdicts.">High confidence · not validated</button>
+    <button class="iconbtn" id="highfilter" type="button" aria-pressed="false" title="Research filter only: shows official Buys with Financial Strength at least 70 and no automatic disqualifier. It has not been proven to improve results and does not change any score or recommendation.">High-confidence research · not proven</button>
     <select id="sort">
       <option value="score">Sort: Score</option>
       <option value="upside">Sort: Valuation upside</option>
@@ -735,10 +735,10 @@ function verdictAction(c){
   if(c.displayVerdict==='Quant Buy') return 'Quant Buy - qualitative review pending';
   if(c.verdict==='Avoid') return c.vetoed?'Avoid - vetoed':'Avoid';
   if(c.verdict==='Buy') return 'Buy Now';
-  return c.capped?'Would-be Buy - gated':'Watch'; }
+  return c.capped?'Watch — score is strong, but one or more Buy conditions are missing':'Watch'; }
 function actionNuance(c){
   if(c.vetoed) return 'vetoed';
-  if(c.capped) return 'would-be Buy - gated';
+  if(c.capped) return 'strong score, but Buy conditions are missing';
   return ''; }
 function confidenceBadge(s,c){
   if(c.verdict!=='Buy'||!s.confidence_tier)return '';
@@ -845,20 +845,20 @@ function contextChips(s){ var c=s.context||{};
   }
   var momentumShadow=(s.demand_momentum||{}).high_confidence_buy_shadow;
   if(s.verdict==='Buy'&&momentumShadow){
-    parts.unshift('<span class="ctag '+(momentumShadow.eligible?'good':'warn')+'" title="Frozen research-only confirmation · 0 points · official Buy unchanged">'+esc(momentumShadow.label||'Momentum shadow unavailable')+'</span>');
+    parts.unshift('<span class="ctag '+(momentumShadow.eligible?'good':'warn')+'" title="Research only. The official score and recommendation ignore this label.">'+esc(momentumShadow.label||'Momentum research unavailable')+'</span>');
   }
   if(s.entry_exit_evidence&&s.entry_exit_evidence.entry_alignment){
     var ee=s.entry_exit_evidence, entryTone=(ee.entry_alignment==='supportive'||ee.entry_alignment==='constructive')?'good':ee.entry_alignment==='cautionary'?'bad':'warn';
-    parts.push('<span class="ctag '+entryTone+'">Evidence - Entry '+esc(ee.entry_alignment)+' · Exit pressure '+esc(ee.exit_pressure||'unknown')+'</span>');
+    parts.push('<span class="ctag '+entryTone+'">Research - Entry '+esc(ee.entry_alignment)+' · Downside pressure '+esc(ee.exit_pressure||'unknown')+'</span>');
   }
   if(s.breakout_setup&&s.breakout_setup.overall){
-    parts.push('<span class="ctag breakout-scored clickable '+setupToneClass(s.breakout_setup.overall)+'" role="button" tabindex="0" data-breakout="'+esc(s.breakout_setup.overall)+'" data-ticker="'+esc(s.ticker)+'">Score evidence - Breakout '+esc(s.breakout_setup.overall)+'</span>');
+    parts.push('<span class="ctag breakout-scored clickable '+setupToneClass(s.breakout_setup.overall)+'" role="button" tabindex="0" data-breakout="'+esc(s.breakout_setup.overall)+'" data-ticker="'+esc(s.ticker)+'">Breakout read: '+esc(s.breakout_setup.overall)+'</span>');
   }
   var hc=s.high_conviction_research;
   if(s.verdict==='Buy'&&hc){
     var hcTone=hc.status==='candidate'?'good':hc.status==='quantitative_core_pass_research_incomplete'?'warn':'info';
     var hcText=hc.status==='candidate'?'High-conviction research candidate':hc.status==='quantitative_core_pass_research_incomplete'?'High-conviction core passes · research incomplete':'High-conviction research: not qualified';
-    parts.push('<span class="ctag '+hcTone+'" title="Additional research label only · 0 points · no verdict effect">'+esc(hcText)+'</span>');
+    parts.push('<span class="ctag '+hcTone+'" title="Research only. The official score and recommendation ignore this label.">'+esc(hcText)+'</span>');
   }
   if(!parts.length) return '';
   return '<div class="ctx-row" title="Entry/exit and demand evidence are context-only. Breakout factors are traceable inputs to the existing score.">'+parts.join('')+'</div>';
@@ -872,19 +872,19 @@ function tileHTML(s){ var c=compute(s), em=s.emerging_candidate||null,
     reasons=(cs.strongest_reasons||[]).slice(0,3), risks=(cs.largest_risks||[]).slice(0,3),
     vc=s.valuation_context||{}, experimental=(c.verdict==='Buy'&&vc.experimental_context_score!=null?'<div class="ctx-row" title="Separate experimental context only; not backtested and no effect on the official score."><span class="ctag warn">NOT BACKTESTED valuation context '+esc(Number(vc.experimental_context_score).toFixed(1))+'/100</span></div>':''),
     va=(s.valuation||{}).method_agreement||{}, vaTone=va.status==='pass'?'good':va.status==='caution'?'warn':'info',
-    agreementChip=(c.verdict==='Buy'&&va.status?'<div class="ctx-row" title="Backtested shadow evidence only; 0 points and no effect on Buy/Watch/Avoid."><span class="ctag '+vaTone+'">Valuation agreement: '+esc(va.status==='pass'?'Pass':va.status==='caution'?'Caution':'Insufficient evidence')+' · '+esc(va.method_count)+' methods'+(va.dispersion_pct==null?'':' · '+esc(va.dispersion_pct)+'% spread')+'</span></div>':''),
+    agreementChip=(c.verdict==='Buy'&&va.status?'<div class="ctx-row" title="Research only. The official score and recommendation ignore this check."><span class="ctag '+vaTone+'">Valuation agreement: '+esc(va.status==='pass'?'Pass':va.status==='caution'?'Caution':'Insufficient evidence')+' · '+esc(va.method_count)+' methods'+(va.dispersion_pct==null?'':' · '+esc(va.dispersion_pct)+'% spread')+'</span></div>':''),
     hc=s.high_conviction_research||{}, hcTone=hc.status==='candidate'?'good':hc.status==='quantitative_core_pass_research_incomplete'?'warn':'info',
     hcLabel=hc.status==='candidate'?'High-Conviction Research Candidate':hc.status==='quantitative_core_pass_research_incomplete'?'Quantitative core passes · research incomplete':'High-Conviction Research: not qualified',
-    hcChip=(!em&&c.verdict==='Buy'&&hc.status?'<div class="ctx-row" title="Additional research label only; 0 points and no verdict effect."><span class="ctag '+hcTone+'">'+esc(hcLabel)+' · 0 points</span></div>':''),
+    hcChip=(!em&&c.verdict==='Buy'&&hc.status?'<div class="ctx-row" title="Research only. The official score and recommendation ignore this label."><span class="ctag '+hcTone+'">'+esc(hcLabel)+' · research only</span></div>':''),
     emChip=em?'<div class="ctx-row"><span class="ctag warn">'+(em.in_official_universe?'Official universe · official verdict '+esc(em.official_verdict||'none'):'Outside official universe')+'</span><span class="ctag info">'+esc((em.highest_variant||'broad').replace(/_/g,' '))+' · '+esc((em.liquidity_band||'').replace(/_/g,' '))+'</span><span class="ctag info">Shadow model: '+esc(em.shadow_model_verdict)+' · '+esc(Math.round(em.shadow_score||0))+'/100</span><span class="ctag info">0 official points</span></div>':'';
   function evidenceList(items,empty){return items.length?'<ul>'+items.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>':'<div class="meta">'+esc(empty)+'</div>';}
   var nuance=em?'research only':actionNuance(c);
   return '<div class="tile" data-t="'+esc(s.ticker)+'" role="button" tabindex="0" aria-label="'+esc(s.ticker+' '+s.company+' - '+shown)+'"><div class="vstripe st-'+vk+'"></div><div class="tile-in">'+
     '<div class="tile-top"><div class="tile-main"><div class="tick">'+esc(s.ticker)+'</div><div class="co">'+esc(s.company)+' - '+esc(s.sector)+'</div></div>'+
     '<div class="verdict"><span class="vpill bg-'+vk+' v-'+vk+'">'+shown+'</span>'+(nuance?'<div class="action-lbl">'+esc(nuance)+'</div>':'')+confidenceBadge(s,c)+'</div></div>'+
-    '<div class="card-facts"><div class="card-fact"><span class="k">Strategy</span><span class="v">'+esc(strategy)+'</span></div><div class="card-fact"><span class="k">Current price</span><span class="v">$'+esc(s.price)+'</span></div><div class="card-fact"><span class="k">Reasonable value range</span><span class="v">'+(low==null||high==null?'Not available':'$'+esc(low)+'–$'+esc(high))+'</span></div><div class="card-fact"><span class="k">Expected holding period</span><span class="v">'+(em?'Research observation only':esc(hold))+'</span></div></div>'+
+    '<div class="card-facts"><div class="card-fact"><span class="k">Strategy</span><span class="v">'+esc(strategy)+'</span></div><div class="card-fact"><span class="k">Current price</span><span class="v">$'+esc(s.price)+'</span></div><div class="card-fact"><span class="k">Range of official fair-value estimates</span><span class="v">'+(low==null||high==null?'Not available':'$'+esc(low)+'–$'+esc(high))+'</span></div><div class="card-fact"><span class="k">Typical strategy horizon</span><span class="v">'+(em?'Research observation only':esc(hold))+'</span></div></div>'+
     '<div class="card-evidence"><div class="card-evidence-box good"><h4>Three strongest reasons</h4>'+evidenceList(reasons,'Open details to inspect the available evidence.')+'</div><div class="card-evidence-box bad"><h4>Three largest risks</h4>'+evidenceList(risks,'No specific major risk was identified in the available data.')+'</div></div>'+emChip+agreementChip+hcChip+experimental+
-    '<div class="tile-actions"><button class="chartbtn" data-chart="'+esc(s.ticker)+'" type="button">Launch Chart</button>'+(em?'<span class="lab warn">Research only · cannot Add 100</span>':'<button class="addbtn" data-add="'+esc(s.ticker)+'" type="button">Add 100</button>')+'</div></div></div>'; }
+    '<div class="tile-actions"><button class="chartbtn" data-chart="'+esc(s.ticker)+'" type="button">Launch Chart</button>'+(em?'<span class="lab warn">Research only · purchase disabled</span>':c.verdict==='Buy'?'<button class="addbtn" data-add="'+esc(s.ticker)+'" type="button">Add 100</button>':'<span class="lab warn">'+esc(c.verdict)+' only · purchase disabled</span>')+'</div></div></div>'; }
 
 function currentList(){
   var q=$('#search').value.trim().toLowerCase(), sec=$('#sector').value, vf=$('#vfilter .on').dataset.v, sort=$('#sort').value;
@@ -957,22 +957,35 @@ function addToPortfolio(ticker){
 /* ---------- detail drill-down ---------- */
 function pctbar(sc){ return sc==null?'<span class="mini"></span>':'<span class="mini"><i style="width:'+sc+'%;background:'+HUE(sc)+'"></i></span>'; }
 function decisionLabel(x){ var s=(x&&x.decision_status)||'tested';
-  return s==='tested'?['Used in verdict','good']:s==='testing'?['Being tested - no verdict effect','warn']:['Information only - no verdict effect','info']; }
+  if(x&&Object.prototype.hasOwnProperty.call(x,'fair'))return s==='tested'?['Used in official fair value','good']:s==='testing'?['Research estimate - not used in official fair value','warn']:['Extra estimate - not used in official fair value','info'];
+  if(s==='tested'&&x&&Object.prototype.hasOwnProperty.call(x,'score')&&x.score==null)return ['Counts when data is available','info'];
+  return s==='tested'?['Counts in official score','good']:s==='testing'?['Research only - does not change recommendation','warn']:['Extra context - does not change recommendation','info']; }
+var RESEARCH_ONLY='No. This check is deliberately outside the official formula. It cannot add or subtract points, change Buy / Watch / Avoid, place a trade, or change position size.';
+function metricCurrentValue(it){
+  if(it.raw_actual!=null)return it.raw_actual;
+  if(it.actual==null||it.actual==='n/a')return 'Not available';
+  var n=Number(it.actual), m=it.metric;
+  if(!isFinite(n))return it.actual;
+  if(m==='avg_dollar_volume')return '$'+(n/1000000).toFixed(1)+' million traded per day on average';
+  if(['gross_margin','roic','oper_margin','rev_growth_qoq','eps_growth_next_y','intrinsic_gap_pct','share_count_yoy','short_float','inst_trans'].indexOf(m)>=0)return n.toFixed(2)+'%';
+  if(['debt_eq','current_ratio','pfcf_ratio','ps_ratio'].indexOf(m)>=0)return n.toFixed(2)+' times';
+  return it.actual;
+}
 // leaf metric: expected vs actual, the rule that maps them, and the resulting score
-function metricHTML(it){ var missing=it.score==null, shown=missing?'n/a':it.score, dl=decisionLabel(it);
+function metricHTML(it){ var missing=it.score==null, shown=missing?'n/a':it.score, dl=decisionLabel(it), tested=(it.decision_status||'tested')==='tested';
   return '<div class="metricbox"><div class="ea">'+
   '<span class="k">Decision use</span><span class="v"><span class="lab '+dl[1]+'">'+esc(dl[0])+'</span></span>'+
   (it.definition?'<span class="k">What it means</span><span class="v">'+esc(it.definition)+'</span>':'')+
-  '<span class="k">Expected</span><span class="v exp">'+esc(it.expected)+'</span>'+
-  '<span class="k">Actual</span><span class="v act">'+esc(it.raw_actual||it.actual)+'</span>'+
+  '<span class="k">What a good result looks like</span><span class="v exp">'+esc(it.expected||'Not specified')+'</span>'+
+  '<span class="k">Current value</span><span class="v act">'+esc(metricCurrentValue(it))+'</span>'+
   (it.formula?'<span class="k">Formula</span><span class="v">'+esc(it.formula)+'</span>':'')+
-  '<span class="k">Scoring rule</span><span class="v">'+esc(it.rule)+'</span>'+
+  '<span class="k">How the score was assigned</span><span class="v">'+esc(it.rule)+'</span>'+
   (it.evidence?'<span class="k">Evidence</span><span class="v">'+esc(it.evidence)+'</span>':'')+'</div>'+
-  '<div class="scoreline"><span class="big" style="color:'+(missing?'var(--ink-faint)':HUET(it.score))+'">'+shown+(missing?'':'<span style="font-size:11px;color:var(--ink-faint);font-weight:600">/100</span>')+'</span>'+
-  pctbar(it.score)+'<span class="why">weight '+it.weight+(it.contribution==null?'':' - contribution '+it.contribution.toFixed(2))+' - source '+esc(it.source)+(it.observed_at?' - observed '+esc(it.observed_at):'')+' - fetched '+esc(it.fetched_at||'unknown')+(it.calculation_version?' - '+esc(it.calculation_version):'')+'</span></div>'+
-  (missing?'<div class="why" style="margin-top:8px">Missing data is excluded; available item weights are normalized. The stock is not assigned an invented neutral value.</div>':'')+'</div>'; }
-function itemHTML(it){ var dl=decisionLabel(it); return '<div class="item" data-exp><button class="row"><span class="chev"></span><span class="rname">'+esc(it.label)+' <span class="lab '+dl[1]+'">'+esc(dl[0])+'</span>'+
-  '</span><span class="rmeta">'+(it.decision_status==='tested'||!it.decision_status?'<span class="wchip tnum">w '+it.weight+'</span>':'')+pctbar(it.score)+'<span class="rscore tnum" style="color:'+(it.score==null?'var(--ink-faint)':HUET(it.score))+'">'+(it.score==null?'n/a':it.score)+'</span></span></button>'+
+  '<div class="scoreline"><span class="big" style="color:'+(missing?'var(--ink-faint)':HUET(it.score))+'">'+(tested?shown:(missing?'n/a':'Research reading '+shown))+(missing?'':'<span style="font-size:11px;color:var(--ink-faint);font-weight:600">/100</span>')+'</span>'+
+  pctbar(it.score)+'<span class="why">'+((it.decision_status||'tested')==='tested'?('Configured importance '+it.weight+(it.contribution==null?'':' · contributes '+it.contribution.toFixed(2)+' points to this category')):'Ignored by the official score')+' · source '+esc(it.source||'not available')+(it.observed_at?' · data date '+esc(it.observed_at):'')+' · collected '+esc(it.fetched_at||'unknown')+(it.calculation_version?' · calculation '+esc(it.calculation_version):'')+'</span></div>'+
+  (missing?'<div class="why" style="margin-top:8px">'+(tested?'No score was invented for missing data. This official factor is left out and the remaining available official factors are reweighted.':'No research value was invented for missing data. This row stays unavailable and is ignored by the official formula.')+'</div>':'')+'</div>'; }
+function itemHTML(it){ var dl=decisionLabel(it), tested=(it.decision_status||'tested')==='tested', displayScore=it.score==null?'n/a':tested?it.score:'research '+it.score; return '<div class="item" data-exp><button class="row"><span class="chev"></span><span class="rname">'+esc(it.label)+' <span class="lab '+dl[1]+'">'+esc(dl[0])+'</span>'+
+  '</span><span class="rmeta">'+(it.decision_status==='tested'||!it.decision_status?'<span class="wchip tnum">w '+it.weight+'</span>':'')+pctbar(it.score)+'<span class="rscore tnum" style="color:'+(it.score==null?'var(--ink-faint)':HUET(it.score))+'">'+esc(displayScore)+'</span></span></button>'+
   '<div class="detail"><div class="detail-in">'+metricHTML(it)+'</div></div></div>'; }
 function qualitativeItemsFor(s,category){
   var grouped=((s.qualitative_context||{}).categories||{}); if(grouped[category])return grouped[category];
@@ -981,7 +994,7 @@ function qualitativeItemsFor(s,category){
 function qualitativeItemHTML(f){
   var direction=f.direction||'uncertain',tone=direction==='positive'?'good':direction==='negative'?'bad':direction==='mixed'?'warn':'info';
   return '<div class="item" data-exp><button class="row"><span class="chev"></span><span class="rname">'+esc(f.label||f.id||'Qualitative context')+' <span class="lab info">Not scored</span></span><span class="rmeta"><span class="lab '+tone+'">'+esc(direction)+'</span> <span class="lab info">'+esc((f.impact||'unknown')+' impact')+'</span></span></button>'+
-    '<div class="detail"><div class="detail-in"><div class="metricbox"><div class="ea"><span class="k">Direction</span><span class="v">'+esc(direction)+'</span><span class="k">Impact</span><span class="v">'+esc(f.impact||'unknown')+'</span><span class="k">Confidence</span><span class="v">'+esc(f.confidence||'low')+'</span><span class="k">Evidence</span><span class="v">'+esc(f.evidence||f.actual||'No specific evidence supplied.')+'</span><span class="k">Attention / response</span><span class="v">'+esc((f.attention_level||'note').replaceAll('_',' ')+' · '+(f.recommended_response||'Note only'))+'</span><span class="k">Timing and exposure</span><span class="v">'+esc((f.time_horizon||'unknown')+' horizon · '+(f.event_status||'unknown')+' · affects '+(f.affected_area||'unknown'))+'</span><span class="k">Decision effect</span><span class="v">Information only · 0 points · no verdict effect</span></div><div class="scoreline"><span class="why">source '+esc(f.source||'-')+(f.observed_at?' · observed '+esc(f.observed_at):'')+'</span></div></div></div></div></div>';
+    '<div class="detail"><div class="detail-in"><div class="metricbox"><div class="ea"><span class="k">Direction</span><span class="v">'+esc(direction)+'</span><span class="k">Possible importance</span><span class="v">'+esc(f.impact||'unknown')+'</span><span class="k">Confidence in this observation</span><span class="v">'+esc(f.confidence||'low')+'</span><span class="k">Evidence</span><span class="v">'+esc(f.evidence||f.actual||'No specific evidence supplied.')+'</span><span class="k">Suggested attention</span><span class="v">'+esc((f.attention_level||'note').replaceAll('_',' ')+' · '+(f.recommended_response||'Note only'))+'</span><span class="k">Timing and exposure</span><span class="v">'+esc((f.time_horizon||'unknown')+' horizon · '+(f.event_status||'unknown')+' · affects '+(f.affected_area||'unknown'))+'</span><span class="k">Changes today\'s recommendation?</span><span class="v">'+esc(RESEARCH_ONLY)+'</span></div><div class="scoreline"><span class="why">source '+esc(f.source||'not available')+(f.observed_at?' · observed '+esc(f.observed_at):'')+'</span></div></div></div></div></div>';
 }
 // category: shows the weighted-average arithmetic, then each item
 function catHTML(c,s){
@@ -989,26 +1002,28 @@ function catHTML(c,s){
   var terms=scored.map(function(i){return i.weight+'x'+i.score;}).join(' + ')||'no available items';
   var wsum=scored.reduce(function(a,i){return a+i.weight;},0);
   var num=scored.reduce(function(a,i){return a+i.weight*i.score;},0);
-  var math='<div class="mathbox" style="margin:12px 14px"><div class="mformula"><b>'+(c.score==null?'n/a':c.score)+'</b> = ('+terms+') / '+wsum+
-    (wsum?' = '+(num/wsum).toFixed(1):'')+'  <span style="color:var(--ink-faint)"> - '+scored.length+' tested factor(s) used; testing and information-only factors are excluded</span></div></div>';
-  var qualitative=qualitativeItemsFor(s,c.id),qualitativeHTML='<div class="mathbox" style="margin:12px 14px"><div class="mformula"><b>Non-quantifiable context · not scored</b><br><span style="color:var(--ink-faint)">'+(qualitative.length?'Direction, impact and confidence guide attention only; these items contribute 0 points.':'No sourced non-quantifiable item is currently recorded in this category.')+'</span></div></div>'+qualitative.map(qualitativeItemHTML).join('');
+  var dependency=scored.length===1?' <b>Important:</b> this category score currently depends entirely on '+esc(scored[0].label)+'.':'';
+  var coverage=c.coverage==null?'':(' Official-factor data coverage: '+esc(c.coverage)+'%.');
+  var informationOnly=c.decision_status==='information_only';
+  var math=informationOnly?'<div class="mathbox" style="margin:12px 14px"><div class="mformula"><b>This entire category is research only.</b> It has no category score or official weight, and every row below is ignored by the official formula.</div></div>':'<div class="mathbox" style="margin:12px 14px"><div class="mformula"><b>Category score '+(c.score==null?'not available':c.score+'/100')+'.</b> '+scored.length+' official factor(s) had data and were used. Research-only and extra-context rows were left out.'+coverage+dependency+'<br><span style="color:var(--ink-faint)">Calculation: ('+terms+') / '+wsum+(wsum?' = '+(num/wsum).toFixed(1):'')+'</span></div></div>';
+  var qualitative=qualitativeItemsFor(s,c.id),qualitativeHTML='<div class="mathbox" style="margin:12px 14px"><div class="mformula"><b>Additional research that is not in the score</b><br><span style="color:var(--ink-faint)">'+(qualitative.length?'These observations may help a person review the stock, but they do not change today\'s score or recommendation.':'No sourced additional research is currently recorded in this category.')+'</span></div></div>'+qualitative.map(qualitativeItemHTML).join('');
   return '<div class="cat" data-exp><button class="row"><span class="chev"></span><span class="rname">'+esc(c.label)+
-    '</span><span class="rmeta"><span class="wchip tnum">weight '+S.weights[c.id]+'</span>'+pctbar(c.score)+'<span class="rscore tnum" style="color:'+(c.score==null?'var(--ink-faint)':HUET(c.score))+'">'+(c.score==null?'n/a':c.score)+'</span></span></button>'+
+    '</span><span class="rmeta"><span class="wchip tnum">'+(informationOnly?'research only · no official weight':'weight '+S.weights[c.id])+'</span>'+pctbar(c.score)+'<span class="rscore tnum" style="color:'+(c.score==null?'var(--ink-faint)':HUET(c.score))+'">'+(informationOnly?'not scored':c.score==null?'n/a':c.score)+'</span></span></button>'+
     '<div class="detail"><div class="detail-in">'+math+c.items.map(itemHTML).join('')+qualitativeHTML+'</div></div></div>'; }
 // overall: the category-contribution table that produces the base score
 function scoreMathHTML(s,c){
   if(!settingsChanged() && s.decision_trace){ var d=s.decision_trace, cats=s.categories||s.cats;
     var brows=cats.filter(function(x){return x.score!=null;}).map(function(cat){return '<tr><td>'+esc(cat.label)+'</td><td class="n">'+cat.weight+'</td><td class="n">'+cat.score+'</td><td class="n contrib">'+Number(cat.contribution||0).toFixed(2)+'</td></tr>';}).join('');
-    var effects=(d.vetoes||[]).concat(d.soft_gates||[]).map(function(x){return '<div style="margin-top:6px"><b>'+esc(x.effect)+':</b> '+esc(x.reason)+' <span style="color:var(--ink-faint)">('+esc(x.condition)+')</span></div>';}).join('');
-    return '<div class="mathbox"><table class="mtable"><thead><tr><th>Category</th><th class="n">Weight</th><th class="n">Score</th><th class="n">Score contribution</th></tr></thead><tbody>'+brows+'</tbody></table>'+
-      '<div class="mformula">Tested score = '+d.base_numerator+' / '+d.available_category_weight+' = <b>'+Number(d.base_score).toFixed(1)+'</b> &nbsp;-&nbsp; AI/news effect <b>0</b> &nbsp;-&nbsp; final score <b>'+d.final_score+'</b> &nbsp;-&nbsp; score band <b>'+esc(d.score_band_verdict)+'</b> &nbsp;-&nbsp; final verdict <b>'+esc(d.final_verdict)+'</b>'+effects+'</div></div>'; }
+    var effects=(d.vetoes||[]).concat(d.soft_gates||[]).map(function(x){return '<div style="margin-top:6px"><b>'+esc(x.effect)+':</b> '+esc(x.reason)+'</div>';}).join('');
+    return '<div class="mathbox"><table class="mtable"><thead><tr><th>Category</th><th class="n">Configured weight</th><th class="n">Category score</th><th class="n">Points after reweighting available categories</th></tr></thead><tbody>'+brows+'</tbody></table>'+
+      '<div class="mformula"><b>Official score:</b> '+d.base_numerator+' weighted points / '+d.available_category_weight+' available weight = <b>'+Number(d.base_score).toFixed(1)+'</b>, rounded to <b>'+d.final_score+'</b>. Missing categories are left out and the available category weights are scaled up. AI and news notes are ignored by this formula. The score by itself suggests <b>'+esc(d.score_band_verdict)+'</b>. After required Buy conditions and automatic disqualifiers, the official recommendation is <b>'+esc(d.final_verdict)+'</b>.'+effects+'</div></div>'; }
   var rows=s.cats.map(function(cat){ var w=S.weights[cat.id]; return '<tr><td>'+esc(cat.label)+'</td><td class="n">'+w+'</td><td class="n">'+cat.score+'</td><td class="n contrib">'+(w*cat.score)+'</td></tr>'; }).join('');
   var wsum=s.cats.reduce(function(a,cat){return a+S.weights[cat.id];},0);
   var num=s.cats.reduce(function(a,cat){return a+S.weights[cat.id]*cat.score;},0);
   var band=c.prelim>=S.buyBand?'Buy (>= '+S.buyBand+')':c.prelim>=S.watchBand?'Watch (>= '+S.watchBand+')':'Avoid (<'+S.watchBand+')';
   return '<div class="mathbox"><table class="mtable"><thead><tr><th>Category</th><th class="n">Weight</th><th class="n">Score</th><th class="n">Weight x Score</th></tr></thead>'+
     '<tbody>'+rows+'</tbody><tfoot><tr><td>Totals</td><td class="n">'+wsum+'</td><td></td><td class="n">'+num+'</td></tr></tfoot></table>'+
-    '<div class="mformula">Tested score = '+num+' / '+wsum+' = <b>'+c.base.toFixed(1)+'</b> &nbsp;-&nbsp; AI/news effect <b>0</b> &nbsp;-&nbsp; final score <b>'+c.prelim.toFixed(1)+'</b> &nbsp;-&nbsp; <b>'+band+'</b></div></div>'; }
+    '<div class="mformula">Official score = '+num+' / '+wsum+' = <b>'+c.base.toFixed(1)+'</b>. AI and news notes are ignored by this formula. The score by itself suggests <b>'+band+'</b>.</div></div>'; }
 
 function businessModel(s){
   var name=(s.company||s.ticker||'This company'), txt=(s.ticker+' '+name+' '+(s.sector||'')).toLowerCase();
@@ -1017,6 +1032,11 @@ function businessModel(s){
     name+' makes money when guests stay in its hotels and when partner/franchise hotels use its brand and operating system.',
     ['Room stays and hotel services','Franchise / management fees','Member, food, retail, or travel add-ons'],
     'A traveler books a room; part of that stay becomes revenue. If a partner hotel uses the brand, the company can also collect a recurring fee.'
+  );
+  if(/kspi|kaspi/.test(txt)) return out(
+    name+' operates a consumer super-app, mainly earning money from payment services, an online marketplace, and consumer finance.',
+    ['Fees from merchants and payment transactions','Marketplace commissions and merchant services','Net interest income and fees from consumer finance'],
+    'A customer pays a merchant, shops in the marketplace, or uses a loan inside the app; the company earns transaction fees, commissions, or financing income.'
   );
   if(/rely|remit|money transfer|payment|paypal|block|visa|mastercard|adyen|shift4|toast/.test(txt)) return out(
     name+' makes money by helping people or businesses move money and taking a small fee or spread on each transaction.',
@@ -1066,21 +1086,22 @@ function businessModel(s){
 }
 function businessHTML(s){
   var b=businessModel(s);
-  var src=b.sources.map(function(x,i){ return '<div class="bizpart"><div class="k">Source '+(i+1)+'</div><div class="v">'+esc(x)+'</div></div>'; }).join('');
-  return '<div class="sub-h">How this company makes money <span style="font-weight:400;color:var(--ink-faint);font-size:12px">(plain English, not exact segment %)</span></div>'+
+  var src=b.sources.map(function(x,i){ return '<div class="bizpart"><div class="k">Typical revenue stream '+(i+1)+'</div><div class="v">'+esc(x)+'</div></div>'; }).join('');
+  return '<div class="sub-h">How this company generally makes money <span style="font-weight:400;color:var(--ink-faint);font-size:12px">(simple sector-based explanation, not company segment data)</span></div>'+
     '<div class="bizbox"><div class="biztop"><div class="bizplain">'+esc(b.plain)+'</div><div class="bizexample"><b>Example:</b> '+esc(b.example)+'</div></div>'+
-    '<div class="bizgrid">'+src+'</div></div>';
+    '<div class="bizgrid">'+src+'</div><div class="why" style="padding:10px 14px">Use the company filing for exact revenue percentages. This explanation is not scored.</div></div>';
 }
 
 function growthQualificationHTML(s){ var g=s.growth_qualification;if(!g)return '';
   var passed=g.qualified===true, title=passed?(g.path==='stable_and_deeply_undervalued'?'Stable business at a deep discount':'Business numbers are meaningfully improving'):'Business direction is not ready yet';
-  var evidence=(g.stable_signals||[]).concat(g.improvement_signals||[]);
-  return '<div class="sub-h">Why the business direction '+(passed?'passes':'does not pass')+'</div><div class="bizbox"><div class="biztop"><div class="bizplain"><b>'+esc(title)+'</b></div><div class="bizexample">'+esc(g.explanation||'')+(evidence.length?'<br><span class="meta">Numbers used: '+esc(evidence.join(' · '))+'</span>':'')+'</div></div></div>'; }
+  var evidence=g.path==='stable_and_deeply_undervalued'?(g.stable_signals||[]):g.path==='meaningfully_improving'?(g.improvement_signals||[]):[];
+  var t=g.thresholds||{};
+  return '<div class="sub-h">Business-growth check: '+(passed?'passes':'does not pass')+'</div><div class="bizbox"><div class="biztop"><div class="bizplain"><b>'+esc(title)+'</b><br><span class="meta">This is an official Buy gate. Passing it does not create a Buy by itself; every other Buy condition must also pass.</span></div><div class="bizexample">'+esc(g.explanation||'')+(evidence.length?'<br><span class="meta">Evidence used: '+esc(evidence.join(' · '))+'</span>':'')+'<br><span class="meta">Rule: quarterly sales growth of at least '+esc(t.meaningful_revenue_growth_pct==null?8:t.meaningful_revenue_growth_pct)+'%, or stable sales and a profitable operating margin when price is at least '+esc(t.deep_discount_pct==null?30:t.deep_discount_pct)+'% below fair value.</span></div></div></div>'; }
 
 function debtDirectionHTML(s){ var d=s.debt_direction||{}, ch=d.change_pp;
   var known=ch!=null&&isFinite(Number(ch)), label=!known?'Waiting for two comparable annual filings':Number(ch)<=-1?'Improving':Number(ch)>=1?'Worsening':'Stable';
   var tone=!known?'info':Number(ch)<=-1?'good':Number(ch)>=1?'bad':'warn';
-  return '<div class="sub-h">Debt direction <span class="lab warn">Being tested - no verdict effect</span></div><div class="bizbox"><div class="biztop"><div class="bizplain"><b>'+esc(label)+'</b></div><div class="bizexample">Long-term debt as a share of assets: <b>'+(d.one_year_ago_pct==null?'n/a':esc(d.one_year_ago_pct)+'%')+'</b> one year ago → <b>'+(d.current_pct==null?'n/a':esc(d.current_pct)+'%')+'</b> now. <span class="lab '+tone+'">Change '+(known?(Number(ch)>=0?'+':'')+esc(ch)+' percentage points':'n/a')+'</span><br><span class="meta">This is replayed historically and displayed now. It will affect Buy only after validation shows a reliable improvement.</span></div></div></div>'; }
+  return '<div class="sub-h">Is the debt burden improving? <span class="lab warn">Research only</span></div><div class="bizbox"><div class="biztop"><div class="bizplain"><b>'+esc(label)+'</b></div><div class="bizexample">Long-term debt as a share of assets: <b>'+(d.one_year_ago_pct==null?'not available':esc(d.one_year_ago_pct)+'%')+'</b> one year ago → <b>'+(d.current_pct==null?'not available':esc(d.current_pct)+'%')+'</b> now. <span class="lab '+tone+'">Change '+(known?(Number(ch)>=0?'+':'')+esc(ch)+' percentage points':'not available')+'</span><br><span class="meta">'+esc(RESEARCH_ONLY)+' Historical testing must show that this rule helps before it can be promoted.</span></div></div></div>'; }
 
 function situationHTML(s){ if(!s.thesis.situation||!s.thesis.situation.length) return '';
   var rows=s.thesis.situation.map(function(r){ return '<div class="sit-row"><div class="sit-q">'+esc(r[0])+'</div>'+
@@ -1127,8 +1148,8 @@ function contextHTML(s){ var c=s.context; if(!c) return '';
     return '<div style="margin:9px 0"><span class="lab '+cls+'">'+esc(title)+': '+esc(d.label)+'</span> '+
       '<span style="color:var(--ink-soft);font-size:12.5px">'+esc(d.read)+'</span>'+
       (ev?'<div style="margin-top:6px">'+ev+'</div>':'')+'</div>'; }
-  return '<div class="sub-h">Demand &amp; Momentum '+
-      '<span style="font-weight:400;color:var(--ink-faint);font-size:12px">(context only - NOT scored; does not affect Buy / Watch / Avoid)</span></div>'+
+  return '<div class="sub-h">Business demand &amp; analyst expectations '+
+      '<span style="font-weight:400;color:var(--ink-faint);font-size:12px">(extra context; does not change the recommendation)</span></div>'+
     block('Demand', c.demand)+block('Momentum', c.momentum)+
     '<div style="font-size:11.5px;color:var(--ink-faint);margin-top:4px">'+esc(c.disclaimer||'')+'</div>'; }
 
@@ -1150,17 +1171,17 @@ function demandMomentumHTML(s){
   var lab=tone==='strong'||tone==='improving'?'good':tone==='weak'?'bad':'warn';
   var relLab=rel.classification==='improving'?'good':rel.classification==='deteriorating'?'bad':rel.classification==='unavailable'?'info':'warn';
   var shadowLab=shadow.eligible?'good':shadow.status==='momentum_not_confirmed'?'warn':'info';
-  return '<div class="sub-h">Demand &amp; Momentum <span style="font-weight:400;color:var(--ink-faint);font-size:12px">(context only &mdash; NOT scored; does not affect Buy / Watch / Avoid)</span></div>'+
-    '<div class="dm-box"><div class="dm-head"><span class="lab '+shadowLab+'">'+esc(shadow.label||'Momentum shadow unavailable')+'</span><div class="dm-summary">'+esc(shadow.reason||'The research-only Buy confirmation is unavailable.')+'</div><span class="dm-note">0 points · no verdict effect</span></div>'+
-    '<div class="dm-head"><span class="lab '+relLab+'">Sector momentum '+esc(rel.display_direction||'Unavailable')+'</span><div class="dm-summary">Six-month stock minus '+esc(rel.sector_benchmark||d.sector_benchmark||'sector ETF')+': <b>'+pct2(rel.relative_momentum_6m_pct)+'</b>; one month earlier: <b>'+pct2(rel.prior_relative_momentum_6m_pct)+'</b>; change: <b>'+pct2(rel.relative_momentum_change_1m_pp)+'</b>.</div><span class="dm-note">frozen rule · research only</span></div>'+
-    '<div class="dm-head"><span class="lab '+lab+'">'+esc(tone)+'</span><div class="dm-summary">'+esc(d.summary||'Demand context unavailable.')+'</div><span class="dm-note">not scored</span></div>'+
+  return '<div class="sub-h">Price &amp; volume trend <span style="font-weight:400;color:var(--ink-faint);font-size:12px">(research only; does not change the recommendation)</span></div>'+
+    '<div class="dm-box"><div class="dm-head"><span class="lab '+shadowLab+'">'+esc(shadow.label||'Momentum check unavailable')+'</span><div class="dm-summary">'+esc(shadow.reason||'The research-only Buy confirmation is unavailable.')+'</div><span class="dm-note">research only</span></div>'+
+    '<div class="dm-head"><span class="lab '+relLab+'">Compared with its sector: '+esc(rel.display_direction||'Unavailable')+'</span><div class="dm-summary">Over the latest six months, the stock beat or lagged '+esc(rel.sector_benchmark||d.sector_benchmark||'its sector ETF')+' by <b>'+pct2(rel.relative_momentum_6m_pct)+'</b>. The same six-month comparison made one month earlier was <b>'+pct2(rel.prior_relative_momentum_6m_pct)+'</b>. The lead changed by <b>'+pct2(rel.relative_momentum_change_1m_pp)+'</b>.</div><span class="dm-note">fixed research rule</span></div>'+
+    '<div class="dm-head"><span class="lab '+lab+'">Overall price/volume read: '+esc(tone)+'</span><div class="dm-summary">'+esc(d.summary||'Price and volume evidence is unavailable.')+'</div><span class="dm-note">research only</span></div>'+
     '<div class="dm-grid"><table class="dm-table"><thead><tr><th>Period</th><th>Stock</th><th>vs SPY</th><th>vs sector</th></tr></thead><tbody>'+rows+'</tbody></table>'+
     '<div class="dm-side">'+
       '<div class="k">Market benchmark</div><div class="v">'+esc(d.market_benchmark||'SPY')+'</div>'+
       '<div class="k">Sector benchmark</div><div class="v">'+esc(d.sector_benchmark||'n/a')+'</div>'+
-      '<div class="k">Relative volume</div><div class="v">'+(vol.relative_volume==null?'n/a':Number(vol.relative_volume).toFixed(2)+'x')+'</div>'+
-      '<div class="k">20d up/down volume</div><div class="v">'+(vol.up_down_volume_20d==null?'n/a':Number(vol.up_down_volume_20d).toFixed(2)+'x')+'</div>'+
-      '<div class="k">Volume read</div><div class="v">'+esc(vol.accumulation_label||'unknown')+'</div>'+
+      '<div class="k">Today\'s volume vs 20-day average</div><div class="v">'+(vol.relative_volume==null?'not available':Number(vol.relative_volume).toFixed(2)+'x')+'</div>'+
+      '<div class="k">Volume on up days vs down days (20 days)</div><div class="v">'+(vol.up_down_volume_20d==null?'not available':Number(vol.up_down_volume_20d).toFixed(2)+'x')+'</div>'+
+      '<div class="k">What the volume suggests</div><div class="v">'+esc(vol.accumulation_label||'unknown')+'</div>'+
     '</div></div></div>';
 }
 function fmtBool(x){ return x==null?'n/a':(x?'yes':'no'); }
@@ -1172,16 +1193,16 @@ function entryExitEvidenceHTML(s){
     var observations=(f.observations||[]).map(function(o){
       var value=o.value==null?'n/a':Number(o.value).toFixed(2)+(o.unit==='%'?'%':o.unit==='x'?'x':o.unit==='percentage points'?' pp':o.unit==='percentile'?'th percentile':'');
       return '<div class="item" data-exp><button class="row"><span class="chev"></span><span class="rname">'+esc(o.label)+'</span><span class="rmeta"><span class="lab '+tone(o.reading)+'">'+esc(o.reading||'context')+'</span> <span class="tnum">'+esc(value)+'</span></span></button><div class="detail"><div class="detail-in"><div class="metricbox"><div class="ea">'+
-        field('Current value',value)+field('Indicator reading',o.reading||'context')+field('Lookback',o.lookback)+field('Formula',o.formula)+field('Supportive when',o.supportive_when)+field('Cautionary when',o.cautionary_when)+field('What it means',o.evidence)+field('Data source',o.source)+field('Backtestable',o.backtestable===false?'No':'Yes — replay with data truncated at the historical observation date')+field('Decision effect','Information only · '+esc(o.score_effect==null?0:o.score_effect)+' points · no verdict or automatic trade effect')+
+        field('Current value',value)+field('Plain-English reading',o.reading||'context')+field('Period measured',o.lookback)+field('Calculation',o.formula)+field('Supportive when',o.supportive_when)+field('Concerning when',o.cautionary_when)+field('Why it matters',o.evidence)+field('Data source',o.source)+field('Can it be recreated on an old date?',o.backtestable===false?'No':'Yes. Only information available by that old date is used.')+field('Changes today\'s recommendation?',RESEARCH_ONLY)+
         '</div></div></div></div></div>';
     }).join('');
-    return '<div class="cat" data-exp><button class="row"><span class="chev"></span><span class="rname">'+esc(f.label)+'</span><span class="rmeta"><span class="lab '+tone(f.state)+'">'+esc(f.state)+'</span> <span class="lab info">'+esc(f.impact)+' impact · '+esc(f.confidence)+' confidence</span></span></button><div class="detail"><div class="detail-in"><div class="metricbox" style="margin-bottom:8px"><div class="ea">'+field('Family result',f.state)+field('Decision rule',f.decision_rule)+field('Indicator agreement',(f.supportive_observations||0)+' supportive · '+(f.cautionary_observations||0)+' cautionary · '+(f.available_observations||0)+' available')+field('Confidence',f.confidence)+field('Impact label',f.impact)+field('Correlation control',f.agreement_role||'This family contributes at most one agreement vote.')+field('Explanation',f.explanation)+'</div></div>'+observations+'</div></div></div>';
+    return '<div class="cat" data-exp><button class="row"><span class="chev"></span><span class="rname">'+esc(f.label)+'</span><span class="rmeta"><span class="lab '+tone(f.state)+'">'+esc(f.state)+'</span> <span class="lab info">'+esc(f.impact)+' importance · '+esc(f.confidence)+' confidence</span></span></button><div class="detail"><div class="detail-in"><div class="metricbox" style="margin-bottom:8px"><div class="ea">'+field('Group result',f.state)+field('Rule used',f.decision_rule)+field('Evidence count',(f.supportive_observations||0)+' supportive · '+(f.cautionary_observations||0)+' concerning · '+(f.available_observations||0)+' available')+field('Confidence',f.confidence)+field('Possible importance',f.impact)+field('Avoiding double-counting',f.agreement_role||'Similar indicators in this group count as at most one vote.')+field('Plain-English explanation',f.explanation)+'</div></div>'+observations+'</div></div></div>';
   }).join('');
   var a=e.agreement||{};
-  var rules=e.decision_rules||{}, inputs=(e.data_inputs||[]).join(' · ');
-  var lineage='<div class="cat" data-exp><button class="row"><span class="chev"></span><span class="rname">How the overall evidence result was decided</span><span class="rmeta"><span class="lab info">transparent rules &amp; data</span></span></button><div class="detail"><div class="detail-in"><div class="metricbox"><div class="ea">'+field('Entry-alignment rule',rules.entry_alignment)+field('Exit-pressure rule',rules.exit_pressure)+field('Correlation control',rules.correlation_control)+field('Available families',(a.available_families||[]).join(', ')||'None')+field('Supportive families',(a.supportive_families||[]).join(', ')||'None')+field('Cautionary families',(a.cautionary_families||[]).join(', ')||'None')+field('Data inputs',inputs)+field('As-of date',e.observed_at||'Unavailable')+field('Calculation version',e.version||'Unavailable')+field('Backtest method',e.backtestability)+field('Effect on FairEntry decision','0 points · no score, verdict, Buy/Sell gate, or automatic trade effect')+'</div></div></div></div></div>';
-  return '<div class="sub-h">Entry &amp; exit market evidence <span style="font-weight:400;color:var(--ink-faint);font-size:12px">(replayable · information only · not scored)</span></div><div class="dm-box">'+
-    '<div class="dm-head"><span class="lab '+tone(e.entry_alignment)+'">Entry '+esc(e.entry_alignment||'unavailable')+'</span><span class="lab '+tone(e.exit_pressure)+'">Exit pressure '+esc(e.exit_pressure||'unavailable')+'</span><div class="dm-summary">'+esc(a.supportive_count||0)+' supportive and '+esc(a.cautionary_count||0)+' cautionary families out of '+esc(a.available_count||0)+' available. Correlated measurements are grouped into one vote per family.</div><span class="dm-note">0 points</span></div>'+lineage+families+
+  var rules=e.decision_rules||{};
+  var lineage='<div class="cat" data-exp><button class="row"><span class="chev"></span><span class="rname">How this research result was calculated</span><span class="rmeta"><span class="lab info">rules &amp; data</span></span></button><div class="detail"><div class="detail-in"><div class="metricbox"><div class="ea">'+field('Possible-entry rule',rules.entry_alignment)+field('Downside-pressure rule',rules.exit_pressure)+field('How repeated evidence is avoided',rules.correlation_control)+field('Groups with enough data',(a.available_families||[]).join(', ')||'None')+field('Supportive groups',(a.supportive_families||[]).join(', ')||'None')+field('Concerning groups',(a.cautionary_families||[]).join(', ')||'None')+field('Price and volume history used','Daily adjusted price and volume available on or before the date shown. Weekly and monthly values are built only from completed periods.')+field('Data date',e.observed_at||'Unavailable')+field('Calculation version',e.version||'Unavailable')+field('Can it be checked fairly on past dates?','Yes. For each old date, the calculation uses only data that was available by that date.')+field('Changes today\'s recommendation?',RESEARCH_ONLY)+'</div></div></div></div></div>';
+  return '<div class="sub-h">Research-only entry &amp; downside-risk evidence <span style="font-weight:400;color:var(--ink-faint);font-size:12px">(can be tested on past dates; not part of today\'s recommendation)</span></div><div class="dm-box">'+
+    '<div class="dm-head"><span class="lab '+tone(e.entry_alignment)+'">Possible entry: '+esc(e.entry_alignment||'unavailable')+'</span><span class="lab '+tone(e.exit_pressure)+'">Downside pressure: '+esc(e.exit_pressure||'unavailable')+'</span><div class="dm-summary">'+esc(a.supportive_count||0)+' supportive and '+esc(a.cautionary_count||0)+' concerning groups out of '+esc(a.available_count||0)+' with enough data. Similar indicators are grouped so they are not counted several times.</div><span class="dm-note">research only</span></div>'+lineage+families+
     '<div style="font-size:11.5px;color:var(--ink-faint);padding:10px 14px;border-top:1px solid var(--line-soft);line-height:1.45">'+esc(e.policy||'')+' Observed '+esc(e.observed_at||'date unavailable')+'.</div></div>';
 }
 
@@ -1189,11 +1210,17 @@ function highConvictionResearchHTML(s){
   var h=s.high_conviction_research;if(s.emerging_candidate||!h)return '';
   function tone(state){return state==='pass'?'good':state==='fail'?'bad':'warn';}
   var statusTone=h.status==='candidate'?'good':h.status==='quantitative_core_pass_research_incomplete'?'warn':'info';
+  function stateWord(r){
+    if(r.state==='pass')return 'Pass';
+    if(r.state==='fail')return 'Does not pass';
+    return /unavailable|incomplete|missing|not available|not been completed|lacks/i.test(r.reason||'')?'Not enough data':'Not confirmed';
+  }
   var rows=(h.requirements||[]).map(function(r){
-    return '<div class="item" data-exp><button class="row"><span class="chev"></span><span class="rname">'+esc(r.label)+'</span><span class="rmeta"><span class="lab '+tone(r.state)+'">'+esc(r.state)+'</span> <span class="lab info">'+(r.backtestable?'backtestable':'not historically backtestable')+'</span></span></button><div class="detail"><div class="detail-in"><div class="metricbox"><div class="ea"><span class="k">Result</span><span class="v">'+esc(r.state)+'</span><span class="k">Reason</span><span class="v">'+esc(r.reason)+'</span><span class="k">Backtest status</span><span class="v">'+esc(r.backtestable?'Replayable input; combined rule still requires chronological validation.':'Displayed as qualitative research only because complete point-in-time history is unavailable.')+'</span><span class="k">Official decision effect</span><span class="v">0 points · no score, verdict, position-size, or automatic-trade effect</span></div></div></div></div></div>';
+    var historical=r.backtestable?'Yes. It can be recalculated using only information that existed by the old decision date.':'No. Reliable dated history for this research item is not available on old decision dates.';
+    return '<div class="item" data-exp><button class="row"><span class="chev"></span><span class="rname">'+esc(r.label)+'</span><span class="rmeta"><span class="lab '+tone(r.state)+'">'+esc(stateWord(r))+'</span> <span class="lab info">'+(r.backtestable?'can be checked on past dates':'current research only')+'</span></span></button><div class="detail"><div class="detail-in"><div class="metricbox"><div class="ea"><span class="k">Current result</span><span class="v">'+esc(stateWord(r))+'</span><span class="k">Why</span><span class="v">'+esc(r.reason)+'</span><span class="k">Can this single check be tested on old dates?</span><span class="v">'+esc(historical)+'</span><span class="k">Changes today\'s recommendation?</span><span class="v">'+esc(RESEARCH_ONLY)+'</span></div></div></div></div></div>';
   }).join('');
   var complete=h.research_completeness||{}, bt=h.backtestability||{};
-  return '<div class="sub-h">High-Conviction Research overlay <span class="lab warn">additional · not scored</span></div><div class="dm-box"><div class="dm-head"><span class="lab '+statusTone+'">'+esc(h.label||h.status)+'</span><div class="dm-summary">'+esc(complete.completed||0)+' of '+esc(complete.required||0)+' required findings complete ('+esc(complete.pct||0)+'%). Quantitative core '+(h.quantitative_core_passes?'passes':'does not pass')+'.</div><span class="dm-note">0 points</span></div>'+rows+'<div style="font-size:11.5px;color:var(--ink-faint);padding:10px 14px;border-top:1px solid var(--line-soft);line-height:1.45"><b>Quantitative core:</b> '+esc(bt.quantitative_core||'')+' <b>Full label:</b> '+esc(bt.full_label||'')+' '+esc(h.policy||'')+'</div></div>';
+  return '<div class="sub-h">High-Conviction Research check <span class="lab warn">research only</span></div><div class="dm-box"><div class="dm-head"><span class="lab '+statusTone+'">'+esc(h.label||h.status)+'</span><div class="dm-summary">'+esc(complete.completed||0)+' of '+esc(complete.required||0)+' checks have a clear Pass or Does-not-pass result; the others are mixed or lack enough data. The numerical checks '+(h.quantitative_core_passes?'all pass':'do not all pass')+'.</div><span class="dm-note">does not change recommendation</span></div>'+rows+'<div style="font-size:11.5px;color:var(--ink-faint);padding:10px 14px;border-top:1px solid var(--line-soft);line-height:1.45"><b>What can be checked on past dates:</b> '+esc(bt.quantitative_core||'')+' <b>Why the complete label is still research:</b> '+esc(bt.full_label||'')+' '+esc(h.policy||'')+'</div></div>';
 }
 
 function durabilityResearchHTML(s){
@@ -1201,14 +1228,14 @@ function durabilityResearchHTML(s){
   function tone(state){return state==='strong'||state==='stable'||state==='acceptable'||state==='supportive'?'good':state==='weak'||state==='cautionary'?'bad':'warn';}
   var durability='';
   if(d){
-    durability='<div class="cat" data-exp><button class="row"><span class="chev"></span><span class="rname">Business durability</span><span class="rmeta"><span class="lab '+tone(d.status)+'">'+esc(d.status)+'</span> <span class="lab info">replayable · 0 points</span></span></button><div class="detail"><div class="detail-in">'+(d.checks||[]).map(function(c){return '<div class="item" data-exp><button class="row"><span class="chev"></span><span class="rname">'+esc(c.label)+'</span><span class="rmeta"><span class="lab '+tone(c.state)+'">'+esc(c.state)+'</span></span></button><div class="detail"><div class="detail-in"><div class="metricbox"><div class="ea"><span class="k">Current evidence</span><span class="v">'+esc(c.actual)+'</span><span class="k">Candidate rule</span><span class="v">'+esc(c.rule)+'</span><span class="k">Source</span><span class="v">'+esc(c.source)+'</span><span class="k">Effect</span><span class="v">Backtestable research only · 0 points · no verdict effect</span></div></div></div></div></div>';}).join('')+'</div></div></div>';
+    durability='<div class="cat" data-exp><button class="row"><span class="chev"></span><span class="rname">Business durability</span><span class="rmeta"><span class="lab '+tone(d.status)+'">'+esc(d.status)+'</span> <span class="lab info">research only</span></span></button><div class="detail"><div class="detail-in">'+(d.checks||[]).map(function(c){return '<div class="item" data-exp><button class="row"><span class="chev"></span><span class="rname">'+esc(c.label)+'</span><span class="rmeta"><span class="lab '+tone(c.state)+'">'+esc(c.state)+'</span></span></button><div class="detail"><div class="detail-in"><div class="metricbox"><div class="ea"><span class="k">Current evidence</span><span class="v">'+esc(c.actual)+'</span><span class="k">Rule being evaluated</span><span class="v">'+esc(c.rule)+'</span><span class="k">Source</span><span class="v">'+esc(c.source)+'</span><span class="k">Changes today\'s recommendation?</span><span class="v">'+esc(RESEARCH_ONLY)+'</span></div></div></div></div></div>';}).join('')+'</div></div></div>';
   }
   var stress='';
   if(r){
     var x=r.summary||{};
-    stress='<div class="cat" data-exp><button class="row"><span class="chev"></span><span class="rname">Prior stress protection and recovery</span><span class="rmeta"><span class="lab '+tone(r.status)+'">'+esc(r.status)+'</span> <span class="lab info">'+esc(r.event_count||0)+' events · 0 points</span></span></button><div class="detail"><div class="detail-in"><div class="metricbox"><div class="ea"><span class="k">Median protection vs benchmark</span><span class="v">'+esc(x.median_relative_protection_pp==null?'n/a':x.median_relative_protection_pp+' pp')+'</span><span class="k">Recovered within one year</span><span class="v">'+esc(x.recovered_within_one_year_pct==null?'n/a':x.recovered_within_one_year_pct+'%')+'</span><span class="k">Median recovery time</span><span class="v">'+esc(x.median_recovery_days==null?'n/a':x.median_recovery_days+' trading days')+'</span><span class="k">Candidate rule</span><span class="v">'+esc(r.candidate_rule||'')+'</span><span class="k">Data limitation</span><span class="v">'+esc(r.data_note||'')+'</span><span class="k">Effect</span><span class="v">Backtestable research only · not validated · 0 points · no verdict effect</span></div></div></div></div></div>';
+    stress='<div class="cat" data-exp><button class="row"><span class="chev"></span><span class="rname">How it behaved during past market stress</span><span class="rmeta"><span class="lab '+tone(r.status)+'">'+esc(r.status)+'</span> <span class="lab info">'+esc(r.event_count||0)+' usable events · research only</span></span></button><div class="detail"><div class="detail-in"><div class="metricbox"><div class="ea"><span class="k">Typical protection compared with benchmark</span><span class="v">'+esc(x.median_relative_protection_pp==null?'not available':x.median_relative_protection_pp+' percentage points')+'</span><span class="k">Past events recovered within one year</span><span class="v">'+esc(x.recovered_within_one_year_pct==null?'not available':x.recovered_within_one_year_pct+'%')+'</span><span class="k">Typical recovery time</span><span class="v">'+esc(x.median_recovery_days==null?'not available':x.median_recovery_days+' trading days')+'</span><span class="k">Rule being evaluated</span><span class="v">'+esc(r.candidate_rule||'')+'</span><span class="k">Data limitation</span><span class="v">'+esc(r.data_note||'')+'</span><span class="k">Changes today\'s recommendation?</span><span class="v">'+esc(RESEARCH_ONLY)+'</span></div></div></div></div></div>';
   }
-  return '<div class="sub-h">Durability &amp; recovery research <span style="font-weight:400;color:var(--ink-faint);font-size:12px">(candidate rules · not scored)</span></div><div class="dm-box">'+durability+stress+'</div>';
+  return '<div class="sub-h">Durability &amp; recovery research <span style="font-weight:400;color:var(--ink-faint);font-size:12px">(rules being evaluated; does not change the recommendation)</span></div><div class="dm-box">'+durability+stress+'</div>';
 }
 function setupHTML(s){
   var b=s.breakout_setup; if(!b) return '';
@@ -1222,9 +1249,9 @@ function setupHTML(s){
         '<div class="detail"><div class="detail-in"><div class="metricbox"><div class="ea"><span class="k">Expected</span><span class="v exp">'+esc(f.expected||'-')+'</span><span class="k">Actual</span><span class="v act">'+esc(f.actual==null?'n/a':f.actual)+'</span><span class="k">Formula / decision rule</span><span class="v">'+esc(f.formula||'qualitative evidence review')+'</span><span class="k">Evidence</span><span class="v">'+esc(f.evidence||'-')+'</span>'+(f.quantifiable===false?'<span class="k">Attention overlay (not scored)</span><span class="v">'+esc((f.attention_level||'note').replaceAll('_',' ')+' · '+(f.recommended_response||'Note only')+' · '+(f.time_horizon||'unknown')+' horizon · '+(f.event_status||'unknown')+' · affects '+(f.affected_area||'unknown'))+'</span>':'')+'</div><div class="scoreline"><span class="why">source '+esc(f.source||'-')+(f.observed_at?' - observed '+esc(f.observed_at):'')+(f.calculation_version?' - '+esc(f.calculation_version):'')+(f.modifier_effect?' - '+esc(f.modifier_effect):'')+'</span></div></div></div></div></div>';}).join('')+
       '</div></div></div>';}).join('');
   var countLine=(counts.satisfied||0)+' satisfied - '+(counts.partial||0)+' partial - '+(counts.failed||0)+' failed - '+(counts.contradicted||0)+' opposing - '+(counts.unknown||0)+' unknown';
-  return '<div class="sub-h">Breakout confirmation <span style="font-weight:400;color:var(--ink-faint);font-size:12px">(existing label - '+esc(strategy)+' rules - no additional score)</span></div>'+
+  return '<div class="sub-h">Breakout confirmation <span style="font-weight:400;color:var(--ink-faint);font-size:12px">('+esc(strategy)+' explanation; this panel adds no extra points)</span></div>'+
     '<div class="dm-box"><div class="dm-head"><span class="lab '+setupToneClass(b.overall)+'">Breakout '+esc(b.overall||'unknown')+'</span><div class="dm-summary">'+esc(b.summary||'Breakout setup unavailable.')+'<div style="margin-top:5px;font-size:12px;color:var(--ink-faint)">'+esc(countLine)+'</div></div></div>'+sections+
-    '<div style="font-size:11.5px;color:var(--ink-faint);padding:10px 14px;border-top:1px solid var(--line-soft);line-height:1.45">'+esc(b.note||'')+' '+esc(b.qualitative_note||'')+'</div></div>';
+    '<div style="font-size:11.5px;color:var(--ink-faint);padding:10px 14px;border-top:1px solid var(--line-soft);line-height:1.45">Some rows explain factors already present in the official score; other rows are extra context. This panel itself never adds a second score. '+esc(b.note||'')+' '+esc(b.qualitative_note||'')+'</div></div>';
 }
 function num$(x){ return (x==null)?'-':('$'+x); }
 function growthEntryHTML(s){ var g=s.growth_entry; if(!g) return '';
@@ -1242,10 +1269,11 @@ function growthEntryHTML(s){ var g=s.growth_entry; if(!g) return '';
   if(g.required_growth) extra+='<div style="font-size:14px;margin-top:12px"><b>Required growth to justify price:</b> '+esc(g.required_growth)+'</div>';
   if(g.durability) extra+='<div style="font-size:13px;color:var(--ink-soft);margin-top:4px"><b>Growth durability:</b> '+esc(g.durability)+'</div>';
   if(g.kill) extra+='<div style="font-size:13px;color:var(--ink-soft);margin-top:4px"><b>Kill-switch:</b> '+esc(g.kill)+'</div>';
+  var entrySentence=s.verdict==='Buy'?'All official Buy conditions pass. The planned entry ceiling is <b>'+num$(g.buy_below)+'</b>, which includes a '+g.mos_pct+'% margin of safety.':'The valuation condition passes at or below <b>'+num$(g.buy_below)+'</b>, but do not buy until the official recommendation becomes Buy.';
   return '<div class="sub-h">Growth entry plan</div>'+
     '<div class="vg-explain" style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">'+
       '<span class="lab '+ev[1]+'" style="font-size:14px;padding:5px 13px">'+ev[0]+'</span>'+
-      '<span>Enter at or below <b>'+num$(g.buy_below)+'</b> for your '+g.mos_pct+'% margin of safety.</span></div>'+
+      '<span>'+entrySentence+'</span></div>'+
     cases+upside+extra; }
 
 // The thought process behind each fair-value method. `what` = plain description,
@@ -1273,11 +1301,14 @@ var VAL_WHY={
 };
 function targetPlanHTML(s){ var p=s.target_plan; if(!p||!p.practical)return '';
   var practical=p.practical, targets=p.targets||{};
+  var technicalHurdle=practical.selected_method==='technical'&&practical.stock_specific===false;
   var rows=Object.keys(targets).filter(function(k){return k!=='practical';}).sort(function(a,b){return targets[a].price-targets[b].price;}).map(function(k){
     var t=targets[k], warning=t.excluded?' · excluded: '+(t.reason||'low-quality input'):'';
-    return '<div class="cat" data-exp><button class="row"><span class="chev"></span><span class="rname">'+esc(t.label||k)+' <span class="lab '+(t.role==='bull'?'warn':t.excluded?'bad':'info')+'">'+esc(t.role)+'</span></span><span class="rmeta"><b>$'+esc(t.price)+'</b> · '+(t.upside_pct>=0?'+':'')+esc(t.upside_pct)+'%</span></button><div class="detail"><div class="detail-in"><div class="vmeth-box"><div>'+esc(t.basis||'')+'</div><div class="vmeth-watch">Expected window: '+esc(t.timeframe_days)+' days · confidence '+esc(t.confidence)+' · sector relevance '+esc(t.relevance||'medium')+' · data '+esc(t.quality)+esc(warning)+'</div></div></div></div></div>';
+    var notForecast=t.is_forecast===false?' · not a forecast':'';
+    return '<div class="cat" data-exp><button class="row"><span class="chev"></span><span class="rname">'+esc(t.label||k)+' <span class="lab '+(t.excluded?'bad':t.role==='bull'?'warn':'info')+'">'+esc(t.excluded?'not used':t.role)+'</span></span><span class="rmeta"><b>'+(t.price==null?'not available':'$'+esc(t.price))+'</b>'+(t.upside_pct==null?'':' · '+(t.upside_pct>=0?'+':'')+esc(t.upside_pct)+'%')+'</span></button><div class="detail"><div class="detail-in"><div class="vmeth-box"><div>'+esc(t.basis||'')+'</div><div class="vmeth-watch">Tracking window: '+esc(t.timeframe_days)+' days · confidence '+esc(t.confidence)+' · relevance to this sector '+esc(t.relevance||'medium')+' · data quality '+esc(t.quality)+esc(notForecast)+esc(warning)+'</div></div></div></div></div>';
   }).join('');
-  return '<div class="sub-h">Target plan</div><div class="vgauge"><div class="vg-nums"><div class="vg-num"><div class="l">Practical target</div><div class="v">$'+esc(practical.price)+'</div></div><div class="vg-num"><div class="l">Minimum expected upside</div><div class="v">+'+esc(practical.upside_pct)+'%</div></div><div class="vg-num"><div class="l">Expected within</div><div class="v">'+esc(practical.timeframe_days)+' days</div></div><div class="vg-num"><div class="l">Selected method</div><div class="v">'+esc(practical.selected_method)+'</div></div></div><div class="vg-explain">'+esc(p.explanation)+'</div><div class="vmeth-head">Additional target milestones</div>'+rows+'</div>'; }
+  var warning=technicalHurdle?'<b>Important:</b> This is simply the configured return hurdle because no usable 200-week average was available. It is not a stock-specific forecast. ':'';
+  return '<div class="sub-h">Price scenarios <span style="font-weight:400;color:var(--ink-faint);font-size:12px">(tracking levels, not guaranteed returns)</span></div><div class="vgauge"><div class="vg-nums"><div class="vg-num"><div class="l">Selected tracking level</div><div class="v">'+(practical.price==null?'Not available':'$'+esc(practical.price))+'</div></div><div class="vg-num"><div class="l">Upside if reached</div><div class="v">'+(practical.upside_pct==null?'Not available':(practical.upside_pct>=0?'+':'')+esc(practical.upside_pct)+'%')+'</div></div><div class="vg-num"><div class="l">Tracking window</div><div class="v">'+esc(practical.timeframe_days)+' days</div></div><div class="vg-num"><div class="l">How it was chosen</div><div class="v">'+esc(practical.selected_method||'No suitable method')+'</div></div></div><div class="vg-explain">'+warning+esc(p.explanation)+' A scenario is not a promise that the price will be reached.</div><div class="vmeth-head">Other calculated scenarios</div>'+rows+'</div>'; }
 function valHTML(s){ var v=s.valuation, price=s.price;
   var buyBelow=+(v.base*(1-S.mos/100)).toFixed(1);
   var lo=Math.min(v.low, price)*0.9, hi=Math.max(v.high, price)*1.08, span=(hi-lo)||1;
@@ -1294,8 +1325,8 @@ function valHTML(s){ var v=s.valuation, price=s.price;
     '<div class="vg-zones"><i class="z-cheap" style="width:'+zCheap+'%"></i><i class="z-fair" style="width:'+(zFairEnd-zCheap)+'%"></i><i class="z-exp" style="width:'+(100-zFairEnd)+'%"></i></div>'+
     '<div class="vg-mark price" style="left:'+pos(price)+'%"><span class="vg-cap" style="color:var(--ink)">- you pay $'+price+'</span></div>'+
     '<div class="vg-mark fair" style="left:'+pos(v.base)+'%"><span class="vg-cap" style="top:auto;bottom:-2px;color:var(--ink-soft)">fair $'+v.base+'</span></div></div>';
-  var legend='<div class="vg-legend"><span><span class="sw" style="background:var(--buy)"></span>Buy zone (<= $'+buyBelow+')</span>'+
-    '<span><span class="sw" style="background:var(--watch)"></span>Fair ($'+buyBelow+'"$'+v.high+')</span>'+
+  var legend='<div class="vg-legend"><span><span class="sw" style="background:var(--buy)"></span>Buy zone (&le; $'+buyBelow+')</span>'+
+    '<span><span class="sw" style="background:var(--watch)"></span>Fair ($'+buyBelow+'–$'+v.high+')</span>'+
     '<span><span class="sw" style="background:var(--avoid);opacity:.75"></span>Expensive (&gt; $'+v.high+')</span></div>';
   var zoneWord = price<=buyBelow?'inside your buy zone':price<=v.high?'fairly valued - just above your buy zone':'expensive';
   var explain='<div class="vg-explain">You pay <b>$'+price+'</b> for something worth about <b>$'+v.base+'</b> - '+
@@ -1305,7 +1336,7 @@ function valHTML(s){ var v=s.valuation, price=s.price;
   var agreement=v.method_agreement||{}, agreementTone=agreement.status==='pass'?'good':agreement.status==='caution'?'warn':'info';
   var agreementEvidence=agreement.historical_evidence||{}, fullEvidence=agreementEvidence.full_sample||{}, unseenEvidence=agreementEvidence.final_unseen_sample||{};
   var excluded=(agreement.excluded_methods||[]).map(function(m){return esc(m.name||m.key)+': '+esc(m.reason);}).join('<br>');
-  var agreementBox=agreement.status?'<div class="vmeth-box" style="margin-top:14px"><div class="vmeth-what"><span class="lab '+agreementTone+'">'+esc(agreement.label)+'</span> <span class="lab info">BACKTESTED SHADOW · 0 POINTS</span></div><div class="vmeth-formula">Retained methods: '+esc((agreement.methods||[]).join(', ')||'none')+' · Spread: '+esc(agreement.dispersion_pct==null?'n/a':agreement.dispersion_pct+'%')+' / maximum '+esc((agreement.thresholds||{}).maximum_dispersion_pct)+'% · Challenger upside: '+esc(agreement.upside_pct==null?'n/a':agreement.upside_pct+'%')+' / required +'+esc((agreement.thresholds||{}).minimum_upside_pct)+'%</div><div class="vmeth-why"><b>Current result:</b> '+esc(agreement.explanation||'')+'</div>'+(excluded?'<div class="vmeth-watch"><b>Excluded methods:</b><br>'+excluded+'</div>':'')+'<div class="vmeth-watch"><b>Historical evidence:</b> '+esc(fullEvidence.successes)+'/'+esc(fullEvidence.completed)+' ('+esc(fullEvidence.success_rate_pct)+'%) versus '+esc(fullEvidence.baseline_pct)+'% baseline. Final unseen: '+esc(unseenEvidence.successes)+'/'+esc(unseenEvidence.completed)+' ('+esc(unseenEvidence.success_rate_pct)+'%) versus '+esc(unseenEvidence.baseline_pct)+'%. This is visible evidence only and does not change the official score or recommendation.</div></div>':'';
+  var agreementBox=agreement.status?'<div class="vmeth-box" style="margin-top:14px"><div class="vmeth-what"><span class="lab '+agreementTone+'">'+esc(agreement.label)+'</span> <span class="lab info">RESEARCH ONLY</span></div><div class="vmeth-formula">Methods compared: '+esc((agreement.methods||[]).join(', ')||'none')+' · Difference between lowest and highest estimate: '+esc(agreement.dispersion_pct==null?'not available':agreement.dispersion_pct+'%')+' · allowed maximum '+esc((agreement.thresholds||{}).maximum_dispersion_pct)+'% · upside from this research rule: '+esc(agreement.upside_pct==null?'not available':agreement.upside_pct+'%')+' · required +'+esc((agreement.thresholds||{}).minimum_upside_pct)+'%</div><div class="vmeth-why"><b>Current result:</b> '+esc(agreement.explanation||'')+'</div>'+(excluded?'<div class="vmeth-watch"><b>Methods left out by this research check:</b><br>'+excluded+'</div>':'')+'<div class="vmeth-watch"><b>Important:</b> The official fair-value range above still uses every method marked “Counts in official score.” This research check may leave out a method when it compares estimate agreement, but it does not rewrite the official range.<br><br><b>Historical test:</b> '+esc(fullEvidence.successes)+'/'+esc(fullEvidence.completed)+' ('+esc(fullEvidence.success_rate_pct)+'%) succeeded versus '+esc(fullEvidence.baseline_pct)+'% for all comparable Buys. On the later dates that were kept out while designing the rule: '+esc(unseenEvidence.successes)+'/'+esc(unseenEvidence.completed)+' ('+esc(unseenEvidence.success_rate_pct)+'%) versus '+esc(unseenEvidence.baseline_pct)+'%. '+esc(RESEARCH_ONLY)+'</div></div>':'';
   var methods = (v.methods&&v.methods.length)?
     '<div style="margin-top:18px"><div class="vmeth-head">Fair value - '+testedMethods.length+' tested method(s) set the median $'+v.base+
       ' <span class="hint">click a method for its formula &amp; why it works</span></div>'+
@@ -1321,8 +1352,8 @@ function valHTML(s){ var v=s.valuation, price=s.price;
             (w.why?'<div class="vmeth-why"><b>Why it works:</b> '+esc(w.why)+'</div>':'')+
             (w.watch?'<div class="vmeth-watch"><b>Watch out:</b> '+esc(w.watch)+'</div>':'')+
           '</div></div></div></div>'; }).join('')+
-      '<div class="vmeth-median"><b>Base fair value</b> = the <b>median</b> of the '+testedMethods.length+' historically replayable method(s) = <b>$'+v.base+'</b>. Information-only methods are shown but excluded. The spread '+
-        '<b>$'+v.low+'"$'+v.high+'</b> shows how much the methods agree - a tight spread means higher confidence.</div>'+
+      '<div class="vmeth-median"><b>Base fair value</b> = the <b>median</b> of the '+testedMethods.length+' method(s) that can be calculated on past dates = <b>$'+v.base+'</b>. Information-only methods are shown but excluded. The spread '+
+        '<b>$'+v.low+'–$'+v.high+'</b> shows how much the methods agree - a tight spread means higher confidence.</div>'+
       agreementBox+'</div>' : agreementBox;
   return '<div class="sub-h">Valuation &amp; entry</div><div class="vgauge">'+nums+line+legend+explain+methods+'</div>'; }
 
@@ -1331,18 +1362,18 @@ function valuationContextHTML(s){
   var score=c.experimental_context_score, scoreText=score==null?'Unavailable':Number(score).toFixed(1)+'/100';
   var rows=(c.factors||[]).map(function(f){
     var factorScore=f.experimental_score==null?'No experimental score':Number(f.experimental_score).toFixed(1)+'/100 experimental';
-    return '<div class="item" data-exp><button class="row"><span class="chev"></span><span class="rname">'+esc(f.label)+'</span><span class="rmeta"><span class="lab warn">'+esc(f.status)+'</span> <span class="tnum">'+esc(factorScore)+'</span></span></button><div class="detail"><div class="detail-in"><div class="metricbox"><div class="ea"><span class="k">Observed value</span><span class="v">'+esc(f.value==null?'Unavailable':f.value)+'</span><span class="k">Experimental score</span><span class="v">'+esc(factorScore)+'</span><span class="k">Reason</span><span class="v">'+esc(f.reason||'')+'</span><span class="k">Formula</span><span class="v">'+esc(f.formula||'Not calculated')+'</span><span class="k">Source</span><span class="v">'+esc(f.source||'Unavailable')+'</span><span class="k">Official decision effect</span><span class="v">None · 0 points · no Buy/Watch/Avoid or trade effect</span></div></div></div></div></div>';
+    return '<div class="item" data-exp><button class="row"><span class="chev"></span><span class="rname">'+esc(f.label)+'</span><span class="rmeta"><span class="lab warn">'+esc(f.status)+'</span> <span class="tnum">'+esc(factorScore)+'</span></span></button><div class="detail"><div class="detail-in"><div class="metricbox"><div class="ea"><span class="k">Current value</span><span class="v">'+esc(f.value==null?'Not available':f.value)+'</span><span class="k">Separate research score</span><span class="v">'+esc(factorScore)+'</span><span class="k">Why</span><span class="v">'+esc(f.reason||'')+'</span><span class="k">How it was calculated</span><span class="v">'+esc(f.formula||'Not calculated')+'</span><span class="k">Source</span><span class="v">'+esc(f.source||'Not available')+'</span><span class="k">Changes today\'s recommendation?</span><span class="v">'+esc(RESEARCH_ONLY)+'</span></div></div></div></div></div>';
   }).join('');
-  return '<div class="sub-h">Experimental valuation context <span class="lab bad">NOT BACKTESTED</span></div><div class="dm-box"><div class="dm-head"><span class="lab warn">'+esc(c.experimental_context_label||'unavailable')+'</span><div class="dm-summary"><b>'+esc(scoreText)+'</b> separate experimental context score. '+esc(c.warning||'')+'</div><span class="dm-note">0 official points</span></div>'+rows+'<div style="font-size:11.5px;color:var(--ink-faint);padding:10px 14px;border-top:1px solid var(--line-soft);line-height:1.45">This panel is intentionally isolated from the historically tested FairEntry score and recommendation.</div></div>';
+  return '<div class="sub-h">Experimental valuation research <span class="lab bad">NOT BACKTESTED</span></div><div class="dm-box"><div class="dm-head"><span class="lab warn">'+esc(c.experimental_context_label||'unavailable')+'</span><div class="dm-summary"><b>'+esc(scoreText)+'</b> is a separate research score, not the FairEntry score. '+esc(c.warning||'')+'</div><span class="dm-note">does not change recommendation</span></div>'+rows+'<div style="font-size:11.5px;color:var(--ink-faint);padding:10px 14px;border-top:1px solid var(--line-soft);line-height:1.45">This panel is kept separate because it has not passed historical testing. '+esc(RESEARCH_ONLY)+'</div></div>';
 }
 
 function confidenceHTML(s,c){ var t=s.confidence_tier;if(s.emerging_candidate||!t||c.verdict!=='Buy')return '';
   var high=t.id==='high_confidence',i=t.inputs||{},fin=i.financial_strength||{},growth=i.growth_score||{},eps=i.expected_eps_growth||{},h=t.historical_evidence||{};
-  return '<div class="sub-h">Investment confidence validation <span class="lab '+(high?'good':'info')+'">'+esc(t.label)+'</span></div><div class="bizbox"><div class="biztop"><div class="bizplain"><b>'+(high?'Passes a validated high-confidence rule':'No validated High-confidence designation')+'</b><br><span class="meta">The Financial Strength overlay is information only and does not tune weights or change Buy / Watch / Avoid.</span></div><div class="bizexample">'+
+  return '<div class="sub-h">Buy-confidence research <span class="lab warn">does not change recommendation</span></div><div class="bizbox"><div class="biztop"><div class="bizplain"><b>'+(high?'Meets the research screen':'Does not meet the research screen')+'</b><br><span class="meta">This label is being evaluated. It does not change Buy / Watch / Avoid, the score, or position size.</span></div><div class="bizexample">'+
     'Financial Strength: <b>'+esc(fin.value==null?'n/a':fin.value)+'</b> / required '+esc(fin.minimum)+' — <span class="lab '+(fin.passes?'good':'bad')+'">'+(fin.passes?'passes':'does not pass')+'</span><br>'+
     'Growth Score: <b>'+esc(growth.value==null?'n/a':growth.value)+'</b> — displayed, not required because it did not add historical precision.<br>'+
     'Expected next-year EPS growth: <b>'+(eps.value_pct==null?'n/a':esc(eps.value_pct)+'%')+'</b> / provisional confirmation '+esc(eps.confirmation_threshold_pct)+'% — <span class="lab '+(eps.passes_provisional_confirmation?'good':'warn')+'">'+(eps.passes_provisional_confirmation?'provisional pass':'not confirmed')+'</span><br>'+
-    'Hard veto: <b>'+(i.no_hard_veto&&i.no_hard_veto.value?'none':'present')+'</b></div></div><div class="vg-explain"><b>Expanded replay result: not validated as High-confidence.</b> '+esc(h.successes)+'/'+esc(h.completed_episodes)+' succeeded ('+esc(h.observed_success_rate_pct)+'%), versus '+esc(h.comparison_all_buy_rate_pct)+'% for all Buys; 90% interval '+esc((h.confidence_interval_90_pct||[]).join('–'))+'%. The earlier 42/51 result did not reproduce. EPS remains information-only.</div></div>'; }
+    'Automatic disqualifier: <b>'+(i.no_hard_veto&&i.no_hard_veto.value?'none':'present')+'</b></div></div><div class="vg-explain"><b>Current conclusion: not validated as a higher-confidence rule.</b> '+esc(h.successes)+'/'+esc(h.completed_episodes)+' succeeded ('+esc(h.observed_success_rate_pct)+'%), versus '+esc(h.comparison_all_buy_rate_pct)+'% for all Buys; 90% uncertainty range '+esc((h.confidence_interval_90_pct||[]).join('–'))+'%. The earlier 42/51 result did not hold up in the larger replay. Expected EPS remains extra context only.</div></div>'; }
 
 function emergingResearchHTML(s){ var e=s.emerging_candidate;if(!e)return '';
   function rows(items){return (items||[]).map(function(x){
@@ -1357,18 +1388,18 @@ function emergingResearchHTML(s){ var e=s.emerging_candidate;if(!e)return '';
 function openDetail(tk){ var s=STOCKS.find(function(x){return x.ticker===tk;}); if(!s)return; var c=compute(s), em=s.emerging_candidate||null, vk=em?'watch':c.verdict.toLowerCase();
   $('#d-title').innerHTML=esc(s.ticker)+' <span style="font-size:13px;color:var(--ink-faint);font-weight:500">'+esc(s.company)+'</span>';
   var vetoHTML=c.vetoed?'<div style="margin-top:10px"><span class="lab bad">VETO</span> '+s.vetoes.map(esc).join(' - ')+'</div>':'';
-  var gateHTML=(c.gates&&c.gates.length)?'<div style="margin-top:8px;font-size:12px;color:var(--watch)">Soft gate'+(c.capped?' (capped Buy -> Watch)':'')+': '+c.gates.map(esc).join(' - ')+'</div>':'';
+  var gateHTML=(c.gates&&c.gates.length)?'<div style="margin-top:8px;font-size:12px;color:var(--watch)"><b>Why this is not a Buy:</b> '+c.gates.map(esc).join(' · ')+'</div>':'';
   var warnings=(s.context_warnings||[]); var warningHTML=warnings.length?'<div style="margin-top:8px"><span class="lab info">Information-only warning</span> '+warnings.map(function(w){return esc(w.reason||w);}).join(' - ')+' <span class="meta">Does not change the tested verdict.</span></div>':'';
   var hero='<div class="verdict-hero bg-'+vk+'" style="border-color:var(--'+vk+'-line)"><div class="vh-top">'+
     '<span class="vh-pill bg-'+vk+' v-'+vk+'">'+esc(em?em.label:c.verdict)+'</span>'+(em?'<span class="lab warn">Official verdict: '+esc(em.official_verdict||'none')+' · research overlay only</span>':(actionNuance(c)?'<span class="lab '+(c.vetoed?'bad':'warn')+'">'+esc(actionNuance(c))+'</span>':''))+
     '<span class="vh-score tnum" style="color:var(--'+vk+'-text)">'+Math.round(c.prelim)+'<span>/100</span></span></div>'+
     '<div class="vh-why"><span class="lab info">AI/news note - information only</span> '+esc(s.thesis.summary)+'</div>'+
     vetoHTML+gateHTML+warningHTML+'</div>';
-  var action='<div class="sub-h">'+(em?'Research disposition':'Action plan')+'</div><div class="action-grid">'+
+  var action='<div class="sub-h">'+(em?'Research status':'What to do now')+'</div><div class="action-grid">'+
     (em?[['Action','Observe only — not eligible for purchase from this list'],['Position size','None'],['Graduation',em.graduation_rule],['Current blocker',(em.blockers||[]).join(' · ')],['Shadow evidence','Model '+em.shadow_model_verdict+' at '+Math.round(em.shadow_score||0)+'/100; no official effect'],['Review','Recomputed after each successful universe refresh']]:[['Action',verdictAction(c)],['Position size',s.action.size],['Add trigger',s.action.add],['Invalidation / stop',s.action.stop],['Entry logic',s.action.entry],['Review',s.action.review]])
     .map(function(a){return '<div class="acard"><div class="l">'+a[0]+'</div><div class="v">'+esc(a[1])+'</div></div>';}).join('')+'</div>';
   var mathSec='<div class="sub-h">How the '+Math.round(c.prelim)+' was computed</div>'+scoreMathHTML(s,c);
-  var scorecard='<div class="sub-h">Scorecard - each existing category shows scored quantitative factors and separate non-quantifiable context</div>'+(s.categories||s.cats).map(function(cat){return catHTML(cat,s);}).join('');
+  var scorecard='<div class="sub-h">Scorecard - official factors and separate research notes</div>'+(s.categories||s.cats).map(function(cat){return catHTML(cat,s);}).join('');
   $('#d-body').innerHTML=hero+emergingResearchHTML(s)+confidenceHTML(s,c)+highConvictionResearchHTML(s)+businessHTML(s)+durabilityResearchHTML(s)+growthQualificationHTML(s)+debtDirectionHTML(s)+mathSec+scorecard+demandMomentumHTML(s)+entryExitEvidenceHTML(s)+setupHTML(s)+targetPlanHTML(s)+valHTML(s)+valuationContextHTML(s)+growthEntryHTML(s)+contextHTML(s)+situationHTML(s)+newsHTML(s)+watchHTML(s)+action;
   openDrawer('#detail');
 }

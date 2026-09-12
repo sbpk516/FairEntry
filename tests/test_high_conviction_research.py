@@ -79,7 +79,7 @@ def _qualitative(*, complete=True, negative=False):
 
 def _high_conviction(**overrides):
     inputs = {
-        "verdict": "Buy", "price": 25.0, "vetoes": [],
+        "verdict": "Buy", "price": 25.0, "price_is_fresh": True, "vetoes": [],
         "valuation_agreement": {"passes": True, "status": "pass", "explanation": "Two methods agree."},
         "business_durability": {"status": "strong", "label": "Strong durability evidence"},
         "stress_resilience": {"status": "acceptable", "label": "Acceptable prior stress recovery"},
@@ -101,6 +101,50 @@ def test_full_candidate_is_an_additional_zero_point_label():
     assert result["validated_for_score"] is False
 
 
+def test_price_check_requires_an_explicit_freshness_result():
+    result = _high_conviction(price_is_fresh=None)
+
+    row = next(row for row in result["requirements"] if row["id"] == "fresh_price")
+    assert row["state"] == "unknown"
+    assert "timestamp was not checked" in row["reason"]
+
+
+def test_price_check_explains_the_actual_age_limit():
+    result = _high_conviction(price_freshness_limit_hours=8)
+
+    row = next(row for row in result["requirements"] if row["id"] == "fresh_price")
+    assert row["state"] == "pass"
+    assert "not older than 8 hours" in row["reason"]
+
+
+def test_durability_and_stress_requirements_explain_the_evidence_in_numbers():
+    result = _high_conviction(
+        business_durability={
+            "status": "stable",
+            "agreement": {"supportive": 3, "cautionary": 0, "available": 5},
+        },
+        stress_resilience={
+            "status": "strong",
+            "event_count": 2,
+            "summary": {
+                "recovered_within_one_year_pct": 100,
+                "median_recovery_days": 48,
+                "median_relative_protection_pp": 6.2,
+            },
+        },
+    )
+
+    durability = next(row for row in result["requirements"]
+                      if row["id"] == "business_durability")
+    stress = next(row for row in result["requirements"]
+                  if row["id"] == "stress_resilience")
+    assert durability["reason"] == (
+        "3 of 5 available business-health groups are supportive and 0 are cautionary."
+    )
+    assert "Across 2 past sector declines, 100% recovered within one year" in stress["reason"]
+    assert "Past results do not guarantee the next recovery" in stress["reason"]
+
+
 def test_missing_management_or_policy_research_keeps_label_incomplete():
     result = _high_conviction(qualitative_context=_qualitative(complete=False))
 
@@ -109,6 +153,20 @@ def test_missing_management_or_policy_research_keeps_label_incomplete():
                if row["id"] == "critical_research_complete")
     assert row["backtestable"] is False
     assert row["state"] == "unknown"
+
+
+def test_pending_qualitative_review_is_not_mistaken_for_evidence_of_safety():
+    pending = {"categories": {"catalysts": [{
+        "id": "management_execution", "status": "unknown", "direction": "uncertain",
+        "impact": "unknown", "confidence": "low", "source": "AI review pending",
+        "observed_at": "",
+    }]}}
+    result = _high_conviction(qualitative_context=pending)
+
+    row = next(row for row in result["requirements"]
+               if row["id"] == "no_high_impact_qualitative_negative")
+    assert row["state"] == "unknown"
+    assert "missing research is not treated as a Pass" in row["reason"]
 
 
 def test_high_impact_policy_negative_prevents_candidate_but_not_official_buy():

@@ -117,12 +117,15 @@ def _summary(tone: str, rows: list[dict], volume_label: str):
         bits.append(volume_label)
     if not bits:
         return "Insufficient price/volume history for demand context."
-    prefix = {
-        "strong": "Demand looks strong",
-        "improving": "Demand is improving",
-        "weak": "Demand looks weak",
-        "mixed": "Demand is mixed",
-    }.get(tone, "Demand is mixed")
+    if tone == "improving" and volume_label == "distribution":
+        prefix = "Price is outperforming, but recent volume is cautionary"
+    else:
+        prefix = {
+            "strong": "Price leadership and volume look supportive",
+            "improving": "Price leadership is improving",
+            "weak": "Price and volume look weak",
+            "mixed": "Price and volume are mixed",
+        }.get(tone, "Price and volume are mixed")
     return prefix + ": " + ", ".join(bits) + "."
 
 

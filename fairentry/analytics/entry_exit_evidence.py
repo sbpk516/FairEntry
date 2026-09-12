@@ -63,7 +63,7 @@ def _confidence(required: int, available: int):
 
 def _metric(metric_id, label, value, unit, evidence, *, reading="context",
             lookback="", formula="", supportive_when="", cautionary_when="",
-            source="adjusted daily OHLCV history"):
+            source="daily price and volume history adjusted for splits and dividends"):
     if value is None:
         reading = "unavailable"
     return {
@@ -102,7 +102,7 @@ def _family(family_id, label, state, confidence, observations, explanation,
         "available_observations": len(known),
         "supportive_observations": sum(row.get("reading") == "supportive" for row in known),
         "cautionary_observations": sum(row.get("reading") == "cautionary" for row in known),
-        "agreement_role": "This family contributes at most one agreement vote.",
+        "agreement_role": "This group counts as only one result, even when several related indicators agree.",
         "vote_count": 1 if state in {"supportive", "cautionary"} else 0,
     }
 
@@ -176,8 +176,8 @@ def _momentum_family(closes, sector_closes, spy_closes):
             current_1m = combined
         if combined is not None:
             current_alphas.append(combined)
-        rows.append(_metric(f"relative_strength_{days}d", f"Relative strength — {label}", combined,
-                            "percentage points", "Average excess return versus SPY and the sector ETF.",
+        rows.append(_metric(f"relative_strength_{days}d", f"Stock return compared with benchmarks — {label}", combined,
+                            "percentage points", "Average amount by which the stock beat or lagged SPY and its sector ETF.",
                             reading="supportive" if combined is not None and combined > 0 else "cautionary",
                             lookback=f"{days} trading sessions",
                             formula="average(stock return − SPY return, stock return − sector ETF return)",
@@ -191,8 +191,8 @@ def _momentum_family(closes, sector_closes, spy_closes):
     ]
     prior_1m = statistics.fmean(prior_values) if prior_values else None
     acceleration = round(current_1m - prior_1m, 2) if current_1m is not None and prior_1m is not None else None
-    rows.append(_metric("relative_strength_acceleration", "Relative-strength acceleration",
-                        acceleration, "percentage points", "Current one-month relative return minus the preceding one-month relative return.",
+    rows.append(_metric("relative_strength_acceleration", "Is benchmark outperformance improving?",
+                        acceleration, "percentage points", "The stock's current one-month advantage over its benchmarks minus its advantage during the preceding month.",
                         reading="supportive" if acceleration is not None and acceleration >= 0 else "cautionary",
                         lookback="two consecutive 21-session windows",
                         formula="current 21-day relative return − preceding 21-day relative return",
@@ -253,11 +253,11 @@ def _volume_family(closes, volumes):
     else:
         state = "mixed"
     rows = [
-        _metric("up_down_dollar_volume_20d", "20-day up/down dollar-volume ratio", up_down, "x", "Values above one indicate more dollar participation on advancing days.",
+        _metric("up_down_dollar_volume_20d", "Money traded on up days compared with down days", up_down, "x", "Above one means more money traded on days when the stock rose.",
                 reading="supportive" if up_down is not None and up_down >= 1.2 else "cautionary" if up_down is not None and up_down <= .8 else "mixed",
                 lookback="20 trading sessions", formula="advancing-day dollar volume / declining-day dollar volume",
                 supportive_when="≥ 1.20×", cautionary_when="≤ 0.80×"),
-        _metric("signed_dollar_volume_balance_20d", "20-day signed dollar-volume balance", balance, "%", "Positive means advancing-day dollar volume exceeded declining-day dollar volume.",
+        _metric("signed_dollar_volume_balance_20d", "20-day buying-versus-selling volume balance", balance, "%", "Positive means more money traded on rising days than on falling days.",
                 reading="supportive" if balance is not None and balance >= 10 else "cautionary" if balance is not None and balance <= -10 else "mixed",
                 lookback="20 trading sessions", formula="(up-day dollar volume − down-day dollar volume) / total dollar volume × 100",
                 supportive_when="≥ +10%", cautionary_when="≤ −10%"),
@@ -326,28 +326,28 @@ def _volatility_family(closes, highs, lows):
     else:
         state = "mixed"
     rows = [
-        _metric("realized_volatility_20d", "20-day annualized volatility", vol20, "%", "Recent close-to-close realized volatility.",
+        _metric("realized_volatility_20d", "Estimated yearly volatility from the last 20 days", vol20, "%", "Shows how widely the closing price has moved recently, converted to a yearly scale.",
                 reading="context", lookback="20 trading sessions", formula="standard deviation of daily returns × √252 × 100",
                 supportive_when="Used through the 20d/126d ratio", cautionary_when="Used through the 20d/126d ratio"),
         _metric("volatility_20d_vs_126d", "20-day versus 126-day volatility", vol_ratio, "x", "Values above one indicate recent volatility expansion.",
                 reading="supportive" if vol_ratio is not None and vol_ratio <= .85 else "cautionary" if vol_ratio is not None and vol_ratio >= 1.25 else "mixed",
                 lookback="20 and 126 trading sessions", formula="20-day annualized volatility / 126-day annualized volatility",
                 supportive_when="≤ 0.85×", cautionary_when="≥ 1.25×"),
-        _metric("downside_upside_volatility_63d", "Downside/upside volatility ratio", downside_ratio, "x", "Values above one indicate larger downside moves than upside moves.",
+        _metric("downside_upside_volatility_63d", "Size of down moves compared with up moves", downside_ratio, "x", "Above one means falling days have usually been larger than rising days.",
                 reading="supportive" if downside_ratio is not None and downside_ratio <= 1.1 else "cautionary" if downside_ratio is not None and downside_ratio >= 1.2 else "mixed",
                 lookback="63 trading sessions", formula="standard deviation of negative-return magnitudes / standard deviation of positive returns",
                 supportive_when="≤ 1.10×", cautionary_when="≥ 1.20×"),
-        _metric("atr_14_pct", "14-day ATR as a percentage of price", atr_pct, "%", "True-range volatility normalized by price.",
+        _metric("atr_14_pct", "Typical 14-day price range as a percentage of price", atr_pct, "%", "Shows the stock's typical daily trading range relative to its price.",
                 reading="context", lookback="14 trading sessions", formula="14-day average true range / latest adjusted close × 100",
-                supportive_when="Context; evaluated with ATR percentile and downside asymmetry", cautionary_when="Context; evaluated with ATR percentile and downside asymmetry"),
-        _metric("atr_14_percentile", "14-day ATR historical percentile", atr_percentile, "percentile", "Current ATR compared with its available trailing history.",
+                supportive_when="Used with the historical range ranking and the size of down moves", cautionary_when="Used with the historical range ranking and the size of down moves"),
+        _metric("atr_14_percentile", "Current trading range compared with the past year", atr_percentile, "percentile", "Ranks the current typical trading range against the available trailing history.",
                 reading="cautionary" if atr_percentile is not None and atr_percentile >= 80 and downside_ratio is not None and downside_ratio > 1 else "context",
                 lookback="up to 252 rolling ATR observations", formula="percentage of trailing ATR values less than or equal to current ATR",
                 supportive_when="Context when downside volatility is controlled", cautionary_when="≥ 80th percentile with downside/upside ratio > 1"),
     ]
     return _family("volatility", "Volatility", state, _confidence(140, len(closes)), rows,
-                   "Volatility is interpreted by expansion/contraction and downside asymmetry, not by direction prediction.",
-                   "Supportive when short-term volatility is at most 0.85× longer-term volatility and downside asymmetry is controlled. Cautionary when volatility expands to at least 1.25× with downside asymmetry, or high-percentile ATR is downside-heavy; otherwise Mixed.")
+                   "This group checks whether price swings are calming or expanding and whether down moves are larger than up moves. It does not predict direction.",
+                   "Supportive when recent volatility is no more than 0.85 times longer-term volatility and down moves are controlled. Concerning when volatility expands to at least 1.25 times and down moves are larger, or the trading range is unusually high and downside-heavy; otherwise Mixed.")
 
 
 def build_entry_exit_evidence(closes: list[float], volumes: list[float],
@@ -394,9 +394,9 @@ def build_entry_exit_evidence(closes: list[float], volumes: list[float],
             "available_count": len(available),
         },
         "decision_rules": {
-            "entry_alignment": "Supportive: at least 3 supportive families and no more than 1 cautionary. Constructive: exactly 2 supportive and no more than 1 cautionary. Cautionary: at least 3 cautionary. Otherwise Mixed.",
-            "exit_pressure": "Elevated: at least 3 cautionary families. Moderate: exactly 2 cautionary families. Low: zero or one cautionary family.",
-            "correlation_control": "Trend, Momentum, Volume and Volatility each contribute at most one family vote regardless of how many underlying indicators they contain.",
+            "entry_alignment": "Supportive: at least 3 groups are supportive and no more than 1 is concerning. Constructive: exactly 2 are supportive and no more than 1 is concerning. Cautionary: at least 3 are concerning. Otherwise Mixed.",
+            "exit_pressure": "Elevated: at least 3 groups are concerning. Moderate: exactly 2 are concerning. Low: zero or one is concerning.",
+            "correlation_control": "Trend, Momentum, Volume and Volatility each count only once, regardless of how many related indicators they contain.",
         },
         "data_inputs": [
             "point-in-time adjusted stock closes, highs, lows and volume",
@@ -409,7 +409,6 @@ def build_entry_exit_evidence(closes: list[float], volumes: list[float],
             "It does not predict returns, change a score or verdict, gate an entry, or trigger an automatic exit."
         ),
         "backtestability": (
-            "Replayable from point-in-time adjusted OHLCV plus SPY and sector ETF history; "
-            "each historical evaluation must truncate every series at the observation date."
+            "Can be recalculated for an old date from adjusted stock, SPY and sector-ETF price and volume history. Each calculation must stop at that old date."
         ),
     }

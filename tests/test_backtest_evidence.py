@@ -189,7 +189,7 @@ def test_target_models_actually_filter_shared_engine_output():
     assert set(out) == {"practical", "fcf"}
 
 
-def test_target_excludes_analyst_anchor_and_is_frozen():
+def test_target_excludes_analyst_anchor_and_does_not_fake_a_blend():
     strategy = BacktestStrategy(minimum_upside_pct=5)
     rec = {"price": 100, "valuation": {"methods": [
         {"key": "analyst", "fair": 500}, {"key": "peer_pe", "fair": 125},
@@ -197,9 +197,62 @@ def test_target_excludes_analyst_anchor_and_is_frozen():
     out = targets_for(rec, {"sma200": {"value": 105}}, strategy)
     assert out["fundamental"]["price"] == 130
     assert out["fundamental"]["price"] != 500
-    assert out["blended"]["available"]
+    assert "blended" not in out
     assert out["practical"]["price"] is not None
     assert out["practical"]["status"] == "pending"
+
+
+def test_information_only_valuation_methods_cannot_build_or_select_a_target():
+    rec = {"price": 100, "sector": "Technology", "valuation": {"methods": [
+        {"key": "analyst", "fair": 140, "decision_status": "information_only"},
+        {"key": "lynch", "fair": 150, "decision_status": "information_only"},
+        {"key": "peer_pe", "fair": 160, "decision_status": "information_only"},
+        {"key": "peer_ps", "fair": 120, "decision_status": "tested"},
+        {"key": "fcf", "fair": 130, "decision_status": "tested"},
+    ]}}
+    plan = build_target_plan(
+        rec, {"price": {"value": 100, "source": "live"}},
+        minimum_upside_pct=10, maximum_upside_pct=100,
+    )
+
+    assert plan["targets"]["analyst"]["excluded"] is True
+    assert plan["targets"]["lynch"]["excluded"] is True
+    assert plan["targets"]["peer_pe"]["excluded"] is True
+    assert plan["targets"]["fundamental"]["price"] == 125
+    assert plan["practical"]["selected_method"] == "peer_ps"
+
+
+def test_target_blends_only_when_real_fundamental_and_technical_anchors_exist():
+    strategy = BacktestStrategy(minimum_upside_pct=5)
+    rec = {"price": 100, "valuation": {"methods": [
+        {"key": "peer_pe", "fair": 125}, {"key": "fcf", "fair": 135}]}}
+    metrics = {
+        "price": {"value": 100, "source": "seed_price"},
+        "dist_200wma_pct": {"value": -16.6667, "source": "seed_price"},
+    }
+    out = targets_for(rec, metrics, strategy)
+    assert out["technical"]["stock_specific"] is True
+    assert out["blended"]["available"] is True
+    assert out["blended"]["price"] == 125
+
+
+def test_information_only_valuation_methods_cannot_build_or_select_a_target():
+    plan = build_target_plan(
+        {"price": 100, "valuation": {"methods": [
+            {"key": "analyst", "fair": 140, "decision_status": "information_only"},
+            {"key": "lynch", "fair": 160, "decision_status": "information_only"},
+            {"key": "peer_ps", "fair": 130, "decision_status": "tested"},
+            {"key": "fcf", "fair": 150, "decision_status": "tested"},
+        ]}},
+        {"price": {"value": 100, "source": "live"}},
+        minimum_upside_pct=10,
+    )
+
+    assert plan["targets"]["analyst"]["excluded"] is True
+    assert plan["targets"]["lynch"]["excluded"] is True
+    assert plan["targets"]["fundamental"]["price"] == 140
+    assert plan["practical"]["selected_method"] != "analyst"
+    assert plan["practical"]["selected_method"] != "lynch"
 
 
 def test_live_and_backtest_use_identical_shared_target_engine():
@@ -227,6 +280,10 @@ def test_every_valid_price_has_practical_target():
                              historical=True)
     assert plan["practical"]["price"] == 11
     assert plan["practical"]["status"] == "pending"
+    assert plan["practical"]["stock_specific"] is False
+    assert plan["practical"]["is_forecast"] is False
+    assert plan["practical"]["confidence"] == "low"
+    assert "no usable 200-week average" in plan["practical"]["basis"]
 
 
 def test_low_relevance_book_value_does_not_drive_technology_target():

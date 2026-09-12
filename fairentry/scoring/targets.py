@@ -75,14 +75,26 @@ def build_target_plan(record: dict, metrics: dict, *, minimum_upside_pct=10.0,
         key = method.get("key") or "unknown"
         upside = (value / price - 1) * 100
         quality = _quality(metrics, _METHOD_METRICS.get(key, ()))
-        excluded = historical and quality == "current_proxy"
+        decision_status = method.get(
+            "decision_status", "information_only" if key == "analyst" else "tested"
+        )
+        excluded_for_decision = decision_status != "tested"
+        excluded_for_history = historical and quality == "current_proxy"
+        excluded = excluded_for_decision or excluded_for_history
+        reason = (
+            "Information-only estimate; not used by the official fair-value calculation"
+            if excluded_for_decision else
+            "Current-only input; not available on the old decision date"
+            if excluded_for_history else None
+        )
         targets[key] = {
             "method": key, "label": method.get("name", key), "price": round(value, 2),
             "upside_pct": round(upside, 2), "timeframe_days": _timeframe(max(0, upside)),
             "quality": quality, "confidence": "low" if quality in {"current_proxy", "approximated", "unknown"} else "moderate",
             "available": True, "applicable": not excluded, "excluded": excluded,
             "relevance": _relevance(key, sector),
-            "reason": ("Not point-in-time; retained for disclosure only" if excluded else None),
+            "decision_status": decision_status,
+            "reason": reason,
             "role": "supporting", "basis": method.get("basis", "Existing fair-value method"),
         }
 
@@ -98,28 +110,41 @@ def build_target_plan(record: dict, metrics: dict, *, minimum_upside_pct=10.0,
             "available": True,
             "relevance": "high",
             "reason": None, "role": "supporting",
-            "basis": "Median of applicable non-analyst fair-value methods",
+            "basis": "Median of relevant methods used by the official fair-value calculation",
         }
 
     distance_200wma = _metric(metrics, "dist_200wma_pct").get("value")
     wma200 = (price / (1 + distance_200wma / 100)
               if isinstance(distance_200wma, (int, float)) and distance_200wma > -100 else None)
+    has_200week_mean = isinstance(wma200, (int, float)) and wma200 > 0
     continuation = price * (1 + minimum_upside_pct / 100)
-    raw_technical = max(continuation, wma200) if isinstance(wma200, (int, float)) and wma200 > 0 else continuation
+    raw_technical = max(continuation, wma200) if has_200week_mean else continuation
     technical = min(raw_technical, price * (1 + max(35, minimum_upside_pct) / 100))
     technical_upside = (technical / price - 1) * 100
     targets["technical"] = {
         "method": "technical", "label": "Technical objective", "price": round(technical, 2),
         "upside_pct": round(technical_upside, 2), "timeframe_days": _timeframe(technical_upside),
-        "quality": _quality(metrics, ("price", "dist_200wma_pct")), "confidence": "moderate",
+        "quality": _quality(metrics, ("price", "dist_200wma_pct")),
+        "confidence": "moderate" if has_200week_mean else "low",
         "available": True, "applicable": True, "excluded": False, "reason": None, "role": "supporting",
         "relevance": "high",
-        "basis": f"{minimum_upside_pct:g}% continuation or recovery to the 200-week mean, capped at {max(35, minimum_upside_pct):g}%",
+        "stock_specific": has_200week_mean,
+        "is_forecast": False,
+        "basis": (
+            f"Higher of the configured +{minimum_upside_pct:g}% research hurdle or recovery to the 200-week average, capped at +{max(35, minimum_upside_pct):g}%"
+            if has_200week_mean else
+            f"Configured +{minimum_upside_pct:g}% research hurdle; no usable 200-week average was available"
+        ),
     }
 
     blend_parts = [t["price"] for k, t in targets.items()
-                   if k in {"fundamental", "technical"} and not t["excluded"] and t["price"] > price]
-    if blend_parts:
+                   if k in {"fundamental", "technical"} and not t["excluded"]
+                   and t["price"] > price
+                   and (k != "technical" or t.get("stock_specific") is True)]
+    # A blend is meaningful only when it combines two independent anchors.
+    # Copying a lone technical hurdle into a "blended" target falsely implies
+    # corroboration and can outrank the original because of its confidence tag.
+    if len(blend_parts) >= 2:
         value = statistics.median(blend_parts)
         upside = (value / price - 1) * 100
         targets["blended"] = {
@@ -181,6 +206,6 @@ def build_target_plan(record: dict, metrics: dict, *, minimum_upside_pct=10.0,
 
     return {"version": 2, "status": "target_available" if chosen.get("available") else "no_credible_practical_target", "practical": chosen,
             "targets": targets,
-            "explanation": (f"Minimum practical expectation: {chosen['selected_method']} target at ${chosen['price']:.2f}."
+            "explanation": (f"Selected tracking scenario: {chosen['selected_method']} at ${chosen['price']:.2f}."
                             if isinstance(chosen.get("price"), (int, float))
                             else chosen.get("reason"))}

@@ -502,7 +502,9 @@ def build_context(store, records: list[tuple[dict, dict]]) -> dict:
         business_factor = _factor("strategy_business_support", "business_support", business_label,
                                   business_score, business_actual, business_expected,
                                   "strategy-specific revenue, EPS and margin trend test",
-                                  "Deep value requires stabilization; growth requires durable current growth.",
+                                  ("Quality Growth requires strong current revenue or expected EPS growth and no deterioration in the stored fundamental trend."
+                                   if strategy == "quality_growth" else
+                                   "Deep Value requires improving or stabilizing stored revenue and margin trends."),
                                   contradicted=fund_label in {"worsening", "deteriorating"},
                                   observed_at=_metric_as_of(metrics, ("rev_growth_qoq", "eps_growth_next_y",
                                                                       "gross_margin", "oper_margin")))
@@ -511,7 +513,7 @@ def build_context(store, records: list[tuple[dict, dict]]) -> dict:
                                 f"gross margin {gross_label}, operating margin {oper_label}",
                                 "stable or improving gross and operating margins",
                                 "trend of stored gross-margin and operating-margin observations",
-                                "Margin direction supports the existing Growth category without using price momentum.",
+                                "This is a research-only margin-trend check. It does not currently contribute to the official Growth category.",
                                 contradicted=gross_label == "worsening" and oper_label == "worsening",
                                 scoring_metric="margin_trend_score",
                                 observed_at=_metric_as_of(metrics, ("gross_margin", "oper_margin")))

@@ -79,11 +79,11 @@ def build_business_durability(metrics: dict, histories: dict[str, list[float]]) 
         checks.append(_check(
             "revenue_stability", "Revenue-growth stability", revenue_state, actual,
             "Supportive: at least 67% positive, no >10 pp decay, and variability at most 25 pp; cautionary below 50% positive or >20 pp decay.",
-            "stored point-in-time revenue-growth history"))
+            "stored dated sales-growth observations"))
     else:
         checks.append(_check("revenue_stability", "Revenue-growth stability", "unavailable", None,
                              "Requires at least 3 stored observations.",
-                             "stored point-in-time revenue-growth history", available=False))
+                             "stored dated sales-growth observations", available=False))
 
     margin_states = []
     margin_actual = []
@@ -101,7 +101,7 @@ def build_business_durability(metrics: dict, histories: dict[str, list[float]]) 
         "margin_direction", "Margin direction", margin_state,
         ", ".join(margin_actual) if margin_actual else None,
         "Supportive when at least one stored margin improves and neither deteriorates; cautionary when both deteriorate.",
-        "stored point-in-time gross- and operating-margin history",
+        "stored dated gross-margin and operating-margin observations",
         available=bool(margin_states)))
 
     current_pfcf = _number(metrics.get("pfcf_ratio"))
@@ -116,7 +116,7 @@ def build_business_durability(metrics: dict, histories: dict[str, list[float]]) 
     checks.append(_check(
         "cash_flow_quality", "Cash-flow support", cash_state, cash_actual,
         "Supportive when free cash flow is positive (positive P/FCF) and its multiple is not worsening materially. This is a cash-availability proxy, not an earnings-quality proof.",
-        "current and stored point-in-time P/FCF", available=current_pfcf is not None))
+        "current and stored dated price-to-free-cash-flow observations", available=current_pfcf is not None))
 
     roic = _number(metrics.get("roic"))
     oper_now = _number(metrics.get("oper_margin"))
@@ -129,7 +129,7 @@ def build_business_durability(metrics: dict, histories: dict[str, list[float]]) 
         "profitability", "Profitable reinvestment", profitability_state,
         f"ROIC {roic if roic is not None else 'n/a'}%; operating margin {oper_now if oper_now is not None else 'n/a'}%",
         "Supportive when ROIC is at least 10% and operating margin, when available, is positive; cautionary for negative ROIC or operating margin.",
-        "current point-in-time fundamentals", available=roic is not None or oper_now is not None))
+        "latest fundamentals available on the board date", available=roic is not None or oper_now is not None))
 
     debt = _number(metrics.get("debt_eq"))
     debt_change = _number(metrics.get("debt_to_assets_change_yoy_pp"))
@@ -155,7 +155,7 @@ def build_business_durability(metrics: dict, histories: dict[str, list[float]]) 
         "financial_protection", "Financial protection", protection_state,
         f"D/E {debt if debt is not None else 'n/a'}; debt change {debt_change if debt_change is not None else 'n/a'} pp; current ratio {current_ratio if current_ratio is not None else 'n/a'}; Altman-Z {altman if altman is not None else 'n/a'}; dilution {dilution if dilution is not None else 'n/a'}%",
         "Supportive with at least 3 protective observations and no severe risk; cautionary with at least 2 severe risks. Exact component thresholds are displayed in the evidence definition.",
-        "current point-in-time balance-sheet and share-count fundamentals",
+        "latest balance-sheet and share-count data available on the board date",
         available=bool(known)))
 
     available_checks = [row for row in checks if row["state"] != "unavailable"]
@@ -181,5 +181,5 @@ def build_business_durability(metrics: dict, histories: dict[str, list[float]]) 
         "validated_for_score": False,
         "score_effect": 0,
         "verdict_effect": "none",
-        "policy": "Replayable research hypothesis only. It cannot change the official score or verdict unless chronological out-of-time validation later passes.",
+        "policy": "Research only. It can be recalculated on old dates, but it cannot change the official score or recommendation unless a separate test on later, previously unused dates shows that it helps.",
     }

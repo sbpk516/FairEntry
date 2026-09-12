@@ -126,8 +126,11 @@ def _action(rec):
         return {"action": "Quant Buy" if v == "Quant Buy" else "Buy Now", "size": "3%", "entry": "Clears the quantitative gates.",
                 "add": "On confirmation.", "stop": "Thesis kill-switch (reasoning layer, pending).",
                 "review": "Next earnings"}
-    return {"action": "Watch", "size": "starter", "entry": (rec["soft_gates"][0]["reason"] if rec["soft_gates"]
-            else "Not yet actionable."), "add": "—", "stop": "—", "review": "—"}
+    blockers = [gate.get("reason") for gate in rec.get("soft_gates", []) if gate.get("reason")]
+    return {"action": "Watch — wait for all Buy conditions", "size": "None while recommendation is Watch",
+            "entry": "; ".join(blockers) if blockers else "Not yet actionable.",
+            "add": "Not applicable until Buy", "stop": "No position-level stop because this is not a Buy",
+            "review": "Recheck after the next successful data refresh"}
 
 
 def _card_summary(rec, thesis, strategy_key):
@@ -157,6 +160,15 @@ def _card_summary(rec, thesis, strategy_key):
 
     def item_text(item):
         actual = item.get("actual")
+        metric = item.get("metric")
+        if metric == "breakout_price_score":
+            return ("Price has clearly broken above resistance" if (item.get("score") or 0) >= 70
+                    else "Price has not clearly broken above resistance")
+        if metric == "breakout_volume_score":
+            return ("Trading volume supports the breakout" if (item.get("score") or 0) >= 70
+                    else "Trading volume does not yet confirm the breakout")
+        if metric == "rev_growth_qoq" and isinstance(actual, (int, float)):
+            return f"Quarterly sales growth: {actual:+.1f}% (scored against the sector)"
         if isinstance(actual, (int, float)):
             if item.get("metric") in {
                 "rev_growth_qoq", "eps_growth_next_y", "gross_margin", "oper_margin",
@@ -257,7 +269,7 @@ def _dm_num(mt, k):
 def demand_momentum(mt: dict) -> dict:
     """Informational only. Returns {demand, momentum} each with a label, a
     one-line read, and the evidence numbers behind it. Never feeds the score."""
-    rev = _dm_num(mt, "rev_growth_qoq")          # sales growth Q/Q
+    rev = _dm_num(mt, "rev_growth_qoq")          # latest reported quarter vs year ago
     epsn = _dm_num(mt, "eps_growth_next_y")       # forward EPS growth estimate
     perf = _dm_num(mt, "perf_year")               # 1-year price performance
     relv = _dm_num(mt, "rel_volume")              # relative volume (activity)
@@ -267,7 +279,7 @@ def demand_momentum(mt: dict) -> dict:
     # ---- Demand: is the business winning growth, and are estimates rising? ----
     d_ev = []
     if rev is not None:
-        d_ev.append(f"Sales {rev:+.0f}% q/q")
+        d_ev.append(f"Latest-quarter sales {rev:+.0f}% vs year ago")
     if epsn is not None:
         d_ev.append(f"EPS est next yr {epsn:+.0f}%")
     if revs is not None:
@@ -286,7 +298,7 @@ def demand_momentum(mt: dict) -> dict:
     if perf is not None:
         m_ev.append(f"1-yr {perf:+.0f}%")
     if relv is not None:
-        m_ev.append(f"rel. volume {relv:.1f}x")
+        m_ev.append(f"volume vs 20-day average {relv:.1f}x")
     if rec_ is not None:
         m_ev.append("analyst consensus " + ("Buy" if rec_ <= 2 else "Sell" if rec_ >= 3.5 else "Hold"))
     rotating = (perf is not None and perf >= 15) and (relv is None or relv >= 1.0)
@@ -434,8 +446,8 @@ def _map(rec, strategies, strategy_key):
                               for k in statuses}
         breakout["counts"]["total"] = len(breakout["factors"])
         breakout["qualitative_note"] = (
-            "Qualitative and human evidence is information only. It does not change "
-            "the tested score, verdict, or deterministic breakout label."
+            "Qualitative and human evidence is for research only. It does not change "
+            "the official score, recommendation, or breakout result."
         )
     qualitative_by_category = {category: [] for category in (
         "quality", "survival", "growth", "valuation", "confirmation", "catalysts", "risk"
@@ -452,7 +464,9 @@ def _map(rec, strategies, strategy_key):
         "categories": qualitative_by_category,
     }
     high_conviction = build_high_conviction_research(
-        verdict=rec.get("verdict"), price=rec.get("price"), vetoes=rec.get("vetoes"),
+        verdict=rec.get("verdict"), price=rec.get("price"), price_is_fresh=True,
+        price_freshness_limit_hours=rec.get("_price_freshness_limit_hours"),
+        vetoes=rec.get("vetoes"),
         valuation_agreement=fv.get("method_agreement"),
         business_durability=rec.get("_business_durability"),
         stress_resilience=rec.get("_stress_resilience"),
@@ -836,6 +850,7 @@ def build_board(cfg, store, settings=None, reason=False, *, source="finviz",
         mt = store.metrics_for(t)
         metrics_by_ticker[t] = mt
         rec = score_ticker(cfg, secs[t], mt, med, s)
+        rec["_price_freshness_limit_hours"] = price_limit_h
         rec["_primary"] = primary; rec["_strategies"] = strategies
         smf = mt.get("thirteenf_flow", {})
         rec["_sm_flow"] = smf.get("value") if isinstance(smf, dict) else None

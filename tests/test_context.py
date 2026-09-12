@@ -45,7 +45,8 @@ def test_demand_momentum_strong_and_rotating():
                            perf_year=40, rel_volume=1.8, analyst_recom=1.5))
     assert r["demand"]["label"] == "strong"
     assert r["momentum"]["label"] == "rotating in"
-    assert any("Sales" in e for e in r["demand"]["evidence"])
+    assert any("sales" in e.lower() for e in r["demand"]["evidence"])
+    assert any("vs year ago" in e for e in r["demand"]["evidence"])
     assert "not part of the score" in r["disclaimer"].lower()
 
 

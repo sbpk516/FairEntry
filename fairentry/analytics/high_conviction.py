@@ -19,67 +19,112 @@ def _qualitative_rows(context):
     return rows
 
 
-def build_high_conviction_research(*, verdict, price, vetoes, valuation_agreement,
+def _durability_reason(evidence):
+    agreement = (evidence or {}).get("agreement") or {}
+    available = agreement.get("available")
+    supportive = agreement.get("supportive")
+    cautionary = agreement.get("cautionary")
+    if all(isinstance(value, (int, float)) for value in (available, supportive, cautionary)):
+        return (
+            f"{supportive:g} of {available:g} available business-health groups are supportive "
+            f"and {cautionary:g} are cautionary."
+        )
+    return (evidence or {}).get("label", "Business-health evidence is incomplete.")
+
+
+def _stress_reason(evidence):
+    summary = (evidence or {}).get("summary") or {}
+    events = (evidence or {}).get("event_count")
+    recovery = summary.get("recovered_within_one_year_pct")
+    days = summary.get("median_recovery_days")
+    protection = summary.get("median_relative_protection_pp")
+    if isinstance(events, (int, float)) and isinstance(recovery, (int, float)):
+        details = f"Across {events:g} past sector declines, {recovery:g}% recovered within one year"
+        if isinstance(days, (int, float)):
+            details += f"; the typical recovery took {days:g} trading days"
+        if isinstance(protection, (int, float)):
+            details += f", and the stock fell {protection:g} percentage points less than its sector on average"
+        return details + ". Past results do not guarantee the next recovery."
+    return (evidence or {}).get("label", "Past-stress evidence is incomplete.")
+
+
+def build_high_conviction_research(*, verdict, price, price_is_fresh=None,
+                                   price_freshness_limit_hours=None, vetoes, valuation_agreement,
                                    business_durability, stress_resilience,
                                    entry_exit_evidence, qualitative_context) -> dict:
     """Combine independent evidence without touching the official decision."""
     requirements = []
     requirements.append(_requirement(
-        "official_buy", "Official FairEntry Buy", "pass" if verdict == "Buy" else "fail",
-        f"Official deterministic verdict is {verdict or 'unavailable'}.", backtestable=True))
-    fresh = isinstance(price, (int, float)) and price > 0
+        "official_buy", "Current FairEntry recommendation is Buy", "pass" if verdict == "Buy" else "fail",
+        f"Today's FairEntry recommendation is {verdict or 'unavailable'}.", backtestable=True))
+    valid_price = isinstance(price, (int, float)) and price > 0
+    fresh = valid_price and price_is_fresh is True
+    fresh_state = "pass" if fresh else "fail" if price_is_fresh is False or not valid_price else "unknown"
     requirements.append(_requirement(
-        "fresh_price", "Fresh usable price", "pass" if fresh else "fail",
-        "The active board contains a usable price inside its freshness policy." if fresh else "Price is unavailable or stale.",
+        "fresh_price", "Current price is recent enough", fresh_state,
+        (f"The price has a valid timestamp and is not older than {price_freshness_limit_hours:g} hours."
+         if fresh and isinstance(price_freshness_limit_hours, (int, float)) else
+         "The price and its timestamp passed the live board's freshness check.") if fresh else
+        "The price is missing or too old." if fresh_state == "fail" else
+        "A price is available, but its timestamp was not checked here.",
         backtestable=True))
     no_veto = not bool(vetoes)
     requirements.append(_requirement(
-        "no_hard_veto", "No hard veto", "pass" if no_veto else "fail",
-        "No tested hard veto is present." if no_veto else "A tested hard veto is present.", backtestable=True))
+        "no_hard_veto", "No automatic disqualifier", "pass" if no_veto else "fail",
+        "No tested rule automatically disqualifies this stock." if no_veto else "A tested rule automatically disqualifies this stock.", backtestable=True))
 
     valuation_pass = bool((valuation_agreement or {}).get("passes"))
     valuation_known = bool((valuation_agreement or {}).get("status"))
     requirements.append(_requirement(
-        "valuation_agreement", "Valuation-method agreement", "pass" if valuation_pass else "fail" if valuation_known else "unknown",
+        "valuation_agreement", "Fair-value estimates agree", "pass" if valuation_pass else "fail" if valuation_known else "unknown",
         (valuation_agreement or {}).get("explanation", "Valuation-agreement evidence is unavailable."), backtestable=True))
 
     durability_status = (business_durability or {}).get("status")
     requirements.append(_requirement(
-        "business_durability", "Strong or stable business durability",
+        "business_durability", "Business performance is durable",
         "pass" if durability_status in {"strong", "stable"} else "fail" if durability_status == "weak" else "unknown",
-        (business_durability or {}).get("label", "Business-durability evidence is incomplete."), backtestable=True))
+        _durability_reason(business_durability), backtestable=True))
 
     stress_status = (stress_resilience or {}).get("status")
     requirements.append(_requirement(
-        "stress_resilience", "Strong or acceptable stress resilience",
+        "stress_resilience", "Recovered acceptably from past market stress",
         "pass" if stress_status in {"strong", "acceptable"} else "fail" if stress_status == "weak" else "unknown",
-        (stress_resilience or {}).get("label", "Stress-recovery evidence is incomplete."), backtestable=True))
+        _stress_reason(stress_resilience), backtestable=True))
 
     entry = (entry_exit_evidence or {}).get("entry_alignment")
     requirements.append(_requirement(
-        "market_evidence", "Supportive or constructive market evidence",
+        "market_evidence", "Price and volume evidence is supportive",
         "pass" if entry in {"supportive", "constructive"} else "fail" if entry == "cautionary" else "unknown",
         f"Entry evidence is {entry or 'unavailable'}; it remains context rather than a prediction.", backtestable=True))
 
     qualitative = _qualitative_rows(qualitative_context)
     critical_ids = {"management_execution", "policy_impact"}
     critical = {row.get("id"): row for row in qualitative if row.get("id") in critical_ids}
-    high_negatives = [row for row in qualitative
+    completed_qualitative = [
+        row for row in qualitative
+        if row.get("direction") in {"positive", "negative", "mixed"}
+        and row.get("observed_at") not in {None, ""}
+        and str(row.get("source") or "").lower()
+        not in {"", "ai review pending", "not available", "-"}
+    ]
+    high_negatives = [row for row in completed_qualitative
                       if row.get("direction") == "negative" and row.get("impact") == "high"
                       and row.get("confidence") in {"medium", "high"}]
     requirements.append(_requirement(
-        "no_high_impact_qualitative_negative", "No known high-impact qualitative negative",
-        "fail" if high_negatives else "pass" if qualitative else "unknown",
+        "no_high_impact_qualitative_negative", "No major researched warning is known",
+        "fail" if high_negatives else "pass" if completed_qualitative else "unknown",
         ("High-impact negative: " + "; ".join(row.get("label", row.get("id", "risk")) for row in high_negatives))
-        if high_negatives else "No sourced high-impact negative was found in the available qualitative review."
-        if qualitative else "Qualitative research has not been completed.", backtestable=False))
+        if high_negatives else "No sourced high-impact negative was found in the completed qualitative review."
+        if completed_qualitative else
+        "No completed, dated qualitative review is available, so missing research is not treated as a Pass.",
+        backtestable=False))
     completed_critical = all(
         critical.get(key) and critical[key].get("status") != "unknown"
         and critical[key].get("source") not in {None, "", "-", "AI review pending"}
         and critical[key].get("observed_at") not in {None, ""}
         for key in critical_ids)
     requirements.append(_requirement(
-        "critical_research_complete", "Management and policy research complete",
+        "critical_research_complete", "Management and government-policy research is complete",
         "pass" if completed_critical else "unknown",
         "Both management execution and government-policy exposure have sourced, dated findings."
         if completed_critical else "Management and/or policy research remains unknown or lacks a specific source.",
@@ -106,12 +151,12 @@ def build_high_conviction_research(*, verdict, price, vetoes, valuation_agreemen
         "research_completeness": {"completed": completed, "required": len(requirements),
                                   "pct": round(completed / len(requirements) * 100, 1)},
         "backtestability": {
-            "quantitative_core": "Replayable, but the combined rule is not yet validated for production.",
-            "full_label": "Not currently backtestable because complete point-in-time management and government-policy histories are unavailable.",
+            "quantitative_core": "The numerical checks can be recalculated on old decision dates. However, we have not yet locked the final version of all nine checks and tested that unchanged version on later dates that were not used when choosing the rules.",
+            "full_label": "A fair test of the complete label is not possible yet because most old decision dates do not have dated management and government-policy research.",
         },
         "score_effect": 0,
         "verdict_effect": "none",
         "automatic_trade_effect": "none",
         "validated_for_score": False,
-        "policy": "Additional research label only. It never changes the seven-category score, Buy/Watch/Avoid verdict, position size, or trade action.",
+        "policy": "This check is deliberately outside the official formula. It cannot add or subtract points, change Buy / Watch / Avoid, place a trade, or change position size.",
     }

@@ -48,6 +48,18 @@ def test_lower_better_and_band():
     assert s == 90
 
 
+def test_lower_better_sector_relative_rule_does_not_reward_expensive_stock():
+    rule = {"type": "sector_rel", "full_delta": -1, "floor_delta": 4,
+            "lower_better": True}
+    cheap, cheap_how = apply_rule(rule, 3, sector_median=5)
+    expensive, expensive_how = apply_rule(rule, 11, sector_median=5)
+
+    assert cheap == 100
+    assert expensive == 0
+    assert "-2.0 vs sector" in cheap_how
+    assert "+6.0 vs sector" in expensive_how
+
+
 def test_missing_metric_is_na():
     s, why = apply_rule({"type": "higher_better", "full_at": 20, "floor_at": 0}, None)
     assert s is None and why == "no data"
@@ -60,6 +72,16 @@ def test_growth_qualification_accepts_stable_business_at_deep_discount():
     )
     assert result["qualified"] is True
     assert result["path"] == "stable_and_deeply_undervalued"
+
+
+def test_growth_qualification_describes_fast_growth_when_both_paths_pass():
+    result = growth_qualification(
+        {"rev_growth_qoq": 24.2, "oper_margin": 30},
+        {"intrinsic_gap_pct": 100},
+    )
+    assert result["qualified"] is True
+    assert result["path"] == "meaningfully_improving"
+    assert "same quarter one year earlier" in result["explanation"]
 
 
 def test_growth_qualification_accepts_meaningful_numerical_improvement():
@@ -267,6 +289,22 @@ def test_management_execution_is_a_stable_progressive_disclosure_row():
                       if f["id"] == "management_execution")
     assert management["status"] == "satisfied"
     assert management["observed_at"] == "2026-07-18"
+
+
+def test_high_conviction_research_is_attached_after_scoring_and_cannot_change_decision():
+    cfg = load_config()
+    r = score_ticker(cfg, _SEC, _strong_metrics(), _MED, _SETTINGS)
+    official_score, official_verdict = r["score"], r["verdict"]
+    r["_breakout_setup"] = {"overall": "building", "factors": [], "counts": {}}
+    r["_thesis"] = None
+
+    mapped = _map(r, ["growth"], "quality_growth")
+
+    assert mapped["score"] == official_score
+    assert mapped["verdict"] == official_verdict
+    assert mapped["high_conviction_research"]["score_effect"] == 0
+    assert mapped["high_conviction_research"]["verdict_effect"] == "none"
+    assert mapped["high_conviction_research"]["automatic_trade_effect"] == "none"
 
 
 def test_named_policy_and_expansion_evidence_keep_their_own_rows():

@@ -34,20 +34,22 @@ def growth_qualification(flat: dict, valuation: dict) -> dict:
 
     improvement_signals = []
     if isinstance(revenue, (int, float)) and revenue >= 8:
-        improvement_signals.append("Revenue increased meaningfully")
+        improvement_signals.append(
+            f"Latest-quarter sales were {revenue:.1f}% higher than the same quarter one year earlier"
+        )
     meaningfully_improving = bool(improvement_signals)
 
     qualified = stable_and_cheap or meaningfully_improving
-    if stable_and_cheap:
+    if meaningfully_improving:
+        path = "meaningfully_improving"
+        explanation = improvement_signals[0] + ", clearing the 8% minimum."
+    elif stable_and_cheap:
         path = "stable_and_deeply_undervalued"
         explanation = (
-            "Revenue is stable, the business has a non-negative operating "
-            "margin, and the price is at least 30% below the central "
-            "fair-value estimate."
+            "Latest-quarter sales growth is not worse than -2%, operating "
+            "margin is not negative, and the price is at least 30% below "
+            "the central fair-value estimate."
         )
-    elif meaningfully_improving:
-        path = "meaningfully_improving"
-        explanation = improvement_signals[0] + "."
     else:
         path = "not_yet_qualified"
         explanation = (
