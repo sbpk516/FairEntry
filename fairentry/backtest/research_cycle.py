@@ -198,7 +198,10 @@ def _target_summary(episodes: list[dict], target: int, horizon: int) -> dict:
         "excluded": excluded,
         "success_rate_pct": round(reached / completed * 100, 1) if completed else None,
         "success_rate_ci90_pct": _wilson(reached, completed),
+        "average_days_to_hit": round(statistics.mean(days), 1) if days else None,
         "median_days_to_hit": round(statistics.median(days), 1) if days else None,
+        "fastest_days_to_hit": round(min(days), 1) if days else None,
+        "slowest_days_to_hit": round(max(days), 1) if days else None,
         "median_max_drawdown_pct": round(statistics.median(drawdowns), 1) if drawdowns else None,
         "worst_max_drawdown_pct": round(min(drawdowns), 1) if drawdowns else None,
     }

@@ -74,6 +74,10 @@ def test_predictive_rule_is_selected_before_validation_and_reports_all_targets()
     assert result["candidate"]["test"]["primary"]["success_rate_pct"] == 100.0
     assert result["candidate"]["all"]["target_matrix"]["25"]["365"]["reached"] == 10
     assert result["candidate"]["all"]["target_matrix"]["30"]["1095"]["success_rate_pct"] == 100.0
+    timing = result["candidate"]["all"]["target_matrix"]["30"]["365"]
+    assert timing["average_days_to_hit"] == 120.0
+    assert timing["fastest_days_to_hit"] == 120.0
+    assert timing["slowest_days_to_hit"] == 120.0
     assert result["promotion_eligible"] is True
     assert result["default_changed"] is False
     assert result["promotion"] == "manual_only"
