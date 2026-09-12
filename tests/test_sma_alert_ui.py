@@ -17,3 +17,10 @@ def test_sma_alerts_render_as_a_structured_responsive_table():
 def test_sma_alerts_do_not_render_as_one_inline_sentence():
     assert "candidates.map(function(a){var z=" not in INDEX
     assert ".wma-alerts span{display:inline-block" not in INDEX
+
+
+def test_sma_summary_is_visible_only_inside_the_sma_view():
+    assert "renderWmaAlerts(META,list);" in INDEX
+    assert "if(!WMA_ONLY||MODE==='emerging')" in INDEX
+    assert "candidates=candidates.filter(function(a){return visibleTickers[a.ticker];});" in INDEX
+    assert "renderWmaAlerts(m);" not in INDEX

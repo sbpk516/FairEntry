@@ -892,6 +892,7 @@ function currentList(){
 }
 function renderBoard(){ var list=currentList();
   renderActiveWeights();
+  renderWmaAlerts(META,list);
   var pf=META.price_freshness||{}, warning=pf.excluded_count?
     '<div class="notice warn" style="margin-bottom:14px"><b>Price unavailable/stale:</b> '+esc(pf.excluded_count)+' stock(s) hidden from active scoring. No Buy or High-confidence status is issued beyond the '+esc(pf.limit_hours)+'-hour price limit.</div>':'';
   if(MODE==='emerging'){
@@ -903,8 +904,11 @@ function renderBoard(){ var list=currentList();
   $('#count').textContent=MODE==='emerging'?(list.length+' '+emNames[EM_VARIANT]+' candidates · '+EM_LIQUIDITY.replace(/_/g,' ')+' · research only'):
     (list.length+' shown'+(WMA_ONLY?' near an SMA zone':'')+(HIGH_ONLY?' high-confidence research (not validated)':'')+' - '+byv.Buy+' Buy - '+byv.Watch+' Watch - '+byv.Avoid+' Avoid');
 }
-function renderWmaAlerts(meta){
+function renderWmaAlerts(meta,visible){
   var box=$('#wma-alerts'), candidates=meta.moving_average_zone_candidates||[];
+  if(!WMA_ONLY||MODE==='emerging'){ box.className='wma-alerts'; box.innerHTML=''; return; }
+  var visibleTickers={}; (visible||[]).forEach(function(o){visibleTickers[o.s.ticker]=true;});
+  candidates=candidates.filter(function(a){return visibleTickers[a.ticker];});
   if(!candidates.length){ box.className='wma-alerts'; box.innerHTML=''; return; }
   box.className='wma-alerts on';
   var threshold=meta.moving_average_zone_threshold_pct;
@@ -1636,7 +1640,6 @@ fetch('data/board.json', {cache:'no-store'}).then(function(r){ return r.json(); 
   var tag=document.querySelector('.brand .tag');
   if(tag) tag.textContent='working name - '+(m.count||ACTIVE_STOCKS.length)+' active + '+EMERGING_STOCKS.length+' emerging - '+((m.generated_at||'').slice(0,10));
   renderAiStatus(m.ai_review);
-  renderWmaAlerts(m);
   renderBoard();
 }).catch(function(e){ $('#board').innerHTML='<div style="padding:30px;color:var(--ink-faint)">Could not load <code>data/board.json</code> - run <code>python scripts/build_all.py</code> first.</div>'; });
 })();
