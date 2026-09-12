@@ -14,6 +14,14 @@ def test_sma_alerts_render_as_a_structured_responsive_table():
     assert "candidates.map(function(a)" in INDEX
 
 
+def test_sma_panel_explains_fundamental_score_abbreviations_and_threshold():
+    assert "Q</b> = Business Quality" in INDEX
+    assert "FS</b> = Financial Strength &amp; Survival" in INDEX
+    assert "G</b> = Growth &amp; Operating Momentum" in INDEX
+    assert "Each is scored out of 100 and must be <b>70 or higher</b>" in INDEX
+    assert "Fundamentals (0–100)" in INDEX
+
+
 def test_sma_alerts_do_not_render_as_one_inline_sentence():
     assert "candidates.map(function(a){var z=" not in INDEX
     assert ".wma-alerts span{display:inline-block" not in INDEX

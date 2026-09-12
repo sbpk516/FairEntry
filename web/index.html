@@ -95,6 +95,8 @@
   .wma-alert-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:13px 15px;border-bottom:1px solid var(--buy-line)}
   .wma-alert-title{font-weight:800;color:var(--buy-text)}
   .wma-alert-note{font-size:12px;color:var(--ink-soft);margin-top:3px}
+  .wma-score-legend{padding:9px 15px;background:var(--panel-2);border-bottom:1px solid var(--line-soft);font-size:11.5px;line-height:1.5;color:var(--ink-soft)}
+  .wma-score-legend b{color:var(--ink)}
   .wma-alert-count{font-family:var(--mono);font-size:11px;font-weight:750;color:var(--buy-text);background:var(--panel);border:1px solid var(--buy-line);border-radius:999px;padding:4px 9px;white-space:nowrap}
   .wma-alert-table-wrap{overflow-x:auto;background:var(--panel)}
   .wma-alert-table{width:100%;border-collapse:collapse;font-size:12.5px}
@@ -916,7 +918,7 @@ function renderWmaAlerts(meta,visible){
     var z=a.nearest_zone||{},distance=Number(z.distance_pct),side=distance>=0?'above':'below',all=(a.zones||[]).map(function(x){return x.label;}).join(' / '),vk=String(a.verdict||'').toLowerCase();
     return '<tr title="Qualified zones: '+esc(all)+'"><td class="ticker">'+esc(a.ticker)+'</td><td><span class="vpill bg-'+esc(vk)+' v-'+esc(vk)+'">'+esc(a.verdict)+'</span></td><td class="num">$'+esc(a.price)+'</td><td>'+esc(z.label)+' <span class="meta">$'+esc(z.average)+'</span></td><td class="distance">'+Math.abs(distance).toFixed(1)+'% '+side+'</td><td class="scores">Q '+esc(a.quality_score)+' &nbsp; FS '+esc(a.financial_strength_score)+' &nbsp; G '+esc(a.growth_score)+'</td></tr>';
   }).join('');
-  box.innerHTML='<div class="wma-alert-head"><div><div class="wma-alert-title">Fundamentally strong stocks near an SMA zone</div><div class="wma-alert-note">Within '+esc(threshold)+'% of the 9-month, 20-month, or 200-week SMA</div></div><span class="wma-alert-count">'+candidates.length+' matches</span></div><div class="wma-alert-table-wrap"><table class="wma-alert-table"><thead><tr><th>Stock</th><th>Verdict</th><th class="num">Price</th><th>Nearest support zone</th><th>Distance</th><th>Fundamentals</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  box.innerHTML='<div class="wma-alert-head"><div><div class="wma-alert-title">Fundamentally strong stocks near an SMA zone</div><div class="wma-alert-note">Within '+esc(threshold)+'% of the 9-month, 20-month, or 200-week SMA</div></div><span class="wma-alert-count">'+candidates.length+' matches</span></div><div class="wma-score-legend"><b>Q</b> = Business Quality &nbsp;·&nbsp; <b>FS</b> = Financial Strength &amp; Survival &nbsp;·&nbsp; <b>G</b> = Growth &amp; Operating Momentum. Each is scored out of 100 and must be <b>70 or higher</b>; SMA proximity is checked separately.</div><div class="wma-alert-table-wrap"><table class="wma-alert-table"><thead><tr><th>Stock</th><th>Verdict</th><th class="num">Price</th><th>Nearest support zone</th><th>Distance</th><th>Fundamentals (0–100)</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
 function today(){ return new Date().toISOString().slice(0,10); }
 function portfolioLoad(){ try{return JSON.parse(localStorage.getItem(PORTKEY)||'[]');}catch(e){return [];} }
