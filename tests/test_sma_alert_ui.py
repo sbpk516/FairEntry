@@ -24,3 +24,14 @@ def test_sma_summary_is_visible_only_inside_the_sma_view():
     assert "if(!WMA_ONLY||MODE==='emerging')" in INDEX
     assert "candidates=candidates.filter(function(a){return visibleTickers[a.ticker];});" in INDEX
     assert "renderWmaAlerts(m);" not in INDEX
+
+
+def test_opening_sma_view_clears_filters_that_can_hide_all_candidates():
+    handler = INDEX.split("$('#wmafilter').addEventListener('click'", 1)[1].split(
+        "$('#highfilter').addEventListener", 1
+    )[0]
+    assert "MODE='all'" in handler
+    assert "HIGH_ONLY=false" in handler
+    assert "$('#vfilter [data-v=\"all\"]').classList.add('on')" in handler
+    assert "$('#search').value=''" in handler
+    assert "$('#sector').value='all'" in handler

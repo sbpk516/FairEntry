@@ -1588,7 +1588,26 @@ $('#modes').addEventListener('click',function(e){ var b=e.target.closest('button
   syncModelToMode(); renderSettings(); renderBoard(); });
 $('#vfilter').addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b)return;
   $('#vfilter .on').classList.remove('on'); b.classList.add('on'); renderBoard(); });
-$('#wmafilter').addEventListener('click',function(){ WMA_ONLY=!WMA_ONLY; this.classList.toggle('on',WMA_ONLY); this.setAttribute('aria-pressed',WMA_ONLY?'true':'false'); renderBoard(); });
+$('#wmafilter').addEventListener('click',function(){
+  WMA_ONLY=!WMA_ONLY;
+  if(WMA_ONLY){
+    // Treat the SMA shortlist as a dedicated view. Clear filters that can silently
+    // leave the view empty; users can narrow the shortlist again after opening it.
+    MODE='all';
+    var activeMode=$('#modes .on'); if(activeMode)activeMode.classList.remove('on');
+    $('#modes [data-mode="all"]').classList.add('on');
+    $('#emvariant').style.display='none'; $('#emliquidity').style.display='none';
+    HIGH_ONLY=false;
+    $('#highfilter').classList.remove('on'); $('#highfilter').setAttribute('aria-pressed','false');
+    var activeVerdict=$('#vfilter .on'); if(activeVerdict)activeVerdict.classList.remove('on');
+    $('#vfilter [data-v="all"]').classList.add('on');
+    $('#search').value=''; $('#sector').value='all';
+    syncModelToMode(); renderSettings();
+  }
+  this.classList.toggle('on',WMA_ONLY);
+  this.setAttribute('aria-pressed',WMA_ONLY?'true':'false');
+  renderBoard();
+});
 $('#highfilter').addEventListener('click',function(){ HIGH_ONLY=!HIGH_ONLY; this.classList.toggle('on',HIGH_ONLY); this.setAttribute('aria-pressed',HIGH_ONLY?'true':'false'); renderBoard(); });
 $('#search').addEventListener('input',renderBoard);
 $('#sector').addEventListener('change',renderBoard);
