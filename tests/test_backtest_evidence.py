@@ -89,6 +89,9 @@ def test_board_opens_sfa_backtest_and_relative_momentum_result_is_prominent():
     assert "SOURCE=REQUESTED_SOURCE==='legacy'?'legacy':'sfa'" in backtest
     assert "Newest held-out result:" in backtest
     assert "small-sample result—not a guaranteed success rate" in backtest
+    assert "function relativeMomentumTopSummary(b)" in backtest
+    assert "Supportive momentum:" in backtest
+    assert "${relativeMomentumTopSummary(b)}" in backtest
 
 
 @pytest.mark.parametrize(("upside", "years"), [
