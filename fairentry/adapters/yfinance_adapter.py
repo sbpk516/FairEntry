@@ -10,7 +10,10 @@ from .cache_lite import cache_get, cache_put
 
 OWNS = "yfinance"
 _CACHE_NS = "yf_entry_alignment_v2"
-_TTL_DAYS = 7
+# These indicators participate in the live Buy-entry rule and SMA-zone list.
+# Keep the cache short enough that each twice-daily scheduled build performs at
+# least one same-day history refresh instead of silently reusing week-old bars.
+_TTL_DAYS = 0.25  # six hours
 
 
 def _compute_from_history(hist):

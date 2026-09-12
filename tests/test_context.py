@@ -7,7 +7,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from fairentry.config import load_config
 from fairentry.store import Store
 from fairentry.scoring.engine import sector_medians, score_ticker
-from fairentry.pipeline.export import demand_momentum, build_board, _preset_weights, _fresh_price
+from fairentry.pipeline.export import (
+    demand_momentum, build_board, _preset_weights, _fresh_price,
+    _fresh_entry_metrics,
+)
 
 
 def test_price_freshness_gate_rejects_price_older_than_eight_hours():
@@ -19,6 +22,33 @@ def test_price_freshness_gate_rejects_price_older_than_eight_hours():
     )
     assert fresh is False
     assert "stale" in reason.lower()
+
+
+def test_stale_entry_indicators_are_removed_before_live_decision():
+    cfg = load_config()
+    now = __import__("datetime").datetime(
+        2026, 8, 22, 12, 0, tzinfo=__import__("datetime").timezone.utc
+    )
+    metrics = {
+        "price": {"value": 100, "fetched_at": "2026-08-22T11:00:00+00:00"},
+        "roic": {"value": 20, "fetched_at": "2026-08-01T00:00:00+00:00"},
+        "ema_9month": {"value": 99, "fetched_at": "2026-08-20T00:00:00+00:00"},
+        "sma_200week": {"value": 80, "fetched_at": "2026-08-01T00:00:00+00:00"},
+        "obv_above_20week_ema": {
+            "value": 1, "fetched_at": "2026-08-20T00:00:00+00:00"
+        },
+    }
+
+    kept, stale = _fresh_entry_metrics(cfg, metrics, now=now)
+
+    assert kept["price"]["value"] == 100
+    assert kept["roic"]["value"] == 20
+    assert "ema_9month" not in kept
+    assert "sma_200week" not in kept
+    assert "obv_above_20week_ema" not in kept
+    assert {item["field"] for item in stale} == {
+        "ema_9month", "sma_200week", "obv_above_20week_ema"
+    }
 
 
 def test_current_universe_replacement_preserves_historical_security(tmp_path):

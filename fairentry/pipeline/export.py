@@ -772,6 +772,34 @@ def _fresh_price(metric, limit_hours=8, now=None):
     return True, None
 
 
+_FRESH_ENTRY_USES = {"buy_entry_alignment", "moving_average_zones"}
+
+
+def _fresh_entry_metrics(cfg, metrics, now=None):
+    """Remove stale technical inputs before verdict and SMA-list evaluation.
+
+    A failed history refresh may leave an older value in ``metrics_current``.
+    Keeping it is useful for audit history, but it must not qualify a current
+    Buy or a current SMA-zone candidate after its configured freshness limit.
+    """
+    kept = dict(metrics)
+    stale = []
+    for field in cfg.fields:
+        if not _FRESH_ENTRY_USES.intersection(field.get("required_for") or []):
+            continue
+        field_id = field["id"]
+        metric = kept.get(field_id)
+        if metric is None:
+            continue
+        fresh, reason = _fresh_price(
+            metric, float(field.get("freshness_limit_h", 24)), now=now
+        )
+        if not fresh:
+            kept.pop(field_id, None)
+            stale.append({"field": field_id, "reason": reason})
+    return kept, stale
+
+
 def build_board(cfg, store, settings=None, reason=False, *, source="finviz",
                 persist_results=True) -> dict:
     """Build a scored view for one universe snapshot.
@@ -782,12 +810,13 @@ def build_board(cfg, store, settings=None, reason=False, *, source="finviz",
     """
     settings = settings or {"margin_of_safety_pct": 15, "target_upside_pct": 30}
     med = sector_medians(cfg, store)
+    decision_now = datetime.now(timezone.utc)
     secs = {x["ticker"]: x for x in store.active_securities(source=source)}
     price_limit_h = float(cfg.field("price").get("freshness_limit_h", 8))
     price_issues = []
     for ticker in list(secs):
         metric = store.metrics_for(ticker).get("price")
-        fresh, issue = _fresh_price(metric, price_limit_h)
+        fresh, issue = _fresh_price(metric, price_limit_h, now=decision_now)
         if not fresh:
             price_issues.append({"ticker": ticker, "status": "Price unavailable/stale",
                                  "reason": issue})
@@ -841,13 +870,19 @@ def build_board(cfg, store, settings=None, reason=False, *, source="finviz",
 
     recs = []
     metrics_by_ticker = {}
+    stale_entry_inputs = []
     for t, strategies in quals.items():
         primary = primary_by_ticker[t]
         s = dict(settings)
         pw = _preset_weights(cfg, primary)
         if pw:
             s["weights"] = pw
-        mt = store.metrics_for(t)
+        mt, stale = _fresh_entry_metrics(
+            cfg, store.metrics_for(t), now=decision_now
+        )
+        stale_entry_inputs.extend(
+            {"ticker": t, **item} for item in stale
+        )
         metrics_by_ticker[t] = mt
         rec = score_ticker(cfg, secs[t], mt, med, s)
         rec["_price_freshness_limit_hours"] = price_limit_h
@@ -946,6 +981,12 @@ def build_board(cfg, store, settings=None, reason=False, *, source="finviz",
                          "limit_hours": price_limit_h,
                          "excluded_count": len(price_issues),
                          "issues": price_issues,
+                     },
+                     "entry_indicator_freshness": {
+                         "policy": "Stale EMA, SMA, and OBV values are removed before Buy and SMA-zone checks",
+                         "stale_fields_removed": len(stale_entry_inputs),
+                         "affected_tickers": len({item["ticker"] for item in stale_entry_inputs}),
+                         "issues": stale_entry_inputs,
                      },
                      "preset_profiles": cfg.scoring.get("preset_profiles", {}),
                      "presets": cfg.scoring.get("presets", {}),

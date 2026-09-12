@@ -236,6 +236,8 @@ def test_workflows_refresh_and_validate_current_universes():
         encoding="utf-8")
     assert "build_all.py --refresh" in refresh
     assert "validate_live_refresh.py" in refresh
+    assert 'cron: "0 9 * * *"' in refresh
+    assert 'cron: "0 22 * * *"' in refresh
     assert "Refresh current official + Emerging universes" in backtest
     assert "build_all.py --refresh" in backtest
     assert "validate_live_refresh.py" in backtest

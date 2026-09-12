@@ -1,6 +1,10 @@
 import pandas as pd
 
-from fairentry.adapters.yfinance_adapter import _compute_from_history
+from fairentry.adapters.yfinance_adapter import _compute_from_history, _TTL_DAYS
+
+
+def test_live_entry_indicator_cache_is_same_day():
+    assert _TTL_DAYS <= 0.25
 
 
 def test_monthly_ema_and_weekly_obv_are_computed_from_adjusted_daily_history():
