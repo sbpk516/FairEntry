@@ -721,6 +721,11 @@ function compute(s){
   out.gates=softGates(s);
   var aligned=!!(s.buy_entry_alignment&&s.buy_entry_alignment.passes===true);
   var v=aligned?'Buy':prelim>=S.watchBand?'Watch':'Avoid';
+  var roic=s.decision_trace&&s.decision_trace.roic_direction;
+  if(v==='Buy' && (!roic || roic.passes!==true)){
+    v='Watch'; out.capped=true;
+    out.gates.push(roic&&roic.reason||'Recent ROIC history is insufficient; review before buying.');
+  }
   if(!aligned && prelim>=S.buyBand){ out.capped=true; }
   out.verdict=v; return out; }
 
