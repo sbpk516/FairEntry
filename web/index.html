@@ -452,6 +452,12 @@
       <button data-v="Avoid">Avoid</button>
     </div>
     <button class="iconbtn" id="wmafilter" type="button" aria-pressed="false" title="Fundamentally strong Buy/Watch stocks within the configured distance of the 9-month, 20-month, or 200-week SMA.">9M / 20M / 200W SMA</button>
+    <select id="smazone" style="display:none" aria-label="SMA zone">
+      <option value="all">All SMA zones</option>
+      <option value="sma_9month">9-month SMA</option>
+      <option value="sma_20month">20-month SMA</option>
+      <option value="sma_200week">200-week SMA</option>
+    </select>
     <button class="iconbtn" id="highfilter" type="button" aria-pressed="false" title="Information-only research subset: Buy, Financial Strength at least 70, and no hard veto. The rule is not validated and does not change scores or verdicts.">High confidence · not validated</button>
     <select id="sort">
       <option value="score">Sort: Score</option>
@@ -526,6 +532,7 @@ function restoreS(){ try{ var raw=localStorage.getItem(SKEY); if(raw){ var o=JSO
   } } }catch(e){} }
 var MODE='all';
 var WMA_ONLY=false;
+var SMA_ZONE='all';
 var HIGH_ONLY=false;
 var EM_VARIANT='balanced';
 var EM_LIQUIDITY='5m_to_20m';
@@ -881,7 +888,10 @@ function tileHTML(s){ var c=compute(s), em=s.emerging_candidate||null,
 
 function currentList(){
   var q=$('#search').value.trim().toLowerCase(), sec=$('#sector').value, vf=$('#vfilter .on').dataset.v, sort=$('#sort').value;
-  var wmaTickers={}; (META.moving_average_zone_candidates||[]).forEach(function(a){wmaTickers[a.ticker]=true;});
+  var wmaTickers={}; (META.moving_average_zone_candidates||[]).forEach(function(a){
+    var zones=a.zones||[];
+    if(SMA_ZONE==='all'||zones.some(function(z){return z.id===SMA_ZONE;}))wmaTickers[a.ticker]=true;
+  });
   var source=MODE==='emerging'?EMERGING_STOCKS:ACTIVE_STOCKS;
   var list=source.filter(function(s){ return MODE==='all' || MODE==='emerging' || s.strategy.indexOf(MODE)>=0; })
     .map(function(s){ return {s:s, c:compute(s)}; })
@@ -915,7 +925,7 @@ function renderWmaAlerts(meta,visible){
   box.className='wma-alerts on';
   var threshold=meta.moving_average_zone_threshold_pct;
   var rows=candidates.map(function(a){
-    var z=a.nearest_zone||{},distance=Number(z.distance_pct),side=distance>=0?'above':'below',all=(a.zones||[]).map(function(x){return x.label;}).join(' / '),vk=String(a.verdict||'').toLowerCase();
+    var matchedZones=(a.zones||[]).filter(function(x){return SMA_ZONE==='all'||x.id===SMA_ZONE;}),z=matchedZones[0]||a.nearest_zone||{},distance=Number(z.distance_pct),side=distance>=0?'above':'below',all=matchedZones.map(function(x){return x.label;}).join(' / '),vk=String(a.verdict||'').toLowerCase();
     return '<tr title="Qualified zones: '+esc(all)+'"><td class="ticker">'+esc(a.ticker)+'</td><td><span class="vpill bg-'+esc(vk)+' v-'+esc(vk)+'">'+esc(a.verdict)+'</span></td><td class="num">$'+esc(a.price)+'</td><td>'+esc(z.label)+' <span class="meta">$'+esc(z.average)+'</span></td><td class="distance">'+Math.abs(distance).toFixed(1)+'% '+side+'</td><td class="scores">Q '+esc(a.quality_score)+' &nbsp; FS '+esc(a.financial_strength_score)+' &nbsp; G '+esc(a.growth_score)+'</td></tr>';
   }).join('');
   box.innerHTML='<div class="wma-alert-head"><div><div class="wma-alert-title">Fundamentally strong stocks near an SMA zone</div><div class="wma-alert-note">Within '+esc(threshold)+'% of the 9-month, 20-month, or 200-week SMA</div></div><span class="wma-alert-count">'+candidates.length+' matches</span></div><div class="wma-score-legend"><b>Q</b> = Business Quality &nbsp;·&nbsp; <b>FS</b> = Financial Strength &amp; Survival &nbsp;·&nbsp; <b>G</b> = Growth &amp; Operating Momentum. Each is scored out of 100 and must be <b>70 or higher</b>; SMA proximity is checked separately.</div><div class="wma-alert-table-wrap"><table class="wma-alert-table"><thead><tr><th>Stock</th><th>Verdict</th><th class="num">Price</th><th>Nearest support zone</th><th>Distance</th><th>Fundamentals (0–100)</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
@@ -1583,6 +1593,7 @@ $('#modes').addEventListener('click',function(e){ var b=e.target.closest('button
   if(MODE==='emerging'){
     WMA_ONLY=false; HIGH_ONLY=false;
     $('#wmafilter').classList.remove('on'); $('#wmafilter').setAttribute('aria-pressed','false');
+    $('#smazone').style.display='none';
     $('#highfilter').classList.remove('on'); $('#highfilter').setAttribute('aria-pressed','false');
     var current=$('#vfilter .on'); if(current)current.classList.remove('on');
     $('#vfilter [data-v="all"]').classList.add('on');
@@ -1599,18 +1610,22 @@ $('#wmafilter').addEventListener('click',function(){
     var activeMode=$('#modes .on'); if(activeMode)activeMode.classList.remove('on');
     $('#modes [data-mode="all"]').classList.add('on');
     $('#emvariant').style.display='none'; $('#emliquidity').style.display='none';
+    SMA_ZONE='all'; $('#smazone').value='all'; $('#smazone').style.display='';
     HIGH_ONLY=false;
     $('#highfilter').classList.remove('on'); $('#highfilter').setAttribute('aria-pressed','false');
     var activeVerdict=$('#vfilter .on'); if(activeVerdict)activeVerdict.classList.remove('on');
     $('#vfilter [data-v="all"]').classList.add('on');
     $('#search').value=''; $('#sector').value='all';
     syncModelToMode(); renderSettings();
+  } else {
+    $('#smazone').style.display='none';
   }
   this.classList.toggle('on',WMA_ONLY);
   this.setAttribute('aria-pressed',WMA_ONLY?'true':'false');
   renderBoard();
 });
 $('#highfilter').addEventListener('click',function(){ HIGH_ONLY=!HIGH_ONLY; this.classList.toggle('on',HIGH_ONLY); this.setAttribute('aria-pressed',HIGH_ONLY?'true':'false'); renderBoard(); });
+$('#smazone').addEventListener('change',function(){SMA_ZONE=this.value;renderBoard();});
 $('#search').addEventListener('input',renderBoard);
 $('#sector').addEventListener('change',renderBoard);
 $('#emvariant').addEventListener('change',function(){EM_VARIANT=this.value;renderBoard();});
