@@ -6,7 +6,7 @@ separate research pass can add verified findings to the controlled registry.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -24,7 +24,42 @@ def _read(path: Path, default):
 
 
 def _episode_key(row: dict) -> str:
-    return f"{str(row.get('ticker') or '').upper()}:{row.get('started') or 'unknown'}"
+    return f"{str(row.get('ticker') or '').upper()}:{row.get('started') or row.get('entry_date') or 'unknown'}"
+
+
+def find_episode_research(row: dict, registry: dict) -> dict | None:
+    """Match an explicitly reviewed one-year episode, never a ticker alone.
+
+    These checks validate scope and required metadata, not a source's factual
+    accuracy. An episode-specific human/source review is still required.
+    """
+    key = _episode_key(row)
+    try:
+        start = date.fromisoformat(key.split(':', 1)[1])
+    except (ValueError, IndexError):
+        return None
+    candidate = registry.get(key) or registry.get(str(row.get('ticker') or '').upper())
+    if not isinstance(candidate, dict):
+        return None
+    if candidate.get('researched_for_episode') != key:
+        return None
+    if candidate.get('episode_start') != start.isoformat() or candidate.get('episode_end') != (start + timedelta(days=365)).isoformat():
+        return None
+    if candidate.get('issuer_key') and candidate['issuer_key'] != row.get('issuer_key'):
+        return None
+    sources = candidate.get('sources')
+    if not isinstance(sources, list) or not sources or any(
+        not isinstance(url, str) or urlparse(url).scheme != 'https' or not urlparse(url).netloc
+        for url in sources
+    ):
+        return None
+    if not isinstance(candidate.get('reason'), str) or not candidate['reason'].strip():
+        return None
+    from fairentry.backtest.evidence import TARGET_FAILURE_REASON_CATALOG
+    allowed = {item['code'] for item in TARGET_FAILURE_REASON_CATALOG} - {'cause_not_verified'}
+    if candidate.get('code') not in allowed or not candidate.get('category'):
+        return None
+    return candidate
 
 
 def build_research_queue(
@@ -51,7 +86,7 @@ def build_research_queue(
             continue
         failed += 1
         ticker = str(row.get("ticker") or "").upper()
-        if ticker in registry:
+        if find_episode_research(row, registry):
             covered += 1
             continue
         key = _episode_key(row)
@@ -73,6 +108,9 @@ def build_research_queue(
                 "for diagnosis but must never be copied into an entry-date predictive rule."
             ),
             "required_output": {
+                "episode_key": key,
+                "episode_start": row.get("started"),
+                "episode_end": (date.fromisoformat(row["started"]) + timedelta(days=365)).isoformat(),
                 "primary_cause_code": "one controlled failure-reason code",
                 "secondary_cause_code": "optional controlled failure-reason code",
                 "one_line_reason": "maximum 360 characters",
@@ -121,7 +159,7 @@ def apply_verified_findings(
     *,
     research_path: Path = DEFAULT_RESEARCH,
 ) -> list[str]:
-    """Append source-backed findings; refuse to replace an existing ticker."""
+    """Append source-backed findings for explicit episodes; preserve old entries."""
     research_path = Path(research_path)
     registry = _read(research_path, {"version": 1, "entries": {}})
     entries = registry.setdefault("entries", {})
@@ -136,21 +174,28 @@ def apply_verified_findings(
         sources = row.get("sources") or []
         if not ticker or not reason or not row.get("code") or not row.get("category"):
             raise ValueError("each finding needs ticker, code, category, and reason")
-        if ticker in entries:
-            continue
         if len(reason) > 360:
             raise ValueError(f"{ticker}: reason must be a concise one-liner")
         if not sources or any(urlparse(str(url)).scheme != "https" for url in sources):
             raise ValueError(f"{ticker}: at least one HTTPS authoritative source is required")
-        entries[ticker] = {
+        key = row.get("episode_key")
+        candidate = {
             "code": row["code"],
             "category": row["category"],
             "reason": reason,
             "sources": sources,
-            "researched_for_episode": row.get("episode_key"),
+            "researched_for_episode": key,
+            "episode_start": row.get("episode_start"),
+            "episode_end": row.get("episode_end"),
+            "issuer_key": row.get("issuer_key"),
             "researched_at": row.get("researched_at") or datetime.now(timezone.utc).date().isoformat(),
         }
-        added.append(ticker)
+        if not find_episode_research({"ticker": ticker, "started": row.get("episode_start"), "issuer_key": row.get("issuer_key")}, {key: candidate}):
+            raise ValueError(f"{ticker}: explicit matching episode_key, episode_start and one-year episode_end are required")
+        if key in entries:
+            continue
+        entries[key] = candidate
+        added.append(key)
     registry["researched_at"] = datetime.now(timezone.utc).date().isoformat()
     research_path.parent.mkdir(parents=True, exist_ok=True)
     research_path.write_text(json.dumps(registry, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

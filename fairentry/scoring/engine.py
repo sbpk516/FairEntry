@@ -351,6 +351,16 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
             "Watch" if score_band_verdict in {"Buy", "Watch"} else "Avoid"
         )
 
+    roic_direction = flat.get('roic_direction_assessment') or {'passes': False, 'reason': 'Recent ROIC history is insufficient; review before buying.'}
+    roic_blocked = cfg.scoring.get('roic_direction_gate', False) and roic_direction.get('passes') is not True
+    if roic_blocked:
+        if verdict == 'Buy':
+            verdict = 'Watch'
+        if pre_dilution_verdict == 'Buy':
+            pre_dilution_verdict = 'Watch'
+        gates.append({'id': 'roic_recent_direction', 'reason': roic_direction['reason'],
+                      'result': True, 'effect': 'Cap Buy to Watch'})
+
     decision_trace = {
         "formula": "final score = round(weighted score from tested factors only)",
         "base_score": base,
@@ -367,7 +377,9 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
         "soft_gates": gates,
         "buy_entry_alignment": alignment,
         "final_verdict": verdict,
+        "roic_direction": roic_direction,
         "explanation": ("A hard veto forced Avoid." if vetoes else
+                        roic_direction['reason'] if roic_blocked else
                         "All fundamental, fair-value, monthly-EMA, and weekly-OBV conditions aligned." if alignment["passes"] else
                         "One or more required Buy-entry conditions did not align."),
     }

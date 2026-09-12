@@ -883,6 +883,8 @@ def build_board(cfg, store, settings=None, reason=False, *, source="finviz",
         stale_entry_inputs.extend(
             {"ticker": t, **item} for item in stale
         )
+        from ..analytics.roic_direction import live_assessment
+        mt['roic_direction_assessment'] = {'value': live_assessment(t, decision_now), 'source': 'dated Sharadar ROIC direction assessment'}
         metrics_by_ticker[t] = mt
         rec = score_ticker(cfg, secs[t], mt, med, s)
         rec["_price_freshness_limit_hours"] = price_limit_h

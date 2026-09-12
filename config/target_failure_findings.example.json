@@ -2,6 +2,8 @@
   "findings": [
     {
       "episode_key": "XYZ:2024-01-15",
+      "episode_start": "2024-01-15",
+      "episode_end": "2025-01-14",
       "ticker": "XYZ",
       "code": "growth_below_expectations",
       "category": "growth",

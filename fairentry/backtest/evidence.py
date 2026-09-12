@@ -567,7 +567,7 @@ _FIXED_MISS_HORIZON_DAYS = {"never_within_three_years": 1095}
 _FIXED_MISS_CATEGORIES = (
     (0, "stayed_at_or_below_entry", "Never traded above the entry price"),
     (15, "modest_gain_short_of_target", "Gained, but stayed well below the target"),
-    (30, "close_but_short_of_target", "Came close, but never closed at or above the target"),
+    (30, "close_but_short_of_target", "Gained, but did not reach +30%"),
 )
 
 # Controlled vocabulary for causal research.  A phrase is attached to a failed
@@ -586,7 +586,7 @@ TARGET_FAILURE_REASON_CATALOG = (
     {"code": "target_overly_optimistic", "phrase": "Target price was overly optimistic", "category": "valuation"},
     {"code": "company_specific_underperformance", "phrase": "Company-specific underperformance versus the benchmark", "category": "confirmation"},
     {"code": "legal_or_litigation_pressure", "phrase": "Legal settlement or continuing litigation created pressure", "category": "risk"},
-    {"code": "cause_not_verified", "phrase": "Cause not verified from available point-in-time evidence", "category": "risk"},
+    {"code": "cause_not_verified", "phrase": "We have not verified why it missed the target.", "category": "unverified"},
 )
 
 
@@ -606,50 +606,68 @@ def _category_score(row: dict, category_id: str):
     return None
 
 
-def _target_failure_reasons(row: dict, *, horizon_days: int = 1095) -> list[dict]:
-    """Assign only evidence-supported phrases to a confirmed failed target."""
+def _target_failure_reasons(row: dict, *, horizon_days: int = 365) -> list[dict]:
+    """Return episode-scoped research or an honest unknown, never price proxies."""
+    from fairentry.backtest.failure_research import find_episode_research
+
     catalog = {item["code"]: item for item in TARGET_FAILURE_REASON_CATALOG}
-    researched = _failure_research().get(str(row.get("ticker") or "").upper())
-    if researched:
-        code = researched.get("code") or "cause_not_verified"
-        base = catalog.get(code, catalog["cause_not_verified"])
+    researched = find_episode_research(row, _failure_research())
+    if researched and researched["code"] in catalog and researched["code"] != "cause_not_verified":
+        base = catalog[researched["code"]]
         return [{
             **base,
-            "category": researched.get("category") or base["category"],
-            "phrase": researched.get("reason") or base["phrase"],
-            "evidence": "Company filing or authoritative source reviewed for the episode window.",
+            "category": researched["category"],
+            "phrase": researched["reason"],
+            "evidence": "Saved research explicitly covers this recommendation's one-year period; a contributing explanation, not proof of a sole cause.",
             "evidence_status": "researched",
-            "sources": researched.get("sources") or [],
+            "sources": researched["sources"],
+            "researched_for_episode": researched["researched_for_episode"],
+            "episode_start": researched["episode_start"],
+            "episode_end": researched["episode_end"],
         }]
-    found = []
+    return [{
+        **catalog["cause_not_verified"],
+        "evidence": "The price record shows the target was missed. A business explanation has not been verified for this period.",
+        "evidence_status": "unverified",
+        "sources": [],
+    }]
 
-    def add(code, evidence):
-        if code not in {item["code"] for item in found}:
-            found.append({**catalog[code], "evidence": evidence, "evidence_status": "observed"})
 
-    valuation = _category_score(row, "valuation")
-    growth = _category_score(row, "growth")
-    survival = _category_score(row, "survival")
-    if isinstance(valuation, (int, float)) and valuation < 40:
-        add("valuation_too_high", f"Frozen Valuation category score was {valuation:.1f}/100.")
-    if isinstance(growth, (int, float)) and growth < 40:
-        add("growth_below_expectations", f"Frozen Growth category score was {growth:.1f}/100.")
-    if isinstance(survival, (int, float)) and survival < 40:
-        add("dilution_debt_or_holder_selling", f"Frozen Financial Survival category score was {survival:.1f}/100.")
-    market = _benchmark_context(row, horizon_days)
-    if market:
-        benchmark = market.get("benchmark_return_pct")
-        alpha = market.get("alpha_pct")
-        if isinstance(benchmark, (int, float)) and benchmark <= -10:
-            add("sector_multiple_compression", f"Broad benchmark return was {benchmark:.1f}% over the same period; sector attribution still needs review.")
-        if isinstance(alpha, (int, float)) and alpha <= -10:
-            add("company_specific_underperformance", f"The stock trailed the benchmark by {abs(alpha):.1f} percentage points.")
-    practical = ((row.get("outcome") or {}).get("targets") or {}).get("practical") or {}
-    if isinstance(practical.get("upside_pct"), (int, float)) and practical["upside_pct"] > 70:
-        add("target_overly_optimistic", f"The frozen target required a {practical['upside_pct']:.1f}% gain.")
-    if not found:
-        add("cause_not_verified", "The replay proves the miss, but does not contain reliable causal event data.")
-    return found
+def refresh_episode_explanations(episode: dict, root: dict) -> dict:
+    """Refresh display evidence from its source observation without changing outcomes."""
+    failed = (episode.get("fixed_30_evaluation") or {}).get("result") == "failure"
+    status = episode.get("fixed_30_status") or "still_waiting"
+    # A later acquisition can end the three-year tracker without excluding an
+    # already completed one-year failure. Preserve status but explain year one.
+    milestone = root.get("return_milestones") or {}
+    observed = milestone.get("last_observed_days")
+    full_year = isinstance(observed, (int, float)) and observed >= 365
+    reason_status = "failed_one_year" if failed and full_year and status.startswith("closed_early") else status
+    execution = root.get("execution") or {}
+    provenance = {
+        "security_id": root.get("security_id"),
+        "decision_date": root.get("decision_date"),
+        "entry_date": root.get("entry_date"),
+        "raw_close": root.get("raw_close"),
+        "adjusted_close": root.get("_entry_closeadj"),
+        "entry_cost_bps": execution.get("entry_cost_bps"),
+        "entry_price": root.get("entry_price"),
+        "exchange": root.get("exchange"),
+        "currency": root.get("currency"),
+        "snapshot_id": root.get("snapshot_id"),
+        "price_basis": "Provider closing price plus simulated entry costs. This is a modelled purchase price, not a broker fill.",
+        "return_basis": "dividend_adjusted_close_with_entry_and_exit_costs",
+    }
+    return {
+        "target_failure_reasons": _target_failure_reasons(root) if failed else [],
+        "market_context": _benchmark_context(root, 365),
+        "fixed_30_reason": _fixed_goal_reason(
+            reason_status, episode.get("days_to_30_pct"),
+            milestone, root.get("terminal_event"), root,
+            horizon_days=365,
+        ),
+        "entry_provenance": provenance,
+    }
 
 
 def _fixed_miss_category(max_gain: float | None) -> tuple[str, str] | None:
@@ -681,8 +699,8 @@ def _benchmark_context(root: dict | None, horizon_days: int) -> dict | None:
 
 
 def _fixed_goal_reason(status: str, days, milestone: dict, terminal: dict | None,
-                       root: dict | None = None) -> dict:
-    horizon = _FIXED_MISS_HORIZON_DAYS.get(status, 365)
+                       root: dict | None = None, *, horizon_days: int | None = None) -> dict:
+    horizon = horizon_days or _FIXED_MISS_HORIZON_DAYS.get(status, 365)
     window_label = (f"{horizon // 365} year{'s' if horizon // 365 != 1 else ''}"
                     if horizon >= 365 else f"{horizon} days")
     max_gain = (milestone.get("max_return_pct_by_horizon") or {}).get(str(horizon))
@@ -750,10 +768,10 @@ def _fixed_goal_reason(status: str, days, milestone: dict, terminal: dict | None
         alpha = market["alpha_pct"]
         bench = market.get("benchmark_return_pct")
         if alpha < 0 and isinstance(bench, (int, float)):
-            details += (f" Over the same {window_label}, the stock also underperformed the "
-                        f"benchmark by {abs(alpha):.1f} points (benchmark return {bench:.1f}%).")
+            details += (f" Over the same {window_label}, the stock did worse than the "
+                        f"comparison index by {abs(alpha):.1f} percentage points (index return {bench:.1f}%).")
         elif isinstance(bench, (int, float)):
-            details += (f" The benchmark returned {bench:.1f}% over the same {window_label}; "
+            details += (f" The comparison index returned {bench:.1f}% over the same {window_label}; "
                         "this stock still fell short of its own target.")
     return {"code": "fell_short",
             "short": category[1] if category else "Did not reach +30% within the observed period",
@@ -992,6 +1010,7 @@ def _buy_episode_roots(observations: list[dict], max_gap_days: int) -> list[dict
             "terminal_evaluation": terminal_policy if terminal else None,
             "currency_conversion": root.get("currency_conversion"),
         }
+        root["episode"].update(refresh_episode_explanations(root["episode"], root))
         episodes.append(root)
 
     for rows in grouped.values():
@@ -1227,7 +1246,7 @@ def summarize_buy_return_achievement(
                 },
             },
             "target_failure_reason_analysis": {
-                "basis": "Controlled reasons appear only on Buy episodes with a confirmed failed fixed or Practical Target. Event causes are never inferred without point-in-time evidence.",
+                "basis": "Reasons cover failed +30% one-year episodes only. Saved research must explicitly match that episode and period. Price comparisons and internal scores are not treated as causes; otherwise the reason remains unverified.",
                 "catalog": list(TARGET_FAILURE_REASON_CATALOG),
                 "counts": {
                     item["code"]: sum(

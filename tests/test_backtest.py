@@ -135,6 +135,7 @@ def test_rolling_backtest_detects_buy_alpha():
     the ordering should be monotonic. This exercises seed -> as-of scoring ->
     forward return -> cross-sectional alpha end to end."""
     cfg = load_config()
+    cfg.scoring['roic_direction_gate'] = False  # Price-only fixture has no annual history.
     weeks = 60
     dts = _weekly_dates(weeks)
     db = tempfile.mktemp(suffix=".db")

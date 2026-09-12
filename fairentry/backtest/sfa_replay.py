@@ -703,6 +703,12 @@ class SFAReplay:
             )
         out, _ = deduplicate_issuers(out)
         candidates = out[:strategy.universe_top_n]
+        if cfg.scoring.get('roic_direction_gate', False) and self._table_exists('sfa_fundamentals'):
+            from ..analytics.roic_direction import historical
+            for candidate in candidates:
+                candidate['metrics']['roic_direction_assessment'] = {
+                    'value': historical(self.con, candidate['sec']['ticker'], str(asof)),
+                    'source': 'point-in-time annual Sharadar ROIC history'}
         self._enrich_point_in_time(candidates, asof)
         return candidates, out
 
@@ -1562,6 +1568,17 @@ def run_sfa_rolling(
     manifest = dict(
         warehouse.con.execute("SELECT key,value FROM sfa_manifest").fetchall()
     )
+    # Display provenance only: metadata must not affect replay prices or scores.
+    price_metadata = {
+        ticker: {"exchange": exchange, "currency": currency}
+        for ticker, exchange, currency in warehouse.con.execute(
+            'SELECT ticker, exchange, currency FROM sfa_tickers WHERE "table"=\'SEP\' '
+            'QUALIFY row_number() OVER (PARTITION BY ticker ORDER BY lastupdated DESC NULLS LAST)=1'
+        ).fetchall()
+    }
+    for observation in observations:
+        observation.update(price_metadata.get(observation.get("ticker"), {}))
+        observation["snapshot_id"] = manifest.get("snapshot_id")
     try:
         git_commit = subprocess.check_output(
             ["git", "rev-parse", "HEAD"], cwd=Path(__file__).resolve().parents[2],

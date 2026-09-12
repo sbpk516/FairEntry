@@ -12,6 +12,7 @@
 #   passthrough   {}                        metric already 0-100
 
 version: 1
+roic_direction_gate: true
 
 verdict_bands: {buy: 72, watch: 50}      # >=72 Buy, 50-71 Watch, <50 Avoid
 # AI/news review is information-only until a timestamped historical news source

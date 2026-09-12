@@ -626,8 +626,7 @@ def test_genuinely_fresh_buy_is_still_labeled_not_enough_time():
 
 
 def test_episode_miss_reason_shows_highest_gain_and_shortfall():
-    # never_within_three_years is decided over the full 3-year window, so the
-    # evidence must report the 3-year peak (here 18%), not a first-year figure.
+    # Keep the long-term tracker, but the main reason explains the one-year test.
     observations = [{
         "entry_date": "2020-01-01", "entry_price": 100, "ticker": "SHORT",
         "issuer_key": "SHORT", "verdict": "Buy",
@@ -643,9 +642,10 @@ def test_episode_miss_reason_shows_highest_gain_and_shortfall():
     )["episode_details"][0]
     reason = episode["fixed_30_reason"]
     assert reason["code"] == "fell_short"
-    assert "12.00 percentage points short" in reason["details"]
-    assert reason["evidence"][0]["value"] == 18
-    assert reason["category"] == "close_but_short_of_target"
+    assert "24.00 percentage points short" in reason["details"]
+    assert reason["evidence"][0]["value"] == 6
+    assert reason["category"] == "modest_gain_short_of_target"
+    assert episode["fixed_30_status"] == "never_within_three_years"
     assert episode["fixed_30_miss_category"] == "close_but_short_of_target"
 
 
@@ -679,7 +679,7 @@ def test_fixed_miss_reason_notes_market_underperformance():
     observations = [{
         "entry_date": "2020-01-01", "entry_price": 100, "ticker": "LAG",
         "issuer_key": "LAG", "verdict": "Buy",
-        "outcome": {"horizons": {"1095": {"benchmark_return_pct": 40.0, "alpha_pct": -25.0}}},
+        "outcome": {"horizons": {"365": {"benchmark_return_pct": 12.0, "alpha_pct": -4.0}, "1095": {"benchmark_return_pct": 40.0, "alpha_pct": -25.0}}},
         "return_milestones": {
             "first_hit_days": {"30": None}, "last_observed_days": 1200,
             "terminal_days": None,
@@ -691,9 +691,9 @@ def test_fixed_miss_reason_notes_market_underperformance():
         observations, 30, thresholds=(30,), horizons=(365,)
     )["episode_details"][0]["fixed_30_reason"]
     assert reason["market_context"] == {
-        "horizon_days": 1095, "benchmark_return_pct": 40.0, "alpha_pct": -25.0,
+        "horizon_days": 365, "benchmark_return_pct": 12.0, "alpha_pct": -4.0,
     }
-    assert "underperformed the benchmark by 25.0 points" in reason["details"]
+    assert "did worse than the comparison index by 4.0 percentage points" in reason["details"]
 
 
 def test_fixed_return_milestones_accept_terminal_timestamp():
@@ -713,7 +713,7 @@ def test_quality_exposes_current_proxy():
     assert any(f["field"] == "target_price" and f["quality"] == "current_proxy" for f in q["fields"])
 
 
-def test_target_failure_reasons_use_controlled_evidence_backed_phrases():
+def test_scores_and_unrelated_targets_do_not_invent_business_causes():
     from fairentry.backtest.evidence import _target_failure_reasons
 
     failed = {
@@ -725,7 +725,7 @@ def test_target_failure_reasons_use_controlled_evidence_backed_phrases():
     }
     reasons = _target_failure_reasons(failed)
     codes = {row["code"] for row in reasons}
-    assert {"valuation_too_high", "growth_below_expectations", "target_overly_optimistic"} <= codes
+    assert codes == {"cause_not_verified"}
     assert all(row["phrase"] and row["category"] for row in reasons)
 
 
@@ -736,14 +736,18 @@ def test_target_failure_reason_is_honest_when_cause_is_not_proven():
     assert [row["code"] for row in reasons] == ["cause_not_verified"]
 
 
-def test_researched_failure_reason_overrides_inferred_proxy_for_known_ticker():
+def test_ticker_only_research_does_not_leak_into_other_episodes(monkeypatch):
     from fairentry.backtest.evidence import _target_failure_reasons
+    monkeypatch.setattr("fairentry.backtest.evidence._failure_research", lambda: {"CSCO": {
+        "code": "growth_below_expectations", "category": "growth", "reason": "Modern explanation",
+        "sources": ["https://www.sec.gov/example"],
+    }})
 
     reasons = _target_failure_reasons({"ticker": "CSCO", "categories": [], "outcome": {}})
     assert len(reasons) == 1
-    assert reasons[0]["evidence_status"] == "researched"
-    assert "inventory digestion" in reasons[0]["phrase"]
-    assert reasons[0]["sources"]
+    assert reasons[0]["evidence_status"] == "unverified"
+    assert reasons[0]["phrase"] == "We have not verified why it missed the target."
+    assert not reasons[0]["sources"]
 
 
 def test_one_year_miss_gets_reason_even_when_target_is_reached_late():
@@ -765,4 +769,39 @@ def test_one_year_miss_gets_reason_even_when_target_is_reached_late():
     )["episode_details"][0]
     assert episode["fixed_30_status"] == "during_year_two"
     assert episode["fixed_30_evaluation"]["result"] == "failure"
-    assert episode["target_failure_reasons"][0]["evidence_status"] == "researched"
+    assert episode["target_failure_reasons"][0]["evidence_status"] == "unverified"
+
+
+def test_episode_refresh_preserves_one_year_failure_after_later_acquisition():
+    from fairentry.backtest.evidence import refresh_episode_explanations
+    episode = {"fixed_30_status": "closed_early_excluded", "days_to_30_pct": None,
+               "fixed_30_evaluation": {"result": "failure"}}
+    root = {"ticker": "PCLE", "entry_date": "2003-07-01", "decision_date": "2003-06-30",
+            "entry_price": 100.15, "raw_close": 100, "_entry_closeadj": 80,
+            "execution": {"entry_cost_bps": 15},
+            "terminal_event": {"category": "acquired", "date": "2005-08-09"},
+            "return_milestones": {"last_observed_days": 770, "terminal_days": 770,
+                                  "max_return_pct_by_horizon": {"365": 26.4, "1095": 28}},
+            "outcome": {"horizons": {"365": {"benchmark_return_pct": 5, "alpha_pct": -3},
+                                      "1095": {"benchmark_return_pct": 90, "alpha_pct": -80}}}}
+    refreshed = refresh_episode_explanations(episode, root)
+    assert episode["fixed_30_status"] == "closed_early_excluded"
+    assert refreshed["fixed_30_reason"]["code"] == "fell_short"
+    assert "26.40%" in refreshed["fixed_30_reason"]["details"]
+    assert "1 year" in refreshed["fixed_30_reason"]["details"]
+    assert "acquired" not in refreshed["fixed_30_reason"]["details"]
+    assert refreshed["market_context"]["horizon_days"] == 365
+    assert refreshed["entry_provenance"]["raw_close"] == 100
+    assert refreshed["entry_provenance"]["adjusted_close"] == 80
+    assert refreshed["entry_provenance"]["entry_cost_bps"] == 15
+    assert refreshed["target_failure_reasons"][0]["code"] == "cause_not_verified"
+
+
+def test_explicit_episode_research_is_shown_only_for_its_period(monkeypatch):
+    from fairentry.backtest.evidence import _target_failure_reasons
+    finding = {"researched_for_episode": "CSCO:2023-10-02", "episode_start": "2023-10-02",
+               "episode_end": "2024-10-01", "code": "growth_below_expectations", "category": "growth",
+               "reason": "Customers delayed new orders.", "sources": ["https://www.cisco.com/report"]}
+    monkeypatch.setattr("fairentry.backtest.evidence._failure_research", lambda: {"CSCO:2023-10-02": finding})
+    assert _target_failure_reasons({"ticker": "CSCO", "entry_date": "2023-10-02"})[0]["evidence_status"] == "researched"
+    assert _target_failure_reasons({"ticker": "CSCO", "entry_date": "2003-10-02"})[0]["evidence_status"] == "unverified"

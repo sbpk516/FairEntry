@@ -63,6 +63,7 @@ def test_evaluate_is_pure_and_deterministic():
 
 def test_tuner_reports_and_never_worsens_train_spread():
     cfg = load_config()
+    cfg.scoring['roic_direction_gate'] = False  # Isolate synthetic weight-tuning test.
     store = Store(tempfile.mktemp(suffix=".db"))
     _seed_world(store)
     res = tune(store, cfg, hold_days=30, step_days=14, min_names=20, test_frac=0.3, screened_only=False, warmup_days=0)

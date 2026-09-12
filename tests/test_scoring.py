@@ -17,7 +17,8 @@ _MED = {"Technology": {"gross_margin": 40, "roic": 10, "rev_growth_qoq": 5}}
 def _strong_metrics(**over):
     """A clean, cheap, high-quality name (should score Buy) so veto/gate tests
     isolate exactly the negative signal under test."""
-    m = {"price": {"value": 100}, "target_price": {"value": 160},
+    m = {"roic_direction_assessment": {"value": {"passes": True, "reason": "Stable test history"}},
+         "price": {"value": 100}, "target_price": {"value": 160},
          "gross_margin": {"value": 60}, "oper_margin": {"value": 30},
          "roic": {"value": 25}, "debt_eq": {"value": 0.2},
          "current_ratio": {"value": 2.5}, "altman_z": {"value": 6.0},
@@ -38,6 +39,19 @@ def test_higher_better():
     assert s == 0
     s, _ = apply_rule({"type": "higher_better", "full_at": 20, "floor_at": 0}, 10)
     assert 49 <= s <= 51
+
+
+def test_roic_direction_caps_buy_without_changing_score():
+    cfg = load_config()
+    baseline = score_ticker(cfg, _SEC, _strong_metrics(), _MED, _SETTINGS)
+    declining = score_ticker(cfg, _SEC, _strong_metrics(roic_direction_assessment={'passes':False,'reason':'ROIC declining'}), _MED, _SETTINGS)
+    assert baseline['verdict'] == 'Buy'
+    assert declining['verdict'] == 'Watch'
+    assert declining['score'] == baseline['score']
+    assert declining['decision_trace']['explanation'] == 'ROIC declining'
+    missing = _strong_metrics()
+    del missing['roic_direction_assessment']
+    assert score_ticker(cfg, _SEC, missing, _MED, _SETTINGS)['verdict'] == 'Watch'
 
 
 def test_lower_better_and_band():
