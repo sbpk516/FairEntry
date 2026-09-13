@@ -1,6 +1,12 @@
 (function(root){
   'use strict';
   const finite=v=>typeof v==='number'&&Number.isFinite(v);
+  function presentationGroup(f){
+    if(['Universe','Candidate screens'].includes(f.group))return 'Screening filters';
+    if(['category_quality','category_survival','category_growth','price_to_fair','method_count','roic','obv','veto'].includes(f.id))return 'Buy filters';
+    if(f.id.startsWith('distance_'))return 'Optional technical filters';
+    return 'Advanced filters';
+  }
   function matches(stock, state, catalog){
     const fields=catalog.fields||[], data=stock.filter_values||{};
     const defaults=Object.fromEntries(fields.filter(f=>f.type==='threshold').map(f=>[f.metric,f.default]));
@@ -25,23 +31,29 @@
   function mount(el,catalog,onChange,onPreset){
     if(!catalog||!catalog.fields){el.textContent='Criteria filters become available after the next data build.';return {matches:()=>true,updateCount:()=>{}};}
     let state={},preset='all';
-    const fields=catalog.fields;
+    const fields=catalog.fields.map(f=>({...f,group:presentationGroup(f)}));
     const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    const groups=[...new Set(fields.map(f=>f.group))];
-    el.innerHTML='<details class="criteria-panel"><summary>Explore criteria <span data-badge>0 active</span></summary><div class="criteria-body">'+
+    const groups=['Screening filters','Buy filters','Optional technical filters','Advanced filters'];
+    const descriptions={
+      'Screening filters':'Choose which companies qualify for your candidate list. Passing a screen does not mean Buy.',
+      'Buy filters':'Choose the business scores, fair value, ROIC, weekly volume and hard-veto checks to apply. Any / off ignores a check; it does not change the official rating.',
+      'Optional technical filters':'Moving-average proximity is optional, not a Buy requirement.',
+      'Advanced filters':'Individual factors, information-only indicators, extra risk checks and official-rating filters.'
+    };
+    el.innerHTML='<section class="criteria-panel" aria-labelledby="criteria-title"><h2 id="criteria-title">Screening &amp; Buy filters <span data-badge>0 active</span></h2><div class="criteria-body">'+
       '<p class="criteria-intro">Choose a starting point, then refine it. <b>Filters change the list, not recommendations.</b> <a href="criteria.html">Read the current rules ↗</a></p>'+
       '<div class="criteria-toolbar"><label>Start with a preset<select data-preset>'+catalog.presets.map(p=>'<option value="'+escape(p.id)+'">'+escape(p.label)+'</option>').join('')+'<option value="custom" disabled>Custom selection</option></select></label><label>Find a criterion<input type="search" data-search placeholder="Try ROIC, margin, dilution…"></label><button type="button" data-clear>Clear criteria</button><button type="button" data-reset>Reset all filters</button></div>'+
       '<p class="criteria-scope">'+escape(catalog.scope)+'</p><p class="criteria-scope">Numeric comparisons exclude missing data. Choose “Missing only” or “Has data” to inspect coverage. Screening exceptions are explained below. Enabled filters combine with AND.</p><div data-chips class="criteria-chips"></div><p data-results aria-live="polite"></p><p data-no-fields hidden>No matching criteria. Try another search term.</p>'+
-      groups.map((g,i)=>'<details class="criteria-group" '+(i===0?'open':'')+'><summary>'+escape(g)+' <span data-group-count="'+escape(g)+'"></span></summary><div class="criteria-grid">'+fields.filter(f=>f.group===g).map(f=>{
+      '<nav class="criteria-jumps" aria-label="Filter sections"><a href="#screening-filters">Screening filters ↓</a><a href="#buy-filters">Buy filters ↓</a></nav><div class="criteria-sections">'+
+      groups.map((g,i)=>(i<2?'<section class="criteria-group criteria-primary" id="'+(i===0?'screening-filters':'buy-filters')+'"><h3>':'<details class="criteria-group"><summary>')+escape(g)+' <span data-group-count="'+escape(g)+'"></span>'+(i<2?'</h3>':'</summary>')+'<p class="criteria-group-description">'+escape(descriptions[g])+'</p><div class="criteria-grid">'+fields.filter(f=>f.group===g).map(f=>{
         const id='cf-'+f.id;
         let input;
         if(f.type==='choice')input='<select id="'+id+'" data-choice="'+f.id+'"><option value="">Any / off</option>'+f.options.map(o=>'<option value="'+escape(o[0])+'">'+escape(o[1])+'</option>').join('')+'</select>';
         else if(f.type==='threshold')input='<input id="'+id+'" data-threshold="'+f.id+'" type="number" step="any" placeholder="'+f.default+'">';
         else input='<div class="criteria-number"><select id="'+id+'" data-op="'+f.id+'"><option value="">Any / off</option><option value="min">At least ≥</option><option value="max">At most ≤</option><option value="known">Has data</option><option value="missing">Missing only</option></select><input type="number" step="any" data-number="'+f.id+'" aria-label="'+escape(f.label)+' threshold" placeholder="'+(f.default??'Value')+'" disabled></div>';
         return '<div class="criteria-field" data-field="'+f.id+'"><label for="'+id+'">'+escape(f.label)+' <small>'+escape(f.unit||'')+'</small></label>'+input+'<small id="'+id+'-help">'+(f.default!=null?'Production default: '+escape(f.default)+' '+escape(f.unit||'')+'. ':'')+escape(f.help||'')+'</small></div>';
-      }).join('')+'</div></details>').join('')+'</div></details>';
+      }).join('')+'</div>'+(i<2?'</section>':'</details>')).join('')+'</div></div></section>';
     const q=s=>el.querySelector(s);
-    if(location.hash==='#criteria-explorer')q('.criteria-panel').open=true;
     function clearSearch(){q('[data-search]').value='';el.querySelectorAll('[data-field],.criteria-group').forEach(r=>r.hidden=false);q('[data-no-fields]').hidden=true;}
     function active(f){return state[f.id]!=null&&!(f.type==='threshold'&&!state.screen);}
     function sync(){
@@ -83,7 +95,7 @@
     q('[data-search]').addEventListener('input',e=>{
       const term=e.target.value.trim().toLowerCase();let found=0;
       fields.forEach(f=>{const row=q('[data-field="'+f.id+'"]');row.hidden=!!term&&!`${f.label} ${f.help}`.toLowerCase().includes(term)&&f.group.toLowerCase()!==term;if(!row.hidden)found++;});
-      el.querySelectorAll('.criteria-group').forEach(g=>{g.hidden=![...g.querySelectorAll('[data-field]')].some(r=>!r.hidden);if(term&&!g.hidden)g.open=true;});
+      el.querySelectorAll('.criteria-group').forEach(g=>{g.hidden=![...g.querySelectorAll('[data-field]')].some(r=>!r.hidden);if(term&&!g.hidden&&g.tagName==='DETAILS')g.open=true;});
       q('[data-no-fields]').hidden=found>0;
     });
     sync();
@@ -91,7 +103,7 @@
       q('[data-results]').textContent=emerging?'Emerging is a separate research dataset. Criteria evidence is not exported there; active criteria may return no matches.':shown+' of '+total+' published candidates match all current filters.'+(shown===0?' No matches. Remove a filter chip or reset all filters to broaden the list.':'');
     }};
   }
-  const api={matches,mount};
+  const api={matches,mount,presentationGroup};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   else root.FairEntryFilters=api;
 })(typeof window!=='undefined'?window:globalThis);

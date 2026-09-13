@@ -98,7 +98,8 @@ def values(cfg, rec, metrics, stale=()):
     result['price_to_fair'] = price/base if price is not None and base and base>0 else None
     result['method_count'] = numeric(val.get('method_count'))
     obv = (alignment.get('weekly_obv') or {}).get('value')
-    result['obv'] = 'yes' if obv is True else 'no' if obv is False else 'missing'
+    # The metrics store serializes boolean signals as numeric 1.0 / 0.0.
+    result['obv'] = 'yes' if obv == 1 else 'no' if obv == 0 else 'missing'
     roic = (rec.get('decision_trace') or {}).get('roic_direction') or {}
     reason = roic.get('reason','').lower()
     result['roic'] = 'pass' if roic.get('passes') is True else 'stale' if 'stale' in reason else 'declining' if 'deteriorat' in reason else 'missing'

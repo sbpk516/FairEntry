@@ -1,6 +1,8 @@
 .criteria-panel{margin:16px 0;border:1px solid var(--line,#d9e1e8);border-radius:12px;background:var(--panel,#fff);color:var(--ink,#172537)}
-.criteria-panel>summary,.criteria-group>summary{cursor:pointer;padding:16px;font-weight:650;min-height:44px}
-.criteria-panel>summary span{font-size:12px;margin-left:12px;color:var(--ink-soft,#526174)}
+.criteria-panel>h2{font-size:20px;padding:18px;margin:0}.criteria-group>summary{cursor:pointer;padding:16px;font-weight:650;min-height:44px}
+.criteria-panel>h2 span{font-size:12px;margin-left:12px;color:var(--ink-soft,#526174)}
+.criteria-jumps{display:flex;gap:16px;margin:16px 0;flex-wrap:wrap}.criteria-jumps a{color:var(--accent-ink,#145da0);font-weight:650}
+.criteria-sections{display:grid;grid-template-columns:1fr 1fr;gap:20px}.criteria-sections>details{grid-column:1/-1}.criteria-primary{scroll-margin-top:150px;min-width:0}.criteria-primary h3{font-size:18px;margin:16px 0 8px}.criteria-group-description{font-size:13px;line-height:1.5;color:var(--ink-soft,#526174)}
 .criteria-body{padding:0 18px 18px}.criteria-intro{line-height:1.6}.criteria-toolbar{display:flex;gap:12px;align-items:end;flex-wrap:wrap}
 .criteria-toolbar label{display:grid;gap:6px;flex:1;min-width:180px}.criteria-panel input,.criteria-panel select,.criteria-panel button{font:inherit;min-height:40px;border:1px solid #b8c6d1;border-radius:6px;background:var(--panel,#fff);color:inherit;padding:8px;max-width:100%;box-sizing:border-box}
 .criteria-panel button{cursor:pointer}.criteria-panel :focus-visible{outline:3px solid #3789d9;outline-offset:2px}.criteria-scope{font-size:12px;line-height:1.6;color:var(--ink-soft,#526174)}
@@ -8,4 +10,5 @@
 .criteria-field{padding:12px;border:1px solid #d9e1e8;border-radius:8px;display:flex;flex-direction:column;gap:8px;min-width:0}.criteria-field.is-active{border-color:#408bc5;background:rgba(64,139,197,.07)}
 .criteria-field>label{font-size:13px;font-weight:650}.criteria-field small{font-size:11px;line-height:1.5;color:var(--ink-soft,#526174)}.criteria-number{display:flex;gap:6px}.criteria-number select{width:60%}.criteria-number input{width:40%}.criteria-panel input:disabled{opacity:.45}
 .criteria-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}.criteria-chips button{font-size:12px;background:rgba(64,139,197,.08)}.criteria-panel [hidden]{display:none!important}
+@media(max-width:900px){.criteria-sections{grid-template-columns:1fr}}
 @media(max-width:600px){.criteria-grid{grid-template-columns:1fr}.criteria-toolbar{align-items:stretch}.criteria-toolbar label{min-width:100%}.criteria-body{padding:0 12px 12px}}

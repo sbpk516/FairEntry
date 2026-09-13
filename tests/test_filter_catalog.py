@@ -22,6 +22,9 @@ def test_export_does_not_turn_missing_metrics_into_zero_or_pass():
     rec = {'price':100, 'verdict':'Watch','vetoes':[], 'categories':[]}
     out = values(cfg, rec, {})
     assert out['market_cap'] is None
+    for signal, expected in [(True, 'yes'), (1.0, 'yes'), (False, 'no'), (0.0, 'no'), (None, 'missing')]:
+        signal_rec = dict(rec, buy_entry_alignment={'weekly_obv': {'value': signal}})
+        assert values(cfg, signal_rec, {})['obv'] == expected
     boundary = values(cfg, dict(rec, price=105), {'sma_50week': {'value':100}})
     assert boundary['distance_sma_50week'] == 5
     scaled = values(cfg, rec, {'market_cap': {'value': 300_000_000}, 'avg_dollar_volume': {'value': 10_000_000}})
