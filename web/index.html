@@ -410,6 +410,7 @@
 
   @media (max-width:520px){ .action-grid{ grid-template-columns:1fr; } }
 </style>
+<link rel="stylesheet" href="criteria-filters.css">
 </head>
 <body>
 
@@ -471,6 +472,7 @@
     <span class="count" id="count"></span>
   </div>
 
+  <div id="criteria-explorer"></div>
   <div class="active-weights" id="active-weights"></div>
 
   <div class="wma-alerts" id="wma-alerts"></div>
@@ -486,6 +488,7 @@
   <div class="dbody" id="s-body"></div>
 </aside>
 
+<script src="criteria-filters.js"></script>
 <script>
 (function(){
 "use strict";
@@ -541,6 +544,7 @@ var HIGH_ONLY=false;
 var EM_VARIANT='balanced';
 var EM_LIQUIDITY='5m_to_20m';
 var META={};                                   // board.json meta (filled on load)
+var CRITERIA_FILTERS=null;
 var ACTIVE_STOCKS=[];
 var EMERGING_STOCKS=[];
 var MODE_STRATEGY={deepvalue:'deep_value', growth:'quality_growth'};
@@ -905,6 +909,7 @@ function currentList(){
   var list=source.filter(function(s){ return MODE==='all' || MODE==='emerging' || s.strategy.indexOf(MODE)>=0; })
     .map(function(s){ return {s:s, c:compute(s)}; })
     .filter(function(o){ var em=o.s.emerging_candidate||{}; if(MODE==='emerging'&&(em.matched_variants||[]).indexOf(EM_VARIANT)<0)return false; if(MODE==='emerging'&&EM_LIQUIDITY!=='all'){if(EM_LIQUIDITY==='5m_to_20m'&&['5m_to_10m','10m_to_20m'].indexOf(em.liquidity_band)<0)return false; if(EM_LIQUIDITY!=='5m_to_20m'&&em.liquidity_band!==EM_LIQUIDITY)return false;} if(WMA_ONLY&&(!wmaTickers[o.s.ticker]||o.c.verdict==='Avoid'))return false; if(HIGH_ONLY&&!highConfidenceResearchMatch(o.s,o.c))return false; if(sec!=='all'&&o.s.sector!==sec)return false; if(MODE!=='emerging'&&vf!=='all'&&o.c.verdict!==vf)return false;
+      if(CRITERIA_FILTERS&&!CRITERIA_FILTERS.matches(o.s))return false;
       if(q&&(o.s.ticker.toLowerCase().indexOf(q)<0&&o.s.company.toLowerCase().indexOf(q)<0))return false; return true; });
   var rank={Buy:0,Watch:1,Avoid:2};
   list.sort(function(a,b){ if(sort==='upside')return b.s.valuation.upside-a.s.valuation.upside;
@@ -912,6 +917,7 @@ function currentList(){
   return list;
 }
 function renderBoard(){ var list=currentList();
+  if(CRITERIA_FILTERS)CRITERIA_FILTERS.updateCount(list.length,ACTIVE_STOCKS.length,MODE==='emerging');
   renderActiveWeights();
   renderWmaAlerts(META,list);
   var pf=META.price_freshness||{}, warning=pf.excluded_count?
@@ -1703,6 +1709,15 @@ fetch('data/board.json', {cache:'no-store'}).then(function(r){ return r.json(); 
   EMERGING_STOCKS = (b.emerging_candidates || []).map(function(s){ if(s.categories){ s.cats=s.categories; } return s; });
   STOCKS = ACTIVE_STOCKS.concat(EMERGING_STOCKS);
   var m=b.meta||{}; META=m;
+  CRITERIA_FILTERS=FairEntryFilters.mount($('#criteria-explorer'),m.criteria_filters,renderBoard,function(){
+    MODE='all'; WMA_ONLY=false; HIGH_ONLY=false; SMA_ZONE='all';
+    $('#search').value=''; $('#sector').value='all'; $('#smazone').value='all'; $('#smazone').style.display='none';
+    ['wmafilter','highfilter'].forEach(function(id){$('#'+id).classList.remove('on');$('#'+id).setAttribute('aria-pressed','false');});
+    $('#vfilter .on').classList.remove('on'); $('#vfilter [data-v="all"]').classList.add('on');
+    document.querySelectorAll('[data-mode]').forEach(function(b){b.classList.toggle('on',b.dataset.mode==='all');});
+    $('#emvariant').style.display='none'; $('#emliquidity').style.display='none';
+    syncModelToMode();renderSettings();
+  });
   var emMeta=m.emerging_candidates||{};
   EM_VARIANT=emMeta.default_variant||'balanced';
   EM_LIQUIDITY=emMeta.default_liquidity_band||'5m_to_20m';

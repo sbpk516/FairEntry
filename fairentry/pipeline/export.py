@@ -934,7 +934,11 @@ def build_board(cfg, store, settings=None, reason=False, *, source="finviz",
         rec["_stress_resilience"] = (
             (breakout_context.get(rec["ticker"]) or {}).get("stress_resilience")
         )
-        stocks.append(_map(rec, rec["_strategies"], rec["_primary"]))
+        from ..filter_catalog import values as filter_values
+        stock = _map(rec, rec["_strategies"], rec["_primary"])
+        stock['filter_values'] = filter_values(cfg, rec, metrics_by_ticker.get(rec['ticker'], {}),
+            [item for item in stale_entry_inputs if item['ticker'] == rec['ticker']])
+        stocks.append(stock)
     store.commit()
 
     # ---- AI-review status for the UI ----------------------------------------
@@ -959,7 +963,8 @@ def build_board(cfg, store, settings=None, reason=False, *, source="finviz",
     zone_candidates = moving_average_zone_candidates(
         stocks, metrics_by_ticker, threshold
     )
-    return {"meta": {"generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    from ..filter_catalog import catalog as filter_catalog
+    return {"meta": {"criteria_filters": filter_catalog(cfg), "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                      "sectors": [s["id"] for s in cfg.enabled_sectors],
                      "config_version": cfg.scoring.get("version"), "count": len(stocks),
                      "universe_source": source,
