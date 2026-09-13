@@ -92,6 +92,7 @@ vetoes:
 # Production Buy entry rule. Every condition is required; missing data fails
 # the entry alignment and leaves an otherwise eligible name at Watch.
 buy_entry_alignment:
+  monthly_ema_required: false
   category_minimum: 70
   categories: [quality, survival, growth]
   fair_value_method_minimum: 1

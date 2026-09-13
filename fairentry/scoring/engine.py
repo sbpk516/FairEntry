@@ -169,7 +169,7 @@ def buy_entry_alignment(scoring: dict, cat_scores: dict, flat: dict,
     checks = {
         "fundamentals": fundamentals_pass,
         "valuation": valuation_pass,
-        "monthly_ema": ema_pass,
+        "monthly_ema": ema_pass if policy.get('monthly_ema_required', True) else True,
         "weekly_obv": obv_pass,
     }
     return {
@@ -380,7 +380,7 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
         "roic_direction": roic_direction,
         "explanation": ("A hard veto forced Avoid." if vetoes else
                         roic_direction['reason'] if roic_blocked else
-                        "All fundamental, fair-value, monthly-EMA, and weekly-OBV conditions aligned." if alignment["passes"] else
+                        "All required fundamental, fair-value, and weekly-OBV conditions aligned." if alignment["passes"] else
                         "One or more required Buy-entry conditions did not align."),
     }
 

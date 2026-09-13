@@ -10,15 +10,18 @@ from email.message import EmailMessage
 
 
 _MOVING_AVERAGE_ZONES = (
+    ("ema_9month", "9-month EMA"),
+    ("ema_20month", "20-month EMA"),
     ("sma_9month", "9-month SMA"),
     ("sma_20month", "20-month SMA"),
+    ("sma_50week", "50-week SMA"),
     ("sma_200week", "200-week SMA"),
 )
 
 
 def moving_average_zone_candidates(stocks: list[dict], metrics_by_ticker: dict,
-                                   threshold_pct: float = 3.0) -> list[dict]:
-    """Return strong Buy/Watch names near at least one configured SMA zone."""
+                                   threshold_pct: float = 5.0) -> list[dict]:
+    """Return strong Buy/Watch names near a configured moving-average zone."""
     candidates = []
     for stock in stocks:
         if stock.get("verdict") not in {"Buy", "Watch"} or stock.get("vetoes"):
@@ -72,14 +75,14 @@ def email_wma_alerts(alerts: list[dict]) -> bool:
     """Email the alert list through Resend, or SMTP as a fallback."""
     if not alerts:
         return False
-    lines = ["Fundamentally strong Buy/Watch stocks near an SMA zone:", ""]
+    lines = ["Fundamentally strong Buy/Watch stocks near a moving-average zone:", ""]
     for item in alerts:
         zone = item["nearest_zone"]
         side = "above" if zone["distance_pct"] >= 0 else "below"
         lines.append(f"{item['ticker']} ({item['verdict']}): ${item['price']:.2f}; "
                      f"{zone['label']} ${zone['average']:.2f}; "
                      f"{abs(zone['distance_pct']):.1f}% {side}")
-    return _send_email(f"FairEntry: {len(alerts)} stock(s) near an SMA zone", lines)
+    return _send_email(f"FairEntry: {len(alerts)} stock(s) near a moving-average zone", lines)
 
 
 def _send_email(subject: str, lines: list[str]) -> bool:

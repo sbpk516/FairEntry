@@ -5,6 +5,10 @@ from datetime import date
 from functools import lru_cache
 from pathlib import Path
 
+DECLINE_TOLERANCE_PP = 2
+MAX_EVIDENCE_AGE_DAYS = 180
+MAX_ANNUAL_AGE_DAYS = 550
+
 
 def assess(annual, latest):
     values = list(annual)[-3:]
@@ -12,7 +16,7 @@ def assess(annual, latest):
     if len(values) != 3 or not all(valid(x) for x in values) or not valid(latest):
         return {'passes': False, 'reason': 'Recent ROIC history is insufficient; review before buying.'}
     changes = [b-a for a,b in zip(values, values[1:])] + [latest-values[-1]]
-    declines = any(x < -2-1e-9 for x in changes) or latest < values[0]-2-1e-9
+    declines = any(x < -DECLINE_TOLERANCE_PP-1e-9 for x in changes) or latest < values[0]-DECLINE_TOLERANCE_PP-1e-9
     return {'passes': not declines, 'reason': 'Recent ROIC is deteriorating; review before buying.' if declines else 'Recent ROIC is stable or recovering.'}
 
 
@@ -45,6 +49,6 @@ def live_assessment(ticker, asof):
     if any(not value for value in dates):
         return assess([], None)
     ages = [(today-date.fromisoformat(value)).days for value in dates]
-    if any(age < 0 for age in ages) or ages[0] > 180 or ages[1] > 180 or ages[2] > 550:
+    if any(age < 0 for age in ages) or ages[0] > MAX_EVIDENCE_AGE_DAYS or ages[1] > MAX_EVIDENCE_AGE_DAYS or ages[2] > MAX_ANNUAL_AGE_DAYS:
         row.update(passes=False, reason='ROIC history is stale or unavailable for this date; review before buying.')
     return row

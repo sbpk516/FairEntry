@@ -160,6 +160,13 @@ def test_buy_requires_price_at_or_below_replayable_fair_value_base():
     assert any(g["id"] == "price_above_fair_value_base" for g in expensive["soft_gates"])
 
 
+def test_moving_average_proximity_is_not_a_buy_gate():
+    cfg = load_config()
+    rec = score_ticker(cfg, _SEC, _strong_metrics(ema_9month=1, ema_20month=None), _MED, _SETTINGS)
+    assert rec['verdict'] == 'Buy'
+    assert not any(g['id'] == 'monthly_ema_not_aligned' for g in rec['soft_gates'])
+
+
 def test_missing_calculated_fair_value_cannot_use_price_fallback_to_buy():
     result = buy_entry_alignment(
         {"buy_entry_alignment": {}},

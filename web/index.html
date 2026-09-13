@@ -425,6 +425,7 @@
     <span class="ai-status" id="ai-status"></span>
     <span class="spacer"></span>
     <a class="iconbtn" href="backtest.html?source=sfa">Backtest</a>
+    <a class="iconbtn" href="criteria.html">Screening &amp; Buy criteria</a>
     <a class="iconbtn" href="portfolio.html">Portfolio</a>
     <button class="iconbtn" id="tunebtn"> Tune weights</button>
     <button class="iconbtn" id="themebtn"> -  Theme</button>
@@ -451,12 +452,15 @@
       <button data-v="Watch">Watch</button>
       <button data-v="Avoid">Avoid</button>
     </div>
-    <button class="iconbtn" id="wmafilter" type="button" aria-pressed="false" title="Fundamentally strong Buy/Watch stocks within the configured distance of the 9-month, 20-month, or 200-week SMA.">9M / 20M / 200W SMA</button>
-    <select id="smazone" style="display:none" aria-label="SMA zone">
-      <option value="all">All SMA zones</option>
+    <button class="iconbtn" id="wmafilter" type="button" aria-pressed="false" title="Optional moving-average proximity filter. Does not change Buy/Watch/Avoid.">Moving-average filter</button>
+    <select id="smazone" style="display:none" aria-label="Moving-average zone">
+      <option value="all">All moving-average zones</option>
+      <option value="ema_9month">9-month EMA</option>
+      <option value="ema_20month">20-month EMA</option>
       <option value="sma_9month">9-month SMA</option>
       <option value="sma_20month">20-month SMA</option>
       <option value="sma_200week">200-week SMA</option>
+      <option value="sma_50week">50-week SMA</option>
     </select>
     <button class="iconbtn" id="highfilter" type="button" aria-pressed="false" title="Research filter only: shows official Buys with Financial Strength at least 70 and no automatic disqualifier. It has not been proven to improve results and does not change any score or recommendation.">High-confidence research · not proven</button>
     <select id="sort">
@@ -919,7 +923,7 @@ function renderBoard(){ var list=currentList();
   var byv={Buy:0,Watch:0,Avoid:0}; list.forEach(function(o){byv[o.c.verdict]++;});
   var emNames={broad:'Basic Match',balanced:'Strong Match',selective:'Strict Match'};
   $('#count').textContent=MODE==='emerging'?(list.length+' '+emNames[EM_VARIANT]+' candidates · '+EM_LIQUIDITY.replace(/_/g,' ')+' · research only'):
-    (list.length+' shown'+(WMA_ONLY?' near an SMA zone':'')+(HIGH_ONLY?' high-confidence research (not validated)':'')+' - '+byv.Buy+' Buy - '+byv.Watch+' Watch - '+byv.Avoid+' Avoid');
+    (list.length+' shown'+(WMA_ONLY?' near a moving-average zone':'')+(HIGH_ONLY?' high-confidence research (not validated)':'')+' - '+byv.Buy+' Buy - '+byv.Watch+' Watch - '+byv.Avoid+' Avoid');
 }
 function renderWmaAlerts(meta,visible){
   var box=$('#wma-alerts'), candidates=meta.moving_average_zone_candidates||[];
@@ -933,7 +937,7 @@ function renderWmaAlerts(meta,visible){
     var matchedZones=(a.zones||[]).filter(function(x){return SMA_ZONE==='all'||x.id===SMA_ZONE;}),z=matchedZones[0]||a.nearest_zone||{},distance=Number(z.distance_pct),side=distance>=0?'above':'below',all=matchedZones.map(function(x){return x.label;}).join(' / '),vk=String(a.verdict||'').toLowerCase();
     return '<tr title="Qualified zones: '+esc(all)+'"><td class="ticker">'+esc(a.ticker)+'</td><td><span class="vpill bg-'+esc(vk)+' v-'+esc(vk)+'">'+esc(a.verdict)+'</span></td><td class="num">$'+esc(a.price)+'</td><td>'+esc(z.label)+' <span class="meta">$'+esc(z.average)+'</span></td><td class="distance">'+Math.abs(distance).toFixed(1)+'% '+side+'</td><td class="scores">Q '+esc(a.quality_score)+' &nbsp; FS '+esc(a.financial_strength_score)+' &nbsp; G '+esc(a.growth_score)+'</td></tr>';
   }).join('');
-  box.innerHTML='<div class="wma-alert-head"><div><div class="wma-alert-title">Fundamentally strong stocks near an SMA zone</div><div class="wma-alert-note">Within '+esc(threshold)+'% of the 9-month, 20-month, or 200-week SMA</div></div><span class="wma-alert-count">'+candidates.length+' matches</span></div><div class="wma-score-legend"><b>Q</b> = Business Quality &nbsp;·&nbsp; <b>FS</b> = Financial Strength &amp; Survival &nbsp;·&nbsp; <b>G</b> = Growth &amp; Operating Momentum. Each is scored out of 100 and must be <b>70 or higher</b>; SMA proximity is checked separately.</div><div class="wma-alert-table-wrap"><table class="wma-alert-table"><thead><tr><th>Stock</th><th>Verdict</th><th class="num">Price</th><th>Nearest support zone</th><th>Distance</th><th>Fundamentals (0–100)</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  box.innerHTML='<div class="wma-alert-head"><div><div class="wma-alert-title">Fundamentally strong stocks near a moving-average zone</div><div class="wma-alert-note">Within '+esc(threshold)+'% of a 9/20-month EMA or SMA, or 50/200-week SMA. Optional filter, not a Buy gate.</div></div><span class="wma-alert-count">'+candidates.length+' matches</span></div><div class="wma-score-legend"><b>Q</b> = Business Quality &nbsp;·&nbsp; <b>FS</b> = Financial Strength &amp; Survival &nbsp;·&nbsp; <b>G</b> = Growth &amp; Operating Momentum. Each is scored out of 100 and must be <b>70 or higher</b>; proximity is checked separately.</div><div class="wma-alert-table-wrap"><table class="wma-alert-table"><thead><tr><th>Stock</th><th>Verdict</th><th class="num">Price</th><th>Nearest support zone</th><th>Distance</th><th>Fundamentals (0–100)</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
 function today(){ return new Date().toISOString().slice(0,10); }
 function portfolioLoad(){ try{return JSON.parse(localStorage.getItem(PORTKEY)||'[]');}catch(e){return [];} }

@@ -43,6 +43,8 @@ def compute_entry_alignment_from_history(hist, *, asof=None):
         "entry_alignment_history_weeks": len(weekly),
     }
 
+    if len(weekly) >= 50:
+        out['sma_50week'] = round(float(weekly['Close'].tail(50).mean()), 4)
     if len(weekly) >= 200:
         sma = float(weekly["Close"].tail(200).mean())
         if sma > 0:

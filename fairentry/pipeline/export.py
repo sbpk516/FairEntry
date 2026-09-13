@@ -1020,6 +1020,8 @@ def build_board(cfg, store, settings=None, reason=False, *, source="finviz",
 def write_board(board: dict, path: Path = OUT):
     path.parent.mkdir(parents=True, exist_ok=True)
     if path == OUT:
+        from ..criteria import write as write_criteria
+        write_criteria()
         chart_stocks = ((board.get("stocks") or [])
                         + (board.get("emerging_candidates") or []))
         chart_paths = write_chart_files(chart_stocks, path.parent / "charts")

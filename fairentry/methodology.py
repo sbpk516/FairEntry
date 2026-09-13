@@ -15,7 +15,7 @@ def generate() -> str:
         "",
         "_Generated from `config/scoring.yaml`. Do not edit by hand._",
         "",
-        f"**Verdict bands:** Buy >= {cfg.verdict_bands['buy']} · "
+        f"**Score bands (not final Buy eligibility):** Buy >= {cfg.verdict_bands['buy']} · "
         f"Watch >= {cfg.verdict_bands['watch']} · else Avoid.",
         "",
         "Only factors marked **tested** may affect the verdict.",
@@ -55,9 +55,12 @@ def generate() -> str:
         "",
         f"- Business Quality, Financial Strength, and Growth each >= {alignment.get('category_minimum', 70)}.",
         f"- Current price is at or below the fair-value base from at least {alignment.get('fair_value_method_minimum', 1)} tested valuation method.",
-        f"- Current price is within +/-{alignment.get('ema_proximity_pct', 5)}% of either the 9-month or 20-month EMA.",
+        (f"- Current price is within +/-{alignment.get('ema_proximity_pct', 5)}% of either the 9-month or 20-month EMA."
+         if alignment.get('monthly_ema_required', True) else "- Moving-average proximity is an optional dashboard filter, not a Buy requirement."),
         "- Weekly OBV is above its 20-week EMA.",
         "- No tested hard veto is active.",
+        "- Recent ROIC direction must pass; missing or stale history blocks Buy." if cfg.scoring.get('roic_direction_gate') else "- Recent ROIC direction gate is disabled.",
+        "- See the generated Screening & Buy criteria page for current eligibility and evidence limitations.",
         "",
         "## Additional tested soft gates",
     ])

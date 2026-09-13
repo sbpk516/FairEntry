@@ -5,6 +5,7 @@ from __future__ import annotations
 
 ID = "quality_growth"
 STRATEGY = "growth"
+CRITERIA = {'revenue_growth_min': 10, 'gross_margin_min': 25}
 INPUT_FIELDS = ["rev_growth_qoq", "gross_margin", "roe", "sma200"]
 
 
@@ -18,8 +19,8 @@ def passes(metrics: dict) -> tuple[bool, dict]:
     gm = _n(metrics, "gross_margin")
     # Current analyst EPS forecasts are not available in the historical SFA
     # replay, so membership uses reported revenue only.
-    growing = rev is not None and rev >= 10
-    quality = gm is None or gm >= 25
+    growing = rev is not None and rev >= CRITERIA['revenue_growth_min']
+    quality = gm is None or gm >= CRITERIA['gross_margin_min']
     ok = bool(growing and quality)
     return ok, {"growing": growing, "quality": quality, "rev": rev,
                 "decision_inputs": ["rev_growth_qoq", "gross_margin"]}

@@ -3,7 +3,7 @@
 version: 1
 
 # Show fundamentally strong Buy/Watch names this close to a moving-average zone.
-moving_average_zone_threshold_pct: 3.0
+moving_average_zone_threshold_pct: 5.0
 
 settings:
   margin_of_safety_pct:
