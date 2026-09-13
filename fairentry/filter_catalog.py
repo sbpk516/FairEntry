@@ -110,7 +110,7 @@ def values(cfg, rec, metrics, stale=()):
         result['veto_'+v['id']] = 'yes' if v['id'] in active else 'no'
     for key, _ in _MOVING_AVERAGE_ZONES:
         average = numeric(raw(key))
-        result['distance_'+key] = abs(price/average-1)*100 if price is not None and average and average>0 else None
+        result['distance_'+key] = round(abs(price/average-1)*100, 8) if price is not None and average and average>0 else None
     for c in rec.get('categories',[]):
         result['category_'+c['id']] = numeric(c.get('score'))
         for item in c['items']:

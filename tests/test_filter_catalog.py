@@ -22,6 +22,8 @@ def test_export_does_not_turn_missing_metrics_into_zero_or_pass():
     rec = {'price':100, 'verdict':'Watch','vetoes':[], 'categories':[]}
     out = values(cfg, rec, {})
     assert out['market_cap'] is None
+    boundary = values(cfg, dict(rec, price=105), {'sma_50week': {'value':100}})
+    assert boundary['distance_sma_50week'] == 5
     scaled = values(cfg, rec, {'market_cap': {'value': 300_000_000}, 'avg_dollar_volume': {'value': 10_000_000}})
     assert scaled['market_cap'] == 300
     assert scaled['avg_dollar_volume'] == 10
