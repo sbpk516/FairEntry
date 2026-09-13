@@ -976,7 +976,7 @@ def build_board(cfg, store, settings=None, reason=False, *, source="finviz",
                      "moving_average_zone_rule": (
                          "Business Quality >=70, Financial Strength >=70, "
                          "Growth >=70, no tested veto, verdict Buy/Watch, and "
-                         "within the threshold of 9-month, 20-month, or 200-week SMA"
+                         "within the optional filter threshold of 9/20-month EMA or SMA, or 50/200-week SMA"
                      ),
                      "moving_average_zone_threshold_pct": threshold,
                      "price_freshness": {

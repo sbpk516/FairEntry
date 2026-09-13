@@ -697,7 +697,7 @@ function baseScore(s){ var num=0,den=0; s.cats.forEach(function(c){
 function thesisMod(){ return 0; }
 // Buy is now an all-or-nothing entry alignment calculated by the backend:
 // Quality/Financial Strength/Growth >=70, price <= calculated fair-value base,
-// price within 5% of either monthly EMA, weekly OBV confirmation, and no veto.
+// weekly OBV confirmation, recent ROIC direction, and no veto. MA proximity is optional.
 function softGates(s){
   return (s.soft||[]).map(function(g){return g.reason||g.id||'Buy entry condition not aligned';});
 }
