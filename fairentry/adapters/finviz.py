@@ -45,6 +45,11 @@ def fetch(cfg, field_ids, tickers=None, force=False, *, avg_dollar_volume_min=No
     metrics:    {ticker: {field_id: value}} for the finviz fields requested.
     """
     rows = _fetch_rows(force=force)
+    return parse_rows(cfg, field_ids, rows, tickers, avg_dollar_volume_min=avg_dollar_volume_min)
+
+
+def parse_rows(cfg, field_ids, rows, tickers=None, *, avg_dollar_volume_min=None):
+    """Parse a supplied snapshot without fetching or changing the official universe."""
     finviz_fields = [cfg.field(fid) for fid in field_ids
                      if cfg.field(fid).get("adapter") == "finviz"]
 

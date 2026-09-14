@@ -118,6 +118,8 @@ def main():
                                      "opened": track["opened"], "closed": track["closed"],
                                      "signals": track.get("signals", 0)}
         path = write_board(board)
+        from fairentry.screening_lab import write as write_screening_lab
+        print('Screening Lab:', write_screening_lab(cfg, board))
         from fairentry.alerts import email_trading_alerts, email_wma_alerts
         wma_alerts = board["meta"].get("moving_average_zone_candidates", [])
         try:
