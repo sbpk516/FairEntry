@@ -453,11 +453,9 @@
       <button data-v="Watch">Watch</button>
       <button data-v="Avoid">Avoid</button>
     </div>
-    <button class="iconbtn" id="wmafilter" type="button" aria-pressed="false" title="Optional moving-average proximity filter. Does not change Buy/Watch/Avoid.">Moving-average filter</button>
+    <button class="iconbtn" id="wmafilter" type="button" aria-pressed="false" title="Optional moving-average proximity filter. Does not change Buy/Watch/Avoid.">SMA filter</button>
     <select id="smazone" style="display:none" aria-label="Moving-average zone">
-      <option value="all">All moving-average zones</option>
-      <option value="ema_9month">9-month EMA</option>
-      <option value="ema_20month">20-month EMA</option>
+      <option value="all">All SMA zones</option>
       <option value="sma_9month">9-month SMA</option>
       <option value="sma_20month">20-month SMA</option>
       <option value="sma_200week">200-week SMA</option>
@@ -903,8 +901,8 @@ function tileHTML(s){ var c=compute(s), em=s.emerging_candidate||null,
 function currentList(){
   var q=$('#search').value.trim().toLowerCase(), sec=$('#sector').value, vf=$('#vfilter .on').dataset.v, sort=$('#sort').value;
   var wmaTickers={}; (META.moving_average_zone_candidates||[]).forEach(function(a){
-    var zones=a.zones||[];
-    if(SMA_ZONE==='all'||zones.some(function(z){return z.id===SMA_ZONE;}))wmaTickers[a.ticker]=true;
+    var zones=(a.zones||[]).filter(function(z){return z.id.indexOf('sma_')===0;});
+    if(zones.length&&(SMA_ZONE==='all'||zones.some(function(z){return z.id===SMA_ZONE;})))wmaTickers[a.ticker]=true;
   });
   var source=MODE==='emerging'?EMERGING_STOCKS:ACTIVE_STOCKS;
   var list=source.filter(function(s){ return MODE==='all' || MODE==='emerging' || s.strategy.indexOf(MODE)>=0; })
@@ -941,10 +939,10 @@ function renderWmaAlerts(meta,visible){
   box.className='wma-alerts on';
   var threshold=meta.moving_average_zone_threshold_pct;
   var rows=candidates.map(function(a){
-    var matchedZones=(a.zones||[]).filter(function(x){return SMA_ZONE==='all'||x.id===SMA_ZONE;}),z=matchedZones[0]||a.nearest_zone||{},distance=Number(z.distance_pct),side=distance>=0?'above':'below',all=matchedZones.map(function(x){return x.label;}).join(' / '),vk=String(a.verdict||'').toLowerCase();
+    var matchedZones=(a.zones||[]).filter(function(x){return x.id.indexOf('sma_')===0&&(SMA_ZONE==='all'||x.id===SMA_ZONE);}),z=matchedZones[0]||a.nearest_zone||{},distance=Number(z.distance_pct),side=distance>=0?'above':'below',all=matchedZones.map(function(x){return x.label;}).join(' / '),vk=String(a.verdict||'').toLowerCase();
     return '<tr title="Qualified zones: '+esc(all)+'"><td class="ticker">'+esc(a.ticker)+'</td><td><span class="vpill bg-'+esc(vk)+' v-'+esc(vk)+'">'+esc(a.verdict)+'</span></td><td class="num">$'+esc(a.price)+'</td><td>'+esc(z.label)+' <span class="meta">$'+esc(z.average)+'</span></td><td class="distance">'+Math.abs(distance).toFixed(1)+'% '+side+'</td><td class="scores">Q '+esc(a.quality_score)+' &nbsp; FS '+esc(a.financial_strength_score)+' &nbsp; G '+esc(a.growth_score)+'</td></tr>';
   }).join('');
-  box.innerHTML='<div class="wma-alert-head"><div><div class="wma-alert-title">Fundamentally strong stocks near a moving-average zone</div><div class="wma-alert-note">Within '+esc(threshold)+'% of a 9/20-month EMA or SMA, or 50/200-week SMA. Optional filter, not a Buy gate.</div></div><span class="wma-alert-count">'+candidates.length+' matches</span></div><div class="wma-score-legend"><b>Q</b> = Business Quality &nbsp;·&nbsp; <b>FS</b> = Financial Strength &amp; Survival &nbsp;·&nbsp; <b>G</b> = Growth &amp; Operating Momentum. Each is scored out of 100 and must be <b>70 or higher</b>; proximity is checked separately.</div><div class="wma-alert-table-wrap"><table class="wma-alert-table"><thead><tr><th>Stock</th><th>Verdict</th><th class="num">Price</th><th>Nearest support zone</th><th>Distance</th><th>Fundamentals (0–100)</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  box.innerHTML='<div class="wma-alert-head"><div><div class="wma-alert-title">Fundamentally strong stocks near a moving-average zone</div><div class="wma-alert-note">Within '+esc(threshold)+'% of a 9/20-month SMA or 50/200-week SMA. Optional filter, not a Buy gate.</div></div><span class="wma-alert-count">'+candidates.length+' matches</span></div><div class="wma-score-legend"><b>Q</b> = Business Quality &nbsp;·&nbsp; <b>FS</b> = Financial Strength &amp; Survival &nbsp;·&nbsp; <b>G</b> = Growth &amp; Operating Momentum. Each is scored out of 100 and must be <b>70 or higher</b>; proximity is checked separately.</div><div class="wma-alert-table-wrap"><table class="wma-alert-table"><thead><tr><th>Stock</th><th>Verdict</th><th class="num">Price</th><th>Nearest support zone</th><th>Distance</th><th>Fundamentals (0–100)</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
 function today(){ return new Date().toISOString().slice(0,10); }
 function portfolioLoad(){ try{return JSON.parse(localStorage.getItem(PORTKEY)||'[]');}catch(e){return [];} }
@@ -1638,6 +1636,7 @@ $('#modes').addEventListener('click',function(e){ var b=e.target.closest('button
   $('#emvariant').style.display=MODE==='emerging'?'':'none';
   $('#emliquidity').style.display=MODE==='emerging'?'':'none';
   if(MODE==='emerging'){
+    if(CRITERIA_FILTERS&&CRITERIA_FILTERS.clear)CRITERIA_FILTERS.clear();
     WMA_ONLY=false; HIGH_ONLY=false;
     $('#wmafilter').classList.remove('on'); $('#wmafilter').setAttribute('aria-pressed','false');
     $('#smazone').style.display='none';
@@ -1651,6 +1650,7 @@ $('#vfilter').addEventListener('click',function(e){ var b=e.target.closest('butt
 $('#wmafilter').addEventListener('click',function(){
   WMA_ONLY=!WMA_ONLY;
   if(WMA_ONLY){
+    if(CRITERIA_FILTERS&&CRITERIA_FILTERS.clear)CRITERIA_FILTERS.clear();
     // Treat the SMA shortlist as a dedicated view. Clear filters that can silently
     // leave the view empty; users can narrow the shortlist again after opening it.
     MODE='all';

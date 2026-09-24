@@ -1,6 +1,5 @@
 .criteria-panel{margin:16px 0;border:1px solid var(--line,#d9e1e8);border-radius:12px;background:var(--panel,#fff);color:var(--ink,#172537)}
-.criteria-panel>h2{font-size:20px;padding:18px;margin:0}.criteria-group>summary{cursor:pointer;padding:16px;font-weight:650;min-height:44px}
-.criteria-panel>h2 span{font-size:12px;margin-left:12px;color:var(--ink-soft,#526174)}
+.criteria-group>summary{cursor:pointer;padding:16px;font-weight:650;min-height:44px}
 .criteria-jumps{display:flex;gap:16px;margin:16px 0;flex-wrap:wrap}.criteria-jumps a{color:var(--accent-ink,#145da0);font-weight:650}
 .criteria-sections{display:grid;grid-template-columns:1fr 1fr;gap:20px}.criteria-sections>details{grid-column:1/-1}.criteria-primary{scroll-margin-top:150px;min-width:0}.criteria-primary h3{font-size:18px;margin:16px 0 8px}.criteria-group-description{font-size:13px;line-height:1.5;color:var(--ink-soft,#526174)}
 .criteria-body{padding:0 18px 18px}.criteria-intro{line-height:1.6}.criteria-toolbar{display:flex;gap:12px;align-items:end;flex-wrap:wrap}
@@ -12,3 +11,13 @@
 .criteria-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}.criteria-chips button{font-size:12px;background:rgba(64,139,197,.08)}.criteria-panel [hidden]{display:none!important}
 @media(max-width:900px){.criteria-sections{grid-template-columns:1fr}}
 @media(max-width:600px){.criteria-grid{grid-template-columns:1fr}.criteria-toolbar{align-items:stretch}.criteria-toolbar label{min-width:100%}.criteria-body{padding:0 12px 12px}}
+
+.criteria-summary{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;cursor:pointer;list-style:none;min-height:44px;box-sizing:border-box}
+.criteria-summary::-webkit-details-marker{display:none}
+.criteria-summary #criteria-title{font-weight:650;font-size:14px}
+.criteria-summary [data-preset-label]{font-size:12px;color:var(--ink-soft,#526174)}
+.criteria-summary [data-badge]{font-size:12px;border-radius:20px;padding:4px 9px;background:rgba(64,139,197,.12)}
+.criteria-edit{margin-left:auto;font-size:13px;font-weight:650;color:var(--accent-ink,#145da0)}
+.criteria-close-label,.criteria-panel[open] .criteria-open-label{display:none}
+.criteria-panel[open] .criteria-close-label{display:inline}
+.criteria-panel[open]>.criteria-summary{border-bottom:1px solid var(--line,#d9e1e8)}

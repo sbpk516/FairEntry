@@ -47,11 +47,15 @@ def test_opening_sma_view_clears_filters_that_can_hide_all_candidates():
 
 def test_sma_view_has_individual_zone_filter():
     assert 'id="smazone" style="display:none"' in INDEX
-    assert '<option value="all">All moving-average zones</option>' in INDEX
-    for zone in ('ema_9month', 'ema_20month', 'sma_50week'):
+    assert '<option value="all">All SMA zones</option>' in INDEX
+    for zone in ('sma_9month', 'sma_20month', 'sma_50week'):
         assert f'<option value="{zone}">' in INDEX
     assert '<option value="sma_9month">9-month SMA</option>' in INDEX
     assert '<option value="sma_20month">20-month SMA</option>' in INDEX
     assert '<option value="sma_200week">200-week SMA</option>' in INDEX
     assert "z.id===SMA_ZONE" in INDEX
     assert "SMA_ZONE=this.value;renderBoard();" in INDEX
+
+
+def test_ema_options_are_removed():
+    assert '<option value="ema_' not in INDEX

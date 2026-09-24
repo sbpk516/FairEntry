@@ -8,6 +8,7 @@ def test_catalog_covers_all_factors_and_uses_active_defaults():
     data = catalog(cfg)
     fields = {f['id']: f for f in data['fields']}
     assert fields['category_quality']['default'] == 79
+    assert not any(k.startswith('distance_ema_') for k in fields)
     for c in cfg.categories.values():
         for item in c['items']:
             assert 'factor_'+item['id'] in fields

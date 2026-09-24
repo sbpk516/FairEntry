@@ -10,8 +10,6 @@ from email.message import EmailMessage
 
 
 _MOVING_AVERAGE_ZONES = (
-    ("ema_9month", "9-month EMA"),
-    ("ema_20month", "20-month EMA"),
     ("sma_9month", "9-month SMA"),
     ("sma_20month", "20-month SMA"),
     ("sma_50week", "50-week SMA"),

@@ -27,6 +27,10 @@ for(const id of ['category_quality','category_survival','category_growth','price
 assert.equal(presentationGroup({id:'distance_sma_50week'}),'Optional technical filters');
 assert.equal(presentationGroup({id:'factor_roe'}),'Advanced filters');
 const source=require('node:fs').readFileSync(require('node:path').join(__dirname,'../web/criteria-filters.js'),'utf8');
-assert(!source.includes('<details class="criteria-panel">'));
+assert(source.includes('<details class="criteria-panel">'));
+assert(!source.includes('<details class="criteria-panel" open'));
+assert(!source.includes('Any / off'));
+assert(source.includes('Value unavailable'));
+assert(source.includes('Value available'));
 assert(source.includes('<section class="criteria-group criteria-primary"'));
 console.log('Screening and Buy visibility checks passed');

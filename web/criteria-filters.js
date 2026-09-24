@@ -30,34 +30,36 @@
   }
   function mount(el,catalog,onChange,onPreset){
     if(!catalog||!catalog.fields){el.textContent='Criteria filters become available after the next data build.';return {matches:()=>true,updateCount:()=>{}};}
-    let state={},preset='all';
-    const fields=catalog.fields.map(f=>({...f,group:presentationGroup(f)}));
+    const defaultPreset=catalog.presets.find(p=>p.id==='buy')||catalog.presets[0];
+    let state=JSON.parse(JSON.stringify(defaultPreset.values)),preset=defaultPreset.id;
+    const fields=catalog.fields.filter(f=>!f.id.startsWith('distance_ema_')).map(f=>({...f,group:presentationGroup(f)}));
     const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const groups=['Screening filters','Buy filters','Optional technical filters','Advanced filters'];
     const descriptions={
       'Screening filters':'Choose which companies qualify for your candidate list. Passing a screen does not mean Buy.',
-      'Buy filters':'Choose the business scores, fair value, ROIC, weekly volume and hard-veto checks to apply. Any / off ignores a check; it does not change the official rating.',
+      'Buy filters':'Choose the business scores, fair value, ROIC, weekly volume and hard-veto checks to apply. Ignore this filter skips a check; it does not change the official rating.',
       'Optional technical filters':'Moving-average proximity is optional, not a Buy requirement.',
       'Advanced filters':'Individual factors, information-only indicators, extra risk checks and official-rating filters.'
     };
-    el.innerHTML='<section class="criteria-panel" aria-labelledby="criteria-title"><h2 id="criteria-title">Screening &amp; Buy filters <span data-badge>0 active</span></h2><div class="criteria-body">'+
+    el.innerHTML='<details class="criteria-panel"><summary class="criteria-summary"><span id="criteria-title">Screening &amp; Buy filters</span><span data-preset-label></span><span data-badge></span><span class="criteria-edit"><span class="criteria-open-label">Edit filters</span><span class="criteria-close-label">Hide filters</span></span></summary><div class="criteria-body">'+
       '<p class="criteria-intro">Choose a starting point, then refine it. <b>Filters change the list, not recommendations.</b> <a href="criteria.html">Read the current rules ↗</a></p>'+
-      '<div class="criteria-toolbar"><label>Start with a preset<select data-preset>'+catalog.presets.map(p=>'<option value="'+escape(p.id)+'">'+escape(p.label)+'</option>').join('')+'<option value="custom" disabled>Custom selection</option></select></label><label>Find a criterion<input type="search" data-search placeholder="Try ROIC, margin, dilution…"></label><button type="button" data-clear>Clear criteria</button><button type="button" data-reset>Reset all filters</button></div>'+
-      '<p class="criteria-scope">'+escape(catalog.scope)+'</p><p class="criteria-scope">Numeric comparisons exclude missing data. Choose “Missing only” or “Has data” to inspect coverage. Screening exceptions are explained below. Enabled filters combine with AND.</p><div data-chips class="criteria-chips"></div><p data-results aria-live="polite"></p><p data-no-fields hidden>No matching criteria. Try another search term.</p>'+
+      '<div class="criteria-toolbar"><label>Start with a preset<select data-preset>'+catalog.presets.map(p=>'<option value="'+escape(p.id)+'">'+escape(p.label)+'</option>').join('')+'<option value="custom" disabled>Custom selection</option></select></label><label>Find a criterion<input type="search" data-search placeholder="Try ROIC, margin, dilution…"></label><button type="button" data-clear>Show all candidates</button><button type="button" data-reset>Restore default filters</button></div>'+
+      '<p class="criteria-scope">'+escape(catalog.scope)+'</p><p class="criteria-scope">Minimum and maximum limits exclude unavailable values. “Value available” shows stocks with a reported number; “Value unavailable” shows stocks without one. Stocks must match every enabled filter.</p><div data-chips class="criteria-chips"></div><p data-results aria-live="polite"></p><p data-no-fields hidden>No matching criteria. Try another search term.</p>'+
       '<nav class="criteria-jumps" aria-label="Filter sections"><a href="#screening-filters">Screening filters ↓</a><a href="#buy-filters">Buy filters ↓</a></nav><div class="criteria-sections">'+
       groups.map((g,i)=>(i<2?'<section class="criteria-group criteria-primary" id="'+(i===0?'screening-filters':'buy-filters')+'"><h3>':'<details class="criteria-group"><summary>')+escape(g)+' <span data-group-count="'+escape(g)+'"></span>'+(i<2?'</h3>':'</summary>')+'<p class="criteria-group-description">'+escape(descriptions[g])+'</p><div class="criteria-grid">'+fields.filter(f=>f.group===g).map(f=>{
         const id='cf-'+f.id;
         let input;
-        if(f.type==='choice')input='<select id="'+id+'" data-choice="'+f.id+'"><option value="">Any / off</option>'+f.options.map(o=>'<option value="'+escape(o[0])+'">'+escape(o[1])+'</option>').join('')+'</select>';
+        if(f.type==='choice')input='<select id="'+id+'" data-choice="'+f.id+'"><option value="">Ignore this filter</option>'+f.options.map(o=>'<option value="'+escape(o[0])+'">'+escape(o[1])+'</option>').join('')+'</select>';
         else if(f.type==='threshold')input='<input id="'+id+'" data-threshold="'+f.id+'" type="number" step="any" placeholder="'+f.default+'">';
-        else input='<div class="criteria-number"><select id="'+id+'" data-op="'+f.id+'"><option value="">Any / off</option><option value="min">At least ≥</option><option value="max">At most ≤</option><option value="known">Has data</option><option value="missing">Missing only</option></select><input type="number" step="any" data-number="'+f.id+'" aria-label="'+escape(f.label)+' threshold" placeholder="'+(f.default??'Value')+'" disabled></div>';
+        else input='<div class="criteria-number"><select id="'+id+'" data-op="'+f.id+'"><option value="">Ignore this filter</option><option value="min">At least ≥</option><option value="max">At most ≤</option><option value="known">Value available</option><option value="missing">Value unavailable</option></select><input type="number" step="any" data-number="'+f.id+'" aria-label="'+escape(f.label)+' threshold" placeholder="'+(f.default??'Value')+'" disabled></div>';
         return '<div class="criteria-field" data-field="'+f.id+'"><label for="'+id+'">'+escape(f.label)+' <small>'+escape(f.unit||'')+'</small></label>'+input+'<small id="'+id+'-help">'+(f.default!=null?'Production default: '+escape(f.default)+' '+escape(f.unit||'')+'. ':'')+escape(f.help||'')+'</small></div>';
-      }).join('')+'</div>'+(i<2?'</section>':'</details>')).join('')+'</div></div></section>';
+      }).join('')+'</div>'+(i<2?'</section>':'</details>')).join('')+'</div></div></details>';
     const q=s=>el.querySelector(s);
     function clearSearch(){q('[data-search]').value='';el.querySelectorAll('[data-field],.criteria-group').forEach(r=>r.hidden=false);q('[data-no-fields]').hidden=true;}
     function active(f){return state[f.id]!=null&&!(f.type==='threshold'&&!state.screen);}
     function sync(){
       q('[data-preset]').value=preset;
+      q('[data-preset-label]').textContent=(catalog.presets.find(p=>p.id===preset)||{label:'Custom filters'}).label;
       fields.forEach(f=>{
         const s=state[f.id], row=q('[data-field="'+f.id+'"]');
         row.classList.toggle('is-active',active(f));
@@ -71,7 +73,7 @@
       groups.forEach(g=>{const count=selected.filter(f=>f.group===g).length;q('[data-group-count="'+g+'"]').textContent=count?'· '+count+' active':'';});
       q('[data-chips]').innerHTML=selected.map(f=>{
         const s=state[f.id];
-        const value=f.type==='choice'?(f.options.find(o=>o[0]===s)||[])[1]:f.type==='threshold'?s:s.op==='min'?'≥ '+(s.value??'enter value'):s.op==='max'?'≤ '+(s.value??'enter value'):s.op==='known'?'Has data':'Missing only';
+        const value=f.type==='choice'?(f.options.find(o=>o[0]===s)||[])[1]:f.type==='threshold'?s:s.op==='min'?'≥ '+(s.value??'enter value'):s.op==='max'?'≤ '+(s.value??'enter value'):s.op==='known'?'Value available':'Value unavailable';
         return '<button type="button" data-remove="'+f.id+'" aria-label="Remove '+escape(f.label)+' filter">'+escape(f.label)+': '+escape(value)+' ×</button>';
       }).join('');
     }
@@ -90,7 +92,7 @@
     el.addEventListener('click',e=>{
       const t=e.target.closest('button');if(!t)return;
       if(t.dataset.remove){delete state[t.dataset.remove];changed();}
-      else if(t.hasAttribute('data-clear')||t.hasAttribute('data-reset')){state={};preset='all';if(t.hasAttribute('data-reset')){clearSearch();onPreset();}sync();onChange();}
+      else if(t.hasAttribute('data-clear')||t.hasAttribute('data-reset')){state={};preset='all';if(t.hasAttribute('data-reset')){state=JSON.parse(JSON.stringify(defaultPreset.values));preset=defaultPreset.id;}clearSearch();onPreset();sync();onChange();}
     });
     q('[data-search]').addEventListener('input',e=>{
       const term=e.target.value.trim().toLowerCase();let found=0;
@@ -99,8 +101,8 @@
       q('[data-no-fields]').hidden=found>0;
     });
     sync();
-    return {matches:s=>matches(s,state,catalog),updateCount:(shown,total,emerging)=>{
-      q('[data-results]').textContent=emerging?'Emerging is a separate research dataset. Criteria evidence is not exported there; active criteria may return no matches.':shown+' of '+total+' published candidates match all current filters.'+(shown===0?' No matches. Remove a filter chip or reset all filters to broaden the list.':'');
+    return {clear:()=>{state={};preset='all';sync();},matches:s=>matches(s,state,catalog),updateCount:(shown,total,emerging)=>{
+      q('[data-results]').textContent=emerging?'Emerging is a separate research dataset. Criteria evidence is not exported there; active criteria may return no matches.':shown+' of '+total+' published candidates match all current filters.'+(shown===0?' No matches. Remove a filter or choose Show all candidates to broaden the list.':'');
     }};
   }
   const api={matches,mount,presentationGroup};

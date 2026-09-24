@@ -26,11 +26,14 @@ def test_weekly_50_average_requires_history_and_ignores_future():
     assert result['sma_50week'] == 25.5
 
 
-def test_optional_filter_supports_ema_and_50week_without_changing_verdict():
+def test_optional_filter_supports_only_sma_without_changing_verdict():
     stock = {'ticker': 'TEST', 'verdict': 'Watch', 'price': 104,
              'categories': [{'id': k, 'score': 80} for k in ('quality', 'survival', 'growth')]}
-    for key in ('ema_9month', 'ema_20month', 'sma_50week'):
+    for key in ('sma_9month', 'sma_20month', 'sma_50week', 'sma_200week'):
         rows = moving_average_zone_candidates([stock], {'TEST': {key: {'value': 100}}})
         assert rows[0]['nearest_zone']['id'] == key
         assert stock['verdict'] == rows[0]['verdict'] == 'Watch'
         assert moving_average_zone_candidates([stock], {'TEST': {key: {'value': 90}}}) == []
+
+    for key in ('ema_9month', 'ema_20month'):
+        assert moving_average_zone_candidates([stock], {'TEST': {key: {'value': 100}}}) == []
