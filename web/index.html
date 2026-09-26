@@ -1646,6 +1646,7 @@ $('#modes').addEventListener('click',function(e){ var b=e.target.closest('button
   }
   syncModelToMode(); renderSettings(); renderBoard(); });
 $('#vfilter').addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b)return;
+  if(CRITERIA_FILTERS&&CRITERIA_FILTERS.selectVerdict)CRITERIA_FILTERS.selectVerdict();
   $('#vfilter .on').classList.remove('on'); b.classList.add('on'); renderBoard(); });
 $('#wmafilter').addEventListener('click',function(){
   WMA_ONLY=!WMA_ONLY;
@@ -1718,6 +1719,8 @@ fetch('data/board.json', {cache:'no-store'}).then(function(r){ return r.json(); 
     document.querySelectorAll('[data-mode]').forEach(function(b){b.classList.toggle('on',b.dataset.mode==='all');});
     $('#emvariant').style.display='none'; $('#emliquidity').style.display='none';
     syncModelToMode();renderSettings();
+  },function(verdict){
+    document.querySelectorAll('#vfilter [data-v]').forEach(function(b){b.classList.toggle('on',b.dataset.v===verdict);});
   });
   var emMeta=m.emerging_candidates||{};
   EM_VARIANT=emMeta.default_variant||'balanced';

@@ -28,7 +28,7 @@
       return s.op==='min'?v>=s.value:v<=s.value;
     });
   }
-  function mount(el,catalog,onChange,onPreset){
+  function mount(el,catalog,onChange,onPreset,onVerdict){
     if(!catalog||!catalog.fields){el.textContent='Criteria filters become available after the next data build.';return {matches:()=>true,updateCount:()=>{}};}
     const defaultPreset=catalog.presets.find(p=>p.id==='buy')||catalog.presets[0];
     let state=JSON.parse(JSON.stringify(defaultPreset.values)),preset=defaultPreset.id;
@@ -59,6 +59,7 @@
     function active(f){return state[f.id]!=null&&!(f.type==='threshold'&&!state.screen);}
     function sync(){
       q('[data-preset]').value=preset;
+      if(onVerdict)onVerdict(state.verdict||'all');
       q('[data-preset-label]').textContent=(catalog.presets.find(p=>p.id===preset)||{label:'Custom filters'}).label;
       fields.forEach(f=>{
         const s=state[f.id], row=q('[data-field="'+f.id+'"]');
@@ -101,7 +102,13 @@
       q('[data-no-fields]').hidden=found>0;
     });
     sync();
-    return {clear:()=>{state={};preset='all';sync();},matches:s=>matches(s,state,catalog),updateCount:(shown,total,emerging)=>{
+    return {clear:()=>{state={};preset='all';sync();},selectVerdict:()=>{
+      // A rating tab replaces the Buy preset, including its qualification gates.
+      // Individually chosen criteria remain in effect; only the duplicate rating is removed.
+      if(preset==='buy'){state={};preset='all';}
+      else if(state.verdict){delete state.verdict;preset=Object.keys(state).length?'custom':'all';}
+      sync();
+    },matches:s=>matches(s,state,catalog),updateCount:(shown,total,emerging)=>{
       q('[data-results]').textContent=emerging?'Emerging is a separate research dataset. Criteria evidence is not exported there; active criteria may return no matches.':shown+' of '+total+' published candidates match all current filters.'+(shown===0?' No matches. Remove a filter or choose Show all candidates to broaden the list.':'');
     }};
   }

@@ -34,3 +34,41 @@ assert(source.includes('Value unavailable'));
 assert(source.includes('Value available'));
 assert(source.includes('<section class="criteria-group criteria-primary"'));
 console.log('Screening and Buy visibility checks passed');
+// Regression: switching rating tabs must release both the Buy verdict and Buy gates.
+const {mount}=require('../web/criteria-filters.js');
+function fakeElement(){
+  const children=new Map();
+  return {dataset:{},classList:{toggle(){}},setAttribute(){},addEventListener(){},
+    querySelector(key){if(!children.has(key))children.set(key,fakeElement());return children.get(key);},
+    querySelectorAll(){return [];}};
+}
+global.document={activeElement:null};
+const root=fakeElement();
+const testCatalog={fields:[
+  {id:'verdict',type:'choice',options:[['Buy','Buy'],['Watch','Watch'],['Avoid','Avoid']]},
+  {id:'obv',type:'choice',options:[['yes','Confirmed'],['no','Not confirmed']]}
+],presets:[{id:'all',label:'All published candidates',values:{}},
+  {id:'buy',label:'Current Buy rules',values:{verdict:'Buy',obv:'yes'}}]};
+let highlighted;
+const controller=mount(root,testCatalog,()=>{},()=>{},v=>highlighted=v);
+const sample=['Buy','Watch','Avoid'].map(verdict=>stock({verdict,obv:verdict==='Buy'?'yes':'no'}));
+assert.equal(highlighted,'Buy');
+assert.deepEqual(sample.filter(controller.matches).map(s=>s.filter_values.verdict),['Buy']);
+controller.selectVerdict();
+assert.equal(highlighted,'all');
+assert.equal(root.querySelector('[data-preset]').value,'all');
+assert.deepEqual(sample.filter(controller.matches).map(s=>s.filter_values.verdict),['Buy','Watch','Avoid']);
+// Execute the actual dashboard click handler for Buy -> All -> Watch -> Avoid -> All.
+const fs=require('node:fs'),vm=require('node:vm');
+const index=fs.readFileSync(require('node:path').join(__dirname,'../web/index.html'),'utf8');
+const handler=index.split("$('#vfilter').addEventListener('click',")[1].split("$('#wmafilter').addEventListener")[0].trim().replace(/\);$/,'');
+let selected='all',rendered=[];
+const context={CRITERIA_FILTERS:controller,$:()=>({classList:{remove(){}}}),
+  renderBoard(){rendered=sample.filter(controller.matches).filter(s=>selected==='all'||s.filter_values.verdict===selected).map(s=>s.filter_values.verdict);}};
+const click=vm.runInNewContext('('+handler+')',context);
+for(const rating of ['Buy','all','Watch','Avoid','all']){
+  const button={dataset:{v:rating},classList:{add(){selected=rating;}}};
+  click({target:{closest:()=>button}});
+  assert.deepEqual(rendered,rating==='all'?['Buy','Watch','Avoid']:[rating]);
+}
+console.log('Rating navigation regression checks passed');
