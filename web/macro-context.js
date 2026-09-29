@@ -30,7 +30,8 @@
     const x=d=>62+(Date.parse(d)-Date.parse(h[0].date))/(Date.parse(end)-Date.parse(h[0].date)||1)*424;
     const y=v=>168-(v-lo)/(hi-lo)*150;
     const points=h.map(p=>`${x(p.date).toFixed(1)},${y(p.value).toFixed(1)}`).join(' ');
-    const ticks=[lo,(lo+hi)/2,hi].map(v=>`<text x="56" y="${y(v)+4}" text-anchor="end">${esc(fmt(v,item))}</text><line class="macro-axis" x1="62" x2="486" y1="${y(v)}" y2="${y(v)}"/>`).join('');
+    const axisValue=v=>item.unit==='people'&&Math.abs(v)>=1000000?(v/1000000).toFixed(1)+'m':item.unit==='people'&&Math.abs(v)>=1000?(v/1000).toFixed(0)+'k':fmt(v,item);
+    const ticks=[lo,(lo+hi)/2,hi].map(v=>`<text x="56" y="${y(v)+4}" text-anchor="end">${esc(axisValue(v))}</text><line class="macro-axis" x1="62" x2="486" y1="${y(v)}" y2="${y(v)}"/>`).join('');
     const band=b?`<rect class="macro-band" x="62" width="424" y="${y(b.q75)}" height="${Math.max(0,y(b.q25)-y(b.q75))}"/>`:'';
     const line=M.numeric(target)?`<line class="macro-reference-line" x1="62" x2="486" y1="${y(target)}" y2="${y(target)}"/>`:'';
     const targetLabel=['inflation','core_inflation'].includes(item.id)?'2% reference':['gdp','conditions','curve2','curve3'].includes(item.id)?'zero boundary':'reference median';
@@ -66,5 +67,5 @@
       a.href=url;a.download=`fairentry-${item.id}-history.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
     }
   });
-  window.MacroContext={render,warning,mode};
+  window.MacroContext={render,warning,mode,chart};
 }());
