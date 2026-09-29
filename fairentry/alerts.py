@@ -83,9 +83,10 @@ def email_wma_alerts(alerts: list[dict]) -> bool:
     return _send_email(f"FairEntry: {len(alerts)} stock(s) near a moving-average zone", lines)
 
 
-def _send_email(subject: str, lines: list[str]) -> bool:
+def _send_email(subject: str, lines: list[str], *, recipient: str | None = None,
+                idempotency_key: str | None = None) -> bool:
     """Send through Resend when configured, otherwise use SMTP."""
-    recipient = (os.environ.get("FAIRENTRY_ALERT_EMAIL")
+    recipient = recipient or (os.environ.get("FAIRENTRY_ALERT_EMAIL")
                  or os.environ.get("WMA_ALERT_EMAIL"))
     api_key = os.environ.get("RESEND_API_KEY")
     body = "\n".join(lines) + "\n\nFor personal research only, not investment advice."
@@ -93,11 +94,13 @@ def _send_email(subject: str, lines: list[str]) -> bool:
         sender = os.environ.get("RESEND_FROM_EMAIL", "FairEntry <onboarding@resend.dev>")
         payload = json.dumps({"from": sender, "to": [recipient],
                               "subject": subject, "text": body}).encode("utf-8")
+        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json",
+                   "User-Agent": "FairEntry/1.0"}
+        if idempotency_key:
+            headers["Idempotency-Key"] = idempotency_key
         request = urllib.request.Request(
             "https://api.resend.com/emails", data=payload, method="POST",
-            headers={"Authorization": f"Bearer {api_key}",
-                     "Content-Type": "application/json",
-                     "User-Agent": "FairEntry/1.0"})
+            headers=headers)
         try:
             with urllib.request.urlopen(request, timeout=20) as response:
                 return 200 <= response.status < 300

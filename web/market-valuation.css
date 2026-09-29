@@ -1,0 +1,15 @@
+.market-valuation{margin:14px 20px;padding:16px;background:var(--panel);border:1px solid var(--line);border-radius:12px;color:var(--ink)}
+.market-valuation-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.market-valuation h2{font-size:16px;margin:0}
+.market-valuation-heading span,.market-valuation p,.market-valuation small{font-size:12px;line-height:1.6;color:var(--ink-soft)}
+.market-valuation-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0}
+.market-valuation-card{padding:14px;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;min-width:0}
+.market-valuation-card h3{margin:0;font-size:14px}
+.market-valuation-value{font:700 28px var(--mono);margin:8px 0}
+.market-valuation-card small{display:block}
+.market-valuation-card .market-valuation-status{color:var(--watch-text);font-weight:650}
+.market-valuation-card a{color:var(--accent-ink);font-size:12px}
+.market-valuation details{font-size:12px;line-height:1.6}
+.market-valuation summary{cursor:pointer;color:var(--accent-ink);font-weight:650}
+.market-valuation svg{display:block;width:100%;height:56px;color:var(--accent);margin:10px 0}
+@media(max-width:650px){.market-valuation{margin:10px 12px;padding:12px}.market-valuation-cards{grid-template-columns:1fr}}

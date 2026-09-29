@@ -1,0 +1,117 @@
+version: 1
+poll_minutes: 60
+history_periods: 4
+holdings_max_age_days: 150
+research_max_age_days: 180
+financial_max_age_days: 10
+mapping_batch_limit: 20
+defaults:
+  drawdown: 20
+  margin: 5
+  growth: 0
+  debt: 1.5
+  pfcf: 25
+  weight: 0
+  overlap: 0
+sources:
+  - id: berkshire
+    person: Warren Buffett
+    organization: Berkshire Hathaway
+    cik: '1067983'
+    expected_name: BERKSHIRE HATHAWAY
+    note: Firm-wide disclosed holdings, not Buffett's personal trades. Investment decisions may reflect multiple managers and leadership changes.
+    url: https://www.berkshirehathaway.com/letters/letters.html
+  - id: pabrai
+    person: Mohnish Pabrai
+    organization: Dalal Street, LLC
+    cik: '1549575'
+    expected_name: DALAL STREET
+    note: Pabrai-associated US 13F reporting entity, verified from the SEC cover page signed by Mohnish Pabrai. Not all Pabrai funds or international assets.
+    url: https://www.sec.gov/Archives/edgar/data/1549575/000154957526000009/primary_doc.xml
+  - id: baupost
+    person: Seth Klarman
+    organization: Baupost Group
+    cik: '1061768'
+    expected_name: BAUPOST
+    note: Reporting-manager holdings; private assets and much of the broader portfolio are outside 13F coverage.
+    url: https://www.baupost.com/
+  - id: himalaya
+    person: Li Lu
+    organization: Himalaya Capital Management LLC
+    cik: '1709323'
+    expected_name: HIMALAYA
+    note: Disclosed US 13F portfolio, not the manager's full global investments.
+    url: https://www.himalayacapital.com/
+  - id: pershing
+    person: Bill Ackman
+    organization: Pershing Square Capital Management
+    cik: '1336528'
+    expected_name: PERSHING SQUARE
+    note: Firm disclosures; no assumption that reported value is purchase cost.
+    url: https://pershingsquareholdings.com/company-reports/letters-to-shareholders/
+  - id: tci
+    person: Chris Hohn
+    organization: TCI Fund Management Ltd
+    cik: '1647251'
+    expected_name: TCI FUND
+    note: US 13F coverage only; international holdings may be excluded.
+    url: https://www.tcifund.com/
+  - id: scion
+    person: Michael Burry
+    organization: Historical Scion Asset Management / Cassandra Unchained
+    cik: '1649339'
+    expected_name: SCION ASSET
+    historical_only: true
+    note: Scion disclosures are historical. Burry's published research does not establish current ownership. He describes leaving the hedge fund business on Cassandra Unchained's About page.
+    url: https://michaeljburry.substack.com/about
+    feed: https://michaeljburry.substack.com/feed
+  - id: greenlight
+    person: David Einhorn
+    organization: Greenlight Capital Inc
+    cik: '1079114'
+    expected_name: GREENLIGHT CAPITAL
+    note: Firm holdings; investor letters can be attached as separately sourced research.
+    url: https://greenlightcapital.com/
+  - id: gotham
+    person: Joel Greenblatt
+    organization: Gotham Asset Management LLC
+    cik: '1510387'
+    expected_name: GOTHAM ASSET
+    note: Broad firm portfolio, not automatically Greenblatt's personal high-conviction selections.
+    url: https://www.gothamasset.com/
+  - id: mbi
+    person: Abdullah Al-Rezwan
+    organization: MBI Deep Dives
+    note: Independent company research. Ownership and investment performance are not inferred from articles.
+    url: https://www.mbi-deepdives.com/
+    feed: https://www.mbi-deepdives.com/rss/
+  - id: keith_gill
+    person: Keith Gill / Roaring Kitty / DFV
+    organization: Optional public disclosures
+    optional: true
+    historical_only: true
+    note: Current positions unknown. Historical GameStop and Chewy disclosures do not establish current ownership; memes are not theses.
+    url: https://www.sec.gov/edgar/search/
+# Exact company names/tickers in article TITLES only; body mentions aren't theses.
+# Ambiguous or unrecognized articles remain in the source's research inbox.
+research_aliases:
+  UBER: [Uber]
+  MSFT: [Microsoft, MSFT]
+  AMZN: [Amazon, AMZN]
+  GOOG: [GOOG]
+  GOOGL: [GOOGL]
+  META: [Meta, META]
+  ORCL: [Oracle, ORCL]
+  AAPL: [Apple, AAPL]
+  NVDA: [Nvidia, NVDA]
+  PLTR: [Palantir, PLTR]
+  TSLA: [Tesla, TSLA]
+  GME: [GameStop, GME]
+  CHWY: [Chewy, CHWY]
+  ADBE: [Adobe, ADBE]
+  ABNB: [Airbnb, ABNB]
+  NFLX: [Netflix, NFLX]
+  COST: [Costco, COST]
+  PYPL: [PayPal, PYPL]
+  TSM: [TSMC, TSM]
+  BABA: [Alibaba, BABA]

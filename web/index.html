@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FairEntry - prototype</title>
+<link rel="stylesheet" href="market-valuation.css">
+<script src="macro-model.js?v=2" defer></script>
+<script src="macro-context.js?v=2" defer></script>
+<script src="market-valuation.js?v=2" defer></script>
+<link rel="stylesheet" href="macro.css">
+<script src="macro.js?v=2" defer></script>
 <style>
   :root{
     --bg:#eef1f6; --panel:#ffffff; --panel-2:#f4f6fb; --sunk:#e8ecf4;
@@ -428,10 +434,22 @@
     <a class="iconbtn" href="backtest.html?source=sfa">Backtest</a>
     <a class="iconbtn" href="criteria.html">Screening &amp; Buy criteria</a>
     <a class="iconbtn" href="portfolio.html">Portfolio</a>
+    <a class="iconbtn" href="macro.html">Macro economy</a>
+    <a class="iconbtn" href="investors.html">Investors</a>
     <button class="iconbtn" id="tunebtn"> Tune weights</button>
     <button class="iconbtn" id="themebtn"> -  Theme</button>
   </div>
 
+  <section class="macro-overview" aria-labelledby="macro-title">
+    <div class="macro-heading"><h2 id="macro-title">US economy at a glance</h2><a href="macro.html">Explore macro conditions →</a></div>
+    <div id="macro-summary" aria-live="polite">Loading economic conditions…</div>
+  </section>
+  <section class="market-valuation" aria-labelledby="market-valuation-title">
+    <div class="market-valuation-heading"><h2 id="market-valuation-title">US market valuation</h2><span>Long-term context · 0 score weight</span></div>
+    <p>Buffett and CAPE help assess how expensive the market is. High valuations can imply lower long-term returns; neither reliably predicts the timing or probability of a crash.</p>
+    <div id="market-valuation-cards" class="market-valuation-cards" aria-live="polite">Loading market data…</div>
+    <details><summary>How should I use these indicators?</summary><p>Use these alongside company fundamentals, diversification and your investment horizon. Markets can stay expensive for years. These two measures overlap, so agreement is not independent confirmation of a coming crash. Historical percentiles describe valuation, not crash probabilities or automatic buy/sell signals. Interest rates, profitability and the market's composition change over time.</p></details>
+  </section>
   <div class="controls">
     <input id="search" placeholder="Search ticker or company">
     <select id="sector"><option value="all">All sectors</option></select>
@@ -1736,6 +1754,8 @@ fetch('data/board.json', {cache:'no-store'}).then(function(r){ return r.json(); 
   if(tag) tag.textContent='working name - '+(m.count||ACTIVE_STOCKS.length)+' active + '+EMERGING_STOCKS.length+' emerging - '+((m.generated_at||'').slice(0,10));
   renderAiStatus(m.ai_review);
   renderBoard();
+  var requestedTicker=new URLSearchParams(location.search).get('ticker');
+  if(requestedTicker)openDetail(requestedTicker);
 }).catch(function(e){ $('#board').innerHTML='<div style="padding:30px;color:var(--ink-faint)">Could not load <code>data/board.json</code> - run <code>python scripts/build_all.py</code> first.</div>'; });
 })();
 </script>

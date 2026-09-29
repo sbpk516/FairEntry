@@ -1,0 +1,23 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Investors · FairEntry</title><link rel="stylesheet" href="macro.css"><link rel="stylesheet" href="investors.css">
+<script src="investors-model.js" defer></script><script src="investors.js" defer></script></head>
+<body class="macro-page"><header class="macro-nav"><a href="index.html">FairEntry / Stock evaluation</a><nav><a href="macro.html">Macro economy</a> · <a href="portfolio.html">Portfolio</a> · <a href="backtest.html?source=sfa">Backtest</a></nav></header>
+<main><section class="macro-overview"><p class="macro-eyebrow">DISCLOSURES + INDEPENDENT RESEARCH</p><h1>Investors research desk</h1><p>Find businesses worth investigating, understand the evidence, and inspect every disclosed holding. Holdings are delayed snapshots of reporting entities; articles do not establish ownership.</p><div id="investors-health" role="status">Loading sources…</div></section>
+<section class="macro-overview"><h2>Research highlights</h2><div id="investor-highlights" class="investor-shortlist"></div><div id="recent-disclosure-summary"></div></section>
+<section class="macro-overview"><div class="macro-heading"><h2>Choose your sources</h2><label>Investor <select id="investor"><option value="all">All accepted sources</option></select></label></div><details><summary>Browse investor profiles and coverage</summary><div id="source-cards" class="investor-sources"></div></details><div id="source-detail"></div></section>
+<section class="macro-overview"><h2>Research criteria</h2><p>Thresholds update the shortlist and its reasons together. These research statuses are separate from FairEntry's official stock verdict. All holdings ignores these financial filters.</p>
+<form id="investor-filters" class="investor-filters">
+<label>Minimum decline from 1-year high (%)<input name="drawdown" type="number" min="0" max="100" step="1" value="20"></label>
+<label>Minimum net profit margin (%)<input name="margin" type="number" min="-100" max="100" step="1" value="5"></label>
+<label>Minimum quarterly revenue growth YoY (%)<input name="growth" type="number" min="-100" max="1000" step="1" value="0"></label>
+<label>Maximum debt / equity (×)<input name="debt" type="number" min="0" max="100" step="0.1" value="1.5"></label>
+<label>Maximum price / free cash flow (×)<input name="pfcf" type="number" min="1" max="500" step="1" value="25"></label>
+<label>Minimum disclosed position weight (%) · 0 ignores<input name="weight" type="number" min="0" max="100" step="0.5" value="0"></label>
+<label>Minimum disclosed holders · 0 allows research-only<input name="overlap" type="number" min="0" max="11" step="1" value="0"></label>
+<button type="button" id="reset-investors">Reset criteria</button></form>
+<div class="investor-toolbar"><label>Search company, ticker or CUSIP<input id="investor-search" type="search" placeholder="Company or symbol"></label><label>Research status<select id="research-status"><option value="all">All statuses</option><option>Consider for research</option><option>Watch</option><option>Avoid under current criteria</option><option>Insufficient data</option></select></label></div>
+<div class="investor-tabs" role="group" aria-label="Investor views"><button data-view="shortlist" aria-pressed="true">Research shortlist</button><button data-view="holdings" aria-pressed="false">All holdings</button><button data-view="changes" aria-pressed="false">Recent disclosures / changes</button><button data-view="research" aria-pressed="false">Research inbox</button></div>
+<div id="holdings-period-wrap" hidden><label>Reporting period <select id="holdings-period"><option value="latest">Latest report per source</option></select></label></div>
+<p id="investor-count" aria-live="polite"></p><div id="investor-results"></div><div id="investor-pages"></div></section>
+<section class="macro-overview"><h2>Email disclosure alerts</h2><div id="investor-email"></div><p>Alerts describe newly available public reports, not transaction-time activity. Initial imports and historical reports do not email. Amendments revise evidence without producing fictional trades. Uncertain deliveries are held for review rather than automatically repeated.</p></section>
+</main><dialog id="investor-stock"><button id="close-investor-stock" class="investor-close" aria-label="Close stock details">Close ×</button><div id="investor-stock-body"></div></dialog></body></html>

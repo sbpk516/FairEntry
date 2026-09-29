@@ -1,0 +1,68 @@
+name: FairEntry — investor disclosures
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+# Share the deployment build's lock so its restored disclosure ledger cannot race.
+concurrency:
+  group: fairentry-pages
+  cancel-in-progress: false
+jobs:
+  disclosures:
+    runs-on: ubuntu-latest
+    env:
+      SEC_CONTACT_EMAIL: ${{ secrets.SEC_CONTACT_EMAIL }}
+      INVESTORS_EMAIL_ENABLED: ${{ vars.INVESTORS_EMAIL_ENABLED }}
+      INVESTORS_ALERT_EMAIL: ${{ secrets.INVESTORS_ALERT_EMAIL }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
+      SMTP_HOST: ${{ secrets.SMTP_HOST }}
+      SMTP_PORT: ${{ secrets.SMTP_PORT }}
+      SMTP_USER: ${{ secrets.SMTP_USER }}
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      SMTP_FROM: ${{ secrets.SMTP_FROM }}
+      SMTP_SSL: ${{ secrets.SMTP_SSL }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Restore investor ledger
+        uses: actions/cache/restore@v5
+        with:
+          path: data/investors.db
+          key: fairentry-investors-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: fairentry-investors-
+      - name: Poll disclosures
+        run: python scripts/investors.py --enrich-limit 5
+      - name: Reserve notifications
+        run: python scripts/investors.py --reserve-alerts "${{ github.run_id }}-${{ github.run_attempt }}"
+      - name: Persist delivery guard before sending
+        uses: actions/cache/save@v5
+        with:
+          path: data/investors.db
+          key: fairentry-investors-${{ github.run_id }}-${{ github.run_attempt }}-reserved
+      - name: Verify durable delivery guard
+        uses: actions/cache/restore@v5
+        with:
+          path: data/investors.db
+          key: fairentry-investors-${{ github.run_id }}-${{ github.run_attempt }}-reserved
+          lookup-only: true
+          fail-on-cache-miss: true
+      - name: Dispatch reserved notifications
+        run: python scripts/investors.py --dispatch-alerts "${{ github.run_id }}-${{ github.run_attempt }}"
+      - name: Persist disclosure and delivery state
+        if: always()
+        uses: actions/cache/save@v5
+        with:
+          path: data/investors.db
+          key: fairentry-investors-${{ github.run_id }}-${{ github.run_attempt }}-done
+      - name: Publish review artifact (no site deployment)
+        uses: actions/upload-artifact@v6
+        with:
+          name: investors-snapshot
+          path: web/data/investors.json
+          retention-days: 7

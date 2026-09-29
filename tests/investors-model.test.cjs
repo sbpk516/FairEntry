@@ -1,0 +1,18 @@
+const assert=require('node:assert/strict');
+const {evaluate}=require('../web/investors-model.js');
+const now=Date.parse('2026-09-28T12:00:00Z');
+const context={financial_max_age_days:10,research_max_age_days:180,holdings_max_age_days:150};
+const filters={drawdown:20,margin:5,growth:0,debt:1.5,pfcf:25,weight:0,overlap:0};
+const stock={positions:[],research:[{published_at:'2026-09-27T00:00:00Z'}],metrics:Object.fromEntries(Object.entries({drawdown:30,profit_margin:12,rev_growth_qoq:8,debt_eq:.4,pfcf_ratio:15}).map(([k,value])=>[k,{value,fetched_at:'2026-09-28T00:00:00Z'}]))};
+assert.equal(evaluate(stock,filters,context,now).status,'Consider for research');
+const strict=evaluate(stock,{...filters,drawdown:40},context,now);
+assert.equal(strict.status,'Watch');assert(strict.risks.some(r=>r.includes('40%')));
+const avoid=evaluate(stock,{...filters,pfcf:10},context,now);
+assert.equal(avoid.status,'Avoid under current criteria');assert(avoid.risks.some(r=>r.includes('10×')));
+const missing=structuredClone(stock);delete missing.metrics.debt_eq;
+assert.equal(evaluate(missing,filters,context,now).status,'Insufficient data');
+const stale=structuredClone(stock);stale.metrics.drawdown.fetched_at='2020-01-01';
+assert.equal(evaluate(stale,filters,context,now).status,'Insufficient data');
+assert.equal(evaluate({...stock,research:[]},filters,context,now).status,'Insufficient data');
+assert.equal(evaluate(stock,{...filters,overlap:2},context,now).status,'Watch');
+console.log('Investor criteria tests passed: research-only ideas, thresholds, matching reasons, Avoid, missing and stale data.');

@@ -54,6 +54,47 @@ python scripts/backtest.py --db data/backtest.db --rolling --json-out web/data/b
 Findings require a concise reason and at least one HTTPS source. They are
 qualitative context only and never change the score or historical result.
 
+## Market valuation context
+
+The stock board also shows a compact US economic overview, linked to
+`macro.html` for growth, employment, inflation, interest rates, both Treasury
+yield-curve spreads and financial conditions. Each measure includes its level,
+change from the previous observation, source, dates, explanation and history.
+The Macro page also includes Buffett and CAPE valuation context. All eleven
+charts share 2/5/10-year and full-history controls, historical reference ranges,
+dated 1/2/5/10-year comparisons, explained colors and inspectable/downloadable
+data. Official targets are distinguished from descriptive historical bands;
+see [comparison methodology](docs/MACRO_COMPARISONS.md).
+
+Run `python scripts/macro.py` to refresh economic data independently. Normal
+board builds refresh it too. Series, display rules and freshness limits live in
+`config/macro.yaml`. Sources are FRED's BEA, BLS, Labor Department and Federal
+Reserve series. PCE annual inflation uses the exact matching month a year
+earlier; missing months are not filled. Negative and zero readings are retained.
+Successful source downloads are cached for a UTC day; a failed source retains
+its original retrieval date and is labeled separately. No composite score or
+crash probability is generated, and macro data does not enter stock scoring.
+
+The board includes the Buffett indicator and conventional Shiller CAPE, with
+source links, observation dates, historical trends and percentiles since 1997.
+These are long-term valuation context, not crash forecasts; they add zero stock
+score weight and do not change verdicts or trading alerts.
+
+`python scripts/market_valuation.py` refreshes only this panel. Normal board builds
+also refresh it, caching each successful source download for the UTC day under
+`data/cache/`. Failed downloads retain prior observations with a visible warning;
+missing data stays unavailable. The browser also flags overdue downloads.
+
+Buffett uses Federal Reserve all-domestic-sector **public** equity liabilities
+(`BOGZ1FL883164115Q`, millions of dollars), divided by same-quarter BEA annualized
+nominal GDP (`GDP`, billions converted to millions), times 100. It is quarterly,
+not a live market estimate. History begins in 1997 to avoid the earlier inclusion
+of closely held equities. CAPE comes from the conventional `CAPE` column in
+Robert Shiller's published workbook at [Shiller Data](https://shillerdata.com/);
+recent months can be preliminary. Observations older than 180 days (Buffett) or
+90 days (CAPE) are flagged stale. These are display freshness rules, not trading
+thresholds. Historical percentiles use revised data and are not a backtest.
+
 ## Outside-universe monitoring
 
 Every successful Finviz refresh maintains two independent snapshots:
@@ -72,6 +113,8 @@ recommended or owned stocks that later leave Finviz continue to receive
 tracking-only quotes from the independent Yahoo source.
 
 ## How it works
+
+The separate [Investors dashboard](web/investors.html) combines disclosed firm holdings and public research into an adjustable research shortlist, with full holdings, dated changes, stock evidence and configurable disclosure emails. See [setup, source coverage and alert behavior](docs/INVESTORS.md). Run `python scripts/investors.py` to build its data; SEC access requires a real `SEC_CONTACT_EMAIL`, and sending requires explicit Investors email configuration.
 
 ```
 config/*.yaml → catalog refresh (adapters) → SQLite store

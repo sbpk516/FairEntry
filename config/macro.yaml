@@ -1,0 +1,92 @@
+# Descriptive context only; no scoring or crash probability.
+indicators:
+  gdp:
+    name: Real GDP growth
+    group: Growth
+    series: A191RL1Q225SBEA
+    frequency: Quarterly
+    max_age_days: 180
+    unit: '%'
+    method: level
+    rule: growth
+    description: Inflation-adjusted output growth from the prior quarter, at an annualized rate. One negative quarter alone does not establish a recession.
+  unemployment:
+    name: Unemployment rate
+    group: Employment
+    series: UNRATE
+    frequency: Monthly
+    max_age_days: 75
+    unit: '%'
+    method: level
+    rule: change
+    description: Share of the civilian labor force unemployed, seasonally adjusted. Rising unemployment can indicate weakening labor demand; participation also matters.
+  claims:
+    name: Initial jobless claims
+    group: Employment
+    series: IC4WSA
+    frequency: Weekly
+    max_age_days: 21
+    unit: people
+    method: level
+    rule: change
+    description: Four-week average of initial unemployment insurance claims, seasonally adjusted. Smoothing reduces weekly noise; a rise can signal increasing layoffs.
+  inflation:
+    name: PCE inflation
+    group: Inflation
+    series: PCEPI
+    frequency: Monthly
+    max_age_days: 100
+    unit: '% YoY'
+    method: yoy
+    rule: inflation
+    description: Annual change in the broad PCE price index. The Fed targets 2% over the longer run; a monthly reading is not a policy decision.
+  core_inflation:
+    name: Core PCE inflation
+    group: Inflation
+    series: PCEPILFE
+    frequency: Monthly
+    max_age_days: 100
+    unit: '% YoY'
+    method: yoy
+    rule: change
+    description: Annual PCE inflation excluding food and energy. Helps assess underlying price pressure; the Fed's formal 2% target applies to headline PCE.
+  policy:
+    name: Effective federal funds rate
+    group: Interest rates
+    series: DFF
+    frequency: Daily
+    max_age_days: 7
+    unit: '%'
+    method: level
+    rule: change
+    description: Effective overnight federal funds rate, not the target range. A rising or falling rate alone does not establish whether policy is restrictive or supportive.
+  curve2:
+    name: Treasury curve · 10Y minus 2Y
+    group: Yield curve
+    series: T10Y2Y
+    frequency: Daily
+    max_age_days: 7
+    unit: pp
+    method: level
+    rule: curve
+    description: Negative means the 2-year yield exceeds the 10-year yield. An inversion is an economic warning, not a crash countdown. Returning positive does not guarantee the risk has passed.
+  curve3:
+    name: Treasury curve · 10Y minus 3M
+    group: Yield curve
+    series: T10Y3M
+    frequency: Daily
+    max_age_days: 7
+    unit: pp
+    method: level
+    rule: curve
+    description: Negative means the 3-month yield exceeds the 10-year yield. This spread is used in established recession research; this dashboard does not convert it into a probability.
+  conditions:
+    name: Financial conditions
+    group: Financial stress
+    series: NFCI
+    frequency: Weekly
+    max_age_days: 21
+    unit: index
+    method: level
+    rule: conditions
+    description: Chicago Fed NFCI combines risk, credit and leverage. Above zero is tighter than historical average; below zero is looser. A negative reading does not mean an absence of risk.

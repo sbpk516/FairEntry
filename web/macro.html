@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Macro economy · FairEntry</title>
+  <link rel="stylesheet" href="macro.css?v=2"><link rel="stylesheet" href="market-valuation.css">
+  <script src="macro-model.js?v=2" defer></script><script src="macro-context.js?v=2" defer></script><script src="macro.js?v=2" defer></script><script src="market-valuation.js?v=2" defer></script>
+</head>
+<body class="macro-page">
+  <header class="macro-nav"><a href="index.html">FairEntry / Stock evaluation</a><a href="investors.html">Investors</a><span>US macro economy</span></header>
+  <main>
+    <section class="macro-overview" aria-labelledby="macro-title">
+      <div class="macro-heading"><div><p class="macro-eyebrow">THE BIG PICTURE</p><h1 id="macro-title">How does the economy look?</h1></div><a href="index.html">Back to stocks →</a></div>
+      <p>Read economic conditions alongside company fundamentals. Different indicators describe different periods; each observation is dated below.</p>
+      <div id="macro-summary" aria-live="polite">Loading economic conditions…</div>
+    </section>
+    <section class="macro-overview macro-comparison-controls" aria-label="Historical comparison controls">
+      <h2>Put every reading in context</h2>
+      <div class="macro-control-row"><label>Chart history <select id="macro-horizon"><option value="2">2 years</option><option value="5">5 years</option><option value="10" selected>10 years</option><option value="all">All available history</option></select></label><label>Historical reference <select id="macro-reference"><option value="decade">Previous 10 complete calendar years</option><option value="prepandemic">2010–2019 · pre-pandemic comparison</option></select></label></div>
+      <p>Applies to all economic and valuation charts below. The reference ends before each indicator’s latest observation year. Changing the chart window does not change the benchmark. All-history coverage starts in 1990 for economic indicators and 1997 for these valuation series, subject to source availability.</p>
+      <p><span class="macro-badge good">Green · favorable on this dimension</span> <span class="macro-badge watch">Amber · typical / watch</span> <span class="macro-badge risk">Red · adverse / elevated</span> <span class="macro-badge neutral">Gray · context or unavailable</span></p>
+      <p>“Typical” means the middle 50% of reference observations, not an ideal. Every card explains its exact color rule and shows the gap in counts, percentage points or multiples. No invented “percent good/bad” score.</p>
+    </section>
+    <div id="macro-grid" class="macro-grid" aria-live="polite"></div>
+    <section class="macro-overview">
+      <h2>How to read this dashboard</h2>
+      <p>Growth and jobs describe the real economy. Inflation and rates affect purchasing power and borrowing costs. The yield curve reflects interest-rate expectations; financial conditions describe stress across funding markets. Valuation adds the price investors are paying for stocks.</p>
+      <p>These are descriptive observations, not a crash forecast, recession declaration or automatic trading signal. No combined risk score is assigned and stock scores receive zero macro weight. A rising reading is not always good or bad: read the explanation for each measure.</p>
+      <details><summary>Sources and calculation methods</summary><p>Economic series come from FRED, with originating-agency attribution in each source link. PCE inflation is calculated as (index / index in the same month last year − 1) × 100. GDP growth is already annualized by the source. “pp” means percentage points; 1 pp equals 100 basis points. A change from 4% to 5% is +1 pp, not +1%.</p><p>Historical ranges use all available source-frequency observations in the selected reference decade, including recessions and outliers. Mean is the arithmetic average; median is the middle observation; percentile cutoffs use linear interpolation. The pre-pandemic option is an alternative regime comparison, not a healthier or more correct standard. Claims are counts rather than a labor-force-adjusted rate. Each series uses its own scale.</p><p>Long-term direction compares the latest value with the nearest available observation on or before the date 1, 2, 5 or 10 years earlier. Missing comparable history is shown explicitly. Historical data may be revised; this is not a point-in-time backtest. Downloads are cached for one UTC day. Failed or stale data keeps its original date and loses current-condition coloring. Freshness limits: 7 days for daily series, 21 for weekly, 75 for unemployment, 100 for PCE and 180 from quarter-end for GDP. These are operational settings, not economic thresholds.</p></details>
+    </section>
+    <section class="market-valuation" aria-labelledby="market-valuation-title">
+      <div class="market-valuation-heading"><h2 id="market-valuation-title">Market valuation</h2><span>Buffett indicator & CAPE</span></div>
+      <p>Expensive markets can stay expensive for years. Valuation provides long-term context, not crash timing.</p>
+      <div id="market-valuation-cards" class="market-valuation-cards" aria-live="polite">Loading valuation data…</div>
+    </section>
+  </main>
+</body>
+</html>

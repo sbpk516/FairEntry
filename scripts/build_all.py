@@ -92,6 +92,10 @@ def main():
                     help="how many top candidates to enrich with SEC forensic data (0=all)")
     args = ap.parse_args()
     cfg = load_config()
+    from fairentry.adapters.market_valuation import write_market_valuation
+    print("Market valuation:", write_market_valuation())
+    from fairentry.adapters.macro import write_macro
+    print("Macro conditions:", write_macro())
     with Store() as store:
         if args.refresh:
             print("Refreshing universe (Finviz)…")
@@ -118,6 +122,8 @@ def main():
                                      "opened": track["opened"], "closed": track["closed"],
                                      "signals": track.get("signals", 0)}
         path = write_board(board)
+        from fairentry.investors.pipeline import write_investors
+        print("Investors research:", write_investors())
         from fairentry.screening_lab import write as write_screening_lab
         print('Screening Lab:', write_screening_lab(cfg, board))
         from fairentry.alerts import email_trading_alerts, email_wma_alerts

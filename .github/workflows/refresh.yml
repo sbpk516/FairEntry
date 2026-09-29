@@ -28,7 +28,7 @@ permissions:
 
 concurrency:
   group: fairentry-pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -48,6 +48,8 @@ jobs:
       SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
       SMTP_FROM: ${{ secrets.SMTP_FROM }}
       SMTP_SSL: ${{ secrets.SMTP_SSL }}
+      INVESTORS_EMAIL_ENABLED: ${{ vars.INVESTORS_EMAIL_ENABLED }}
+      INVESTORS_ALERT_EMAIL: ${{ secrets.INVESTORS_ALERT_EMAIL }}
       PYTHONUTF8: "1"
     steps:
       - uses: actions/checkout@v6
@@ -66,11 +68,17 @@ jobs:
         uses: actions/cache@v5
         with:
           path: data
-          key: fairentry-store-${{ github.run_id }}
+          key: fairentry-store-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             fairentry-store-
       - name: Validate config
         run: python -m fairentry.config
+      - name: Restore investor disclosure ledger
+        uses: actions/cache/restore@v5
+        with:
+          path: data/investors.db
+          key: fairentry-investors-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: fairentry-investors-
       # Run the LLM reasoning layer when: the weekly Monday cron fires, the manual
       # dispatch requests it, OR a push commit message contains "[reason]" (a
       # handy on-demand lever to force/seed an AI-review pass). The twice-daily
@@ -80,6 +88,28 @@ jobs:
         run: python scripts/build_all.py --refresh ${{ (github.event.inputs.reason == 'true' || github.event.schedule == '0 8 * * 1' || contains(github.event.head_commit.message, '[reason]')) && '--reason' || '' }}
       - name: Verify latest official + Emerging universes
         run: python scripts/validate_live_refresh.py --max-age-minutes 120
+      - name: Reserve investor notifications
+        run: python scripts/investors.py --reserve-alerts "${{ github.run_id }}-${{ github.run_attempt }}"
+      - name: Persist investor delivery guard
+        uses: actions/cache/save@v5
+        with:
+          path: data/investors.db
+          key: fairentry-investors-${{ github.run_id }}-${{ github.run_attempt }}-reserved
+      - name: Verify durable investor delivery guard
+        uses: actions/cache/restore@v5
+        with:
+          path: data/investors.db
+          key: fairentry-investors-${{ github.run_id }}-${{ github.run_attempt }}-reserved
+          lookup-only: true
+          fail-on-cache-miss: true
+      - name: Dispatch investor notifications
+        run: python scripts/investors.py --dispatch-alerts "${{ github.run_id }}-${{ github.run_attempt }}"
+      - name: Persist investor results
+        if: always()
+        uses: actions/cache/save@v5
+        with:
+          path: data/investors.db
+          key: fairentry-investors-${{ github.run_id }}-${{ github.run_attempt }}-done
       - name: Build backtest report for UI
         run: |
           python scripts/seed_backtest.py --sec-history --limit 150
