@@ -4,12 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FairEntry - prototype</title>
-<link rel="stylesheet" href="market-valuation.css">
-<script src="macro-model.js?v=2" defer></script>
-<script src="macro-context.js?v=2" defer></script>
-<script src="market-valuation.js?v=2" defer></script>
-<link rel="stylesheet" href="macro.css">
-<script src="macro.js?v=2" defer></script>
 <style>
   :root{
     --bg:#eef1f6; --panel:#ffffff; --panel-2:#f4f6fb; --sunk:#e8ecf4;
@@ -66,6 +60,11 @@
   .ai-status.ok{ color:var(--buy-text); border-color:var(--buy); }
   .ai-status.warn{ color:var(--watch-text); border-color:var(--watch); }
   .ai-status:empty{ display:none; }
+  .ai-review-notice{margin:16px 20px 0;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:10px;}
+  .ai-review-notice strong{display:block;font-size:14px;color:var(--ink);}
+  .ai-review-schedule{display:block;margin-top:4px;font-size:12px;color:var(--ink-soft);}
+  .ai-review-notice .ai-status{white-space:normal;line-height:1.5;}
+
   .modes{ display:flex; background:var(--sunk); border-radius:10px; padding:3px; gap:2px; }
   .modes button{ border:none; background:transparent; color:var(--ink-soft); font-weight:600; font-size:13px;
     padding:7px 14px; border-radius:8px; }
@@ -429,7 +428,6 @@
       <button data-mode="growth">Quality Growth Entry</button>
       <button data-mode="emerging">Emerging Candidates</button>
     </div>
-    <span class="ai-status" id="ai-status"></span>
     <span class="spacer"></span>
     <a class="iconbtn" href="backtest.html?source=sfa">Backtest</a>
     <a class="iconbtn" href="criteria.html">Screening &amp; Buy criteria</a>
@@ -440,15 +438,9 @@
     <button class="iconbtn" id="themebtn"> -  Theme</button>
   </div>
 
-  <section class="macro-overview" aria-labelledby="macro-title">
-    <div class="macro-heading"><h2 id="macro-title">US economy at a glance</h2><a href="macro.html">Explore macro conditions →</a></div>
-    <div id="macro-summary" aria-live="polite">Loading economic conditions…</div>
-  </section>
-  <section class="market-valuation" aria-labelledby="market-valuation-title">
-    <div class="market-valuation-heading"><h2 id="market-valuation-title">US market valuation</h2><span>Long-term context · 0 score weight</span></div>
-    <p>Buffett and CAPE help assess how expensive the market is. High valuations can imply lower long-term returns; neither reliably predicts the timing or probability of a crash.</p>
-    <div id="market-valuation-cards" class="market-valuation-cards" aria-live="polite">Loading market data…</div>
-    <details><summary>How should I use these indicators?</summary><p>Use these alongside company fundamentals, diversification and your investment horizon. Markets can stay expensive for years. These two measures overlap, so agreement is not independent confirmation of a coming crash. Historical percentiles describe valuation, not crash probabilities or automatic buy/sell signals. Interest rates, profitability and the market's composition change over time.</p></details>
+  <section class="ai-review-notice" aria-label="AI review schedule">
+    <div><strong>AI review — runs weekly</strong><span class="ai-review-schedule">Scheduled Mondays · reviews selected stock candidates</span></div>
+    <span class="ai-status" id="ai-status" role="status">Checking latest review status…</span>
   </section>
   <div class="controls">
     <input id="search" placeholder="Search ticker or company">
@@ -1603,11 +1595,11 @@ function agoText(days){
 }
 function renderAiStatus(ai){
   var el=$('#ai-status'); if(!el) return;
-  if(!ai){ el.textContent=''; return; }
+  if(!ai){ el.textContent='Latest review status unavailable'; el.className='ai-status'; el.title='The weekly schedule does not confirm that a review completed.'; return; }
   var n=ai.with_ai_read||0, stale=(ai.last_review_age_days!=null && ai.last_review_age_days>10);
   if(n>0){
     var when=agoText(ai.last_review_age_days);
-    el.textContent='AI review - '+n+' name'+(n===1?'':'s')+(when?' - '+when:'');
+    el.textContent='Latest review: '+n+' name'+(n===1?'':'s')+(when?' - '+when:'');
     el.className='ai-status'+(stale?' warn':' ok');
     el.title='The AI thesis (news, recovery/growth read, sources to follow) ran on the top '
       +n+' candidate'+(n===1?'':'s')+'. Refreshes weekly (Mon). '
@@ -1618,7 +1610,7 @@ function renderAiStatus(ai){
     el.title='The reasoning provider was unavailable (missing or exhausted DEEPSEEK_API_KEY). '
       +'Names are scored on the numbers only.';
   } else {
-    el.textContent='AI review - runs weekly';
+    el.textContent='No completed AI review available';
     el.className='ai-status';
     el.title='The AI thesis runs on the weekly (Mon) build. Names show "not reviewed yet" until then.';
   }
