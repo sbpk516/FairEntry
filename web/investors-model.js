@@ -48,7 +48,15 @@
         Number(a.state === 'fail' && ['profit_margin','debt_eq','pfcf_ratio'].includes(a.id))).map(c => c.explanation),
       rank: {'Consider for research':0,'Watch':1,'Insufficient data':2,'Avoid under current criteria':3}[status]};
   }
-  const api = {evaluate,fresh,numeric};
+  function priceContext(p, now = Date.now()) {
+    if (!p || !numeric(p.price) || p.price <= 0) return {available:false};
+    const stale = !fresh(p.as_of, 7, now) || !fresh(p.retrieved_at, 3, now) || Boolean(p.error);
+    const levels = [['200-week MA','sma_200w','distance_200w_pct'],['20-month MA','sma_20m','distance_20m_pct'],['36-month MA','sma_36m','distance_36m_pct']]
+      .map(([label,key,distance]) => ({label,value:p[key],distance:p[distance],
+        state:!numeric(p[distance]) ? 'Not enough history' : Math.abs(p[distance]) <= 5 ? 'Near average' : p[distance] < 0 ? 'Below average' : 'Above average'}));
+    return {available:true,stale,levels};
+  }
+  const api = {evaluate,fresh,numeric,priceContext};
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.InvestorsModel = api;
 }(typeof globalThis === 'undefined' ? this : globalThis));

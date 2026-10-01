@@ -10,6 +10,7 @@ from pathlib import Path
 import yaml
 
 from .financials import enrich
+from .prices import enrich_prices
 from .ledger import Ledger
 from .research import fetch_feed, map_cusips, validate_manual
 from .sec import SecClient, snapshots, compare
@@ -158,6 +159,12 @@ def build_investors(*, root=ROOT, db_path=None, now=None, force=False, send_aler
         candidates = {t: c for t, c in candidates.items() if c['positions'] or c['research']}
         ranked = sorted(candidates, key=lambda t: (-len(candidates[t]['positions']), -len(candidates[t]['research']), t))
         financials, financial_errors = enrich(ranked, ledger, root, now, enrich_limit if refresh else 0)
+        price_tickers = set(candidates)
+        for source in output_sources:
+            for report in source['reports']:
+                price_tickers.update(r['ticker'] for r in report['holdings'].values()
+                                     if r.get('ticker') and not r.get('put_call') and r.get('share_type') == 'SH')
+        price_levels = enrich_prices(price_tickers, ledger, now, refresh=refresh)
         try:
             board = json.loads((root / 'web/data/board.json').read_text(encoding='utf-8'))
         except (OSError, ValueError):
@@ -174,6 +181,7 @@ def build_investors(*, root=ROOT, db_path=None, now=None, force=False, send_aler
             ledger.deliver(sender, now.isoformat())
         events = ledger.events()
         return {'generated_at': now.isoformat(), 'sources': output_sources, 'candidates': list(candidates.values()),
+                'price_levels': price_levels,
                 'research': sorted(research, key=lambda p: p['published_at'], reverse=True),
                 'changes': sorted(all_changes, key=lambda c: c['published_at'], reverse=True),
                 'defaults': cfg['defaults'], 'financial_max_age_days': cfg['financial_max_age_days'],
