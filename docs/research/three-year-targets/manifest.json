@@ -1,0 +1,23 @@
+{
+  "preserved_at": "2026-10-07T21:31:19.036633+00:00",
+  "base_commit": "d6b28e22d2fd48a95eaef1366d1c24b29265f81a",
+  "experiment": "three-year-targets-october-2026-v1",
+  "production_effect": "none",
+  "source_replay": {
+    "path": "data/sharadar/reports/backtest-sfa-full.json",
+    "bytes": 2287881975,
+    "sha256": "2b50df158a40668e1e4b6071992662b454670ab4d7995ad42f8b100e87ff0139"
+  },
+  "warehouse": {
+    "path": "data/sharadar/warehouse.duckdb",
+    "bytes": 12890157056,
+    "last_price_date": "2026-08-07",
+    "included_in_repository": false
+  },
+  "artifacts": {
+    "three-year-target-research.json": "143054b188faa3ed988a5db46dce56d21c3fe8f32469170670d16af4f243d2d1",
+    "three-year-reinvestment.json": "14376d1f5c4b5b20a47baa4f96f4440092b6f354c119ca5a3d0d363539c08527",
+    "three-year-reinvestment-development.json": "0f19648bac0144afcc56bdfe6023d17cfb46467f8a9c675bf3a543948927d348",
+    "three-year-reinvestment-validation.json": "92b20c4299c4a4daf7a5a0fdbf871a0209293fbd1dabe8d0c5f73682b6af2b4b"
+  }
+}

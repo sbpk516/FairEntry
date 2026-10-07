@@ -1,0 +1,6194 @@
+{
+  "period": "validation",
+  "entry_window": [
+    "2012-01-01",
+    "2017-01-01"
+  ],
+  "scope": "Three-year portfolio starts within the stated entry window, monthly signals, ten 10% slots, daily mark-to-market; following-close target/stop execution; 30-day issuer cooldown after exits; cash earns zero; 15 bps each side.",
+  "selection": "Rules frozen by the development/validation selection from the preceding stock-level experiment. No test-period retuning.",
+  "limitations": [
+    "Monthly start cohorts strongly overlap and are not independent trials.",
+    "No taxes; delisting handling inherited from replay; unknown delistings valued at last available close.",
+    "The available universe is limited to three sectors and previously screened stocks.",
+    "These are historical results, not forward probabilities."
+  ],
+  "results": {
+    "current_quality50/hold_no_reinvestment": {
+      "summary": {
+        "cohorts": 60,
+        "mean_return_pct": 7.75,
+        "median_return_pct": 5.54,
+        "reached_double_pct": 0.0,
+        "ended_double_pct": 0.0,
+        "annual30_pct": 0.0,
+        "loss_pct": 25.0,
+        "worst_return_pct": -18.2,
+        "median_max_drawdown_pct": -12.98,
+        "worst_max_drawdown_pct": -33.177,
+        "mean_trades": 3.8
+      },
+      "cohorts": [
+        {
+          "start": "2012-01-27",
+          "return_pct": 45.56,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -10.702,
+          "trades": 4,
+          "exits": 0
+        },
+        {
+          "start": "2012-02-28",
+          "return_pct": 49.574,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -12.665,
+          "trades": 6,
+          "exits": 0
+        },
+        {
+          "start": "2012-03-29",
+          "return_pct": 39.265,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.575,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2012-04-30",
+          "return_pct": 46.098,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.05,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2012-05-30",
+          "return_pct": 11.735,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -9.629,
+          "trades": 6,
+          "exits": 0
+        },
+        {
+          "start": "2012-06-29",
+          "return_pct": 12.858,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -7.546,
+          "trades": 5,
+          "exits": 0
+        },
+        {
+          "start": "2012-07-31",
+          "return_pct": -0.237,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -6.803,
+          "trades": 3,
+          "exits": 0
+        },
+        {
+          "start": "2012-08-30",
+          "return_pct": 1.293,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -6.699,
+          "trades": 3,
+          "exits": 0
+        },
+        {
+          "start": "2012-10-01",
+          "return_pct": 2.713,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -11.074,
+          "trades": 7,
+          "exits": 0
+        },
+        {
+          "start": "2012-11-01",
+          "return_pct": 13.997,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -8.472,
+          "trades": 5,
+          "exits": 0
+        },
+        {
+          "start": "2012-12-03",
+          "return_pct": -9.793,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.772,
+          "trades": 5,
+          "exits": 0
+        },
+        {
+          "start": "2013-01-02",
+          "return_pct": -18.2,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -31.225,
+          "trades": 4,
+          "exits": 0
+        },
+        {
+          "start": "2013-01-31",
+          "return_pct": -16.788,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -31.657,
+          "trades": 5,
+          "exits": 0
+        },
+        {
+          "start": "2013-03-04",
+          "return_pct": -9.995,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.436,
+          "trades": 4,
+          "exits": 0
+        },
+        {
+          "start": "2013-04-02",
+          "return_pct": 6.099,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.966,
+          "trades": 7,
+          "exits": 1
+        },
+        {
+          "start": "2013-05-02",
+          "return_pct": 2.147,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -10.472,
+          "trades": 5,
+          "exits": 2
+        },
+        {
+          "start": "2013-06-03",
+          "return_pct": 3.91,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -5.655,
+          "trades": 3,
+          "exits": 2
+        },
+        {
+          "start": "2013-07-02",
+          "return_pct": -3.504,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -6.789,
+          "trades": 2,
+          "exits": 2
+        },
+        {
+          "start": "2013-08-01",
+          "return_pct": -6.416,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -10.26,
+          "trades": 2,
+          "exits": 1
+        },
+        {
+          "start": "2013-09-03",
+          "return_pct": -3.861,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.724,
+          "trades": 2,
+          "exits": 1
+        },
+        {
+          "start": "2013-10-01",
+          "return_pct": -6.25,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.225,
+          "trades": 2,
+          "exits": 1
+        },
+        {
+          "start": "2013-10-31",
+          "return_pct": -7.656,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.815,
+          "trades": 2,
+          "exits": 1
+        },
+        {
+          "start": "2013-12-02",
+          "return_pct": 1.23,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -10.812,
+          "trades": 3,
+          "exits": 0
+        },
+        {
+          "start": "2013-12-31",
+          "return_pct": 1.981,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -10.591,
+          "trades": 3,
+          "exits": 0
+        },
+        {
+          "start": "2014-01-30",
+          "return_pct": 1.343,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -6.105,
+          "trades": 2,
+          "exits": 0
+        },
+        {
+          "start": "2014-03-03",
+          "return_pct": 19.028,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.332,
+          "trades": 3,
+          "exits": 0
+        },
+        {
+          "start": "2014-04-01",
+          "return_pct": 16.519,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.177,
+          "trades": 7,
+          "exits": 1
+        },
+        {
+          "start": "2014-05-01",
+          "return_pct": 9.98,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -32.559,
+          "trades": 6,
+          "exits": 1
+        },
+        {
+          "start": "2014-06-02",
+          "return_pct": 2.835,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.662,
+          "trades": 5,
+          "exits": 1
+        },
+        {
+          "start": "2014-07-01",
+          "return_pct": -9.803,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.466,
+          "trades": 6,
+          "exits": 0
+        },
+        {
+          "start": "2014-07-31",
+          "return_pct": 0.296,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.53,
+          "trades": 5,
+          "exits": 0
+        },
+        {
+          "start": "2014-09-02",
+          "return_pct": -10.529,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.794,
+          "trades": 3,
+          "exits": 0
+        },
+        {
+          "start": "2014-09-30",
+          "return_pct": 16.393,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.697,
+          "trades": 5,
+          "exits": 0
+        },
+        {
+          "start": "2014-10-30",
+          "return_pct": 14.948,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -30.0,
+          "trades": 7,
+          "exits": 0
+        },
+        {
+          "start": "2014-12-01",
+          "return_pct": -3.22,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.396,
+          "trades": 4,
+          "exits": 0
+        },
+        {
+          "start": "2014-12-30",
+          "return_pct": 17.575,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -9.65,
+          "trades": 2,
+          "exits": 0
+        },
+        {
+          "start": "2015-01-29",
+          "return_pct": 5.192,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.622,
+          "trades": 2,
+          "exits": 0
+        },
+        {
+          "start": "2015-03-02",
+          "return_pct": 2.356,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -3.517,
+          "trades": 1,
+          "exits": 0
+        },
+        {
+          "start": "2015-03-31",
+          "return_pct": 2.771,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -3.379,
+          "trades": 1,
+          "exits": 0
+        },
+        {
+          "start": "2015-04-30",
+          "return_pct": 5.858,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.17,
+          "trades": 2,
+          "exits": 0
+        },
+        {
+          "start": "2015-06-01",
+          "return_pct": 0.0,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": 0.0,
+          "trades": 0,
+          "exits": 0
+        },
+        {
+          "start": "2015-06-30",
+          "return_pct": 5.639,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -4.433,
+          "trades": 1,
+          "exits": 0
+        },
+        {
+          "start": "2015-07-30",
+          "return_pct": 5.436,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -4.259,
+          "trades": 1,
+          "exits": 0
+        },
+        {
+          "start": "2015-08-31",
+          "return_pct": 23.918,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -8.511,
+          "trades": 2,
+          "exits": 0
+        },
+        {
+          "start": "2015-09-29",
+          "return_pct": 20.375,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -12.501,
+          "trades": 3,
+          "exits": 0
+        },
+        {
+          "start": "2015-10-29",
+          "return_pct": -4.871,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -10.54,
+          "trades": 3,
+          "exits": 0
+        },
+        {
+          "start": "2015-11-30",
+          "return_pct": 0.395,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -12.169,
+          "trades": 3,
+          "exits": 0
+        },
+        {
+          "start": "2015-12-29",
+          "return_pct": -4.885,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -11.277,
+          "trades": 3,
+          "exits": 0
+        },
+        {
+          "start": "2016-01-28",
+          "return_pct": 6.617,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.138,
+          "trades": 4,
+          "exits": 0
+        },
+        {
+          "start": "2016-02-29",
+          "return_pct": 8.533,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.505,
+          "trades": 4,
+          "exits": 1
+        },
+        {
+          "start": "2016-03-29",
+          "return_pct": 16.97,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.354,
+          "trades": 5,
+          "exits": 1
+        },
+        {
+          "start": "2016-04-28",
+          "return_pct": 7.458,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -4.884,
+          "trades": 2,
+          "exits": 1
+        },
+        {
+          "start": "2016-05-31",
+          "return_pct": 11.418,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -12.101,
+          "trades": 3,
+          "exits": 0
+        },
+        {
+          "start": "2016-06-28",
+          "return_pct": 21.452,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.556,
+          "trades": 4,
+          "exits": 0
+        },
+        {
+          "start": "2016-07-28",
+          "return_pct": 10.338,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -14.525,
+          "trades": 2,
+          "exits": 0
+        },
+        {
+          "start": "2016-08-29",
+          "return_pct": 11.74,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -12.781,
+          "trades": 4,
+          "exits": 1
+        },
+        {
+          "start": "2016-09-27",
+          "return_pct": 17.789,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -11.679,
+          "trades": 4,
+          "exits": 1
+        },
+        {
+          "start": "2016-10-27",
+          "return_pct": 22.755,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.726,
+          "trades": 4,
+          "exits": 0
+        },
+        {
+          "start": "2016-11-28",
+          "return_pct": 16.953,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.605,
+          "trades": 3,
+          "exits": 0
+        },
+        {
+          "start": "2016-12-28",
+          "return_pct": 19.904,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.147,
+          "trades": 3,
+          "exits": 0
+        }
+      ]
+    },
+    "current_quality50/hold_add_to_empty_slots": {
+      "summary": {
+        "cohorts": 60,
+        "mean_return_pct": 31.56,
+        "median_return_pct": 28.98,
+        "reached_double_pct": 0.0,
+        "ended_double_pct": 0.0,
+        "annual30_pct": 0.0,
+        "loss_pct": 0.0,
+        "worst_return_pct": 0.333,
+        "median_max_drawdown_pct": -30.9,
+        "worst_max_drawdown_pct": -37.469,
+        "mean_trades": 10.7
+      },
+      "cohorts": [
+        {
+          "start": "2012-01-27",
+          "return_pct": 71.049,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.902,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2012-02-28",
+          "return_pct": 54.478,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.445,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2012-03-29",
+          "return_pct": 39.265,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.575,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2012-04-30",
+          "return_pct": 46.098,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.05,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2012-05-30",
+          "return_pct": 18.411,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -14.525,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2012-06-29",
+          "return_pct": 23.749,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -14.266,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2012-07-31",
+          "return_pct": 12.293,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.861,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2012-08-30",
+          "return_pct": 10.482,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.537,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2012-10-01",
+          "return_pct": 1.261,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.601,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2012-11-01",
+          "return_pct": 13.884,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.413,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2012-12-03",
+          "return_pct": 5.817,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.35,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2013-01-02",
+          "return_pct": 5.388,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.03,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2013-01-31",
+          "return_pct": 6.366,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -31.195,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2013-03-04",
+          "return_pct": 25.959,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -28.032,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2013-04-02",
+          "return_pct": 23.975,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.978,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2013-05-02",
+          "return_pct": 16.247,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.928,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2013-06-03",
+          "return_pct": 33.506,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -29.98,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2013-07-02",
+          "return_pct": 25.168,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -30.657,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2013-08-01",
+          "return_pct": 18.031,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -30.665,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2013-09-03",
+          "return_pct": 14.598,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -32.134,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2013-10-01",
+          "return_pct": 10.094,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -32.408,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2013-10-31",
+          "return_pct": 3.537,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -32.948,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2013-12-02",
+          "return_pct": 15.093,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -36.751,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2013-12-31",
+          "return_pct": 17.032,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -36.872,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2014-01-30",
+          "return_pct": 19.547,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -35.975,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2014-03-03",
+          "return_pct": 29.01,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -37.469,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2014-04-01",
+          "return_pct": 24.219,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -37.08,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2014-05-01",
+          "return_pct": 24.94,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -36.672,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2014-06-02",
+          "return_pct": 6.777,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.832,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2014-07-01",
+          "return_pct": 0.333,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.009,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2014-07-31",
+          "return_pct": 16.761,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -32.862,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2014-09-02",
+          "return_pct": 16.287,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.176,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2014-09-30",
+          "return_pct": 31.407,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.191,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2014-10-30",
+          "return_pct": 38.591,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -31.135,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2014-12-01",
+          "return_pct": 32.894,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.307,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2014-12-30",
+          "return_pct": 58.717,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.951,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2015-01-29",
+          "return_pct": 46.414,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.56,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2015-03-02",
+          "return_pct": 57.549,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -14.42,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2015-03-31",
+          "return_pct": 49.002,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -14.457,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2015-04-30",
+          "return_pct": 50.864,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.327,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2015-06-01",
+          "return_pct": 62.584,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.071,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2015-06-30",
+          "return_pct": 56.041,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.071,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2015-07-30",
+          "return_pct": 56.999,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.074,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2015-08-31",
+          "return_pct": 59.397,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.339,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2015-09-29",
+          "return_pct": 55.164,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.485,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2015-10-29",
+          "return_pct": 18.515,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.125,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2015-11-30",
+          "return_pct": 28.957,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.993,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2015-12-29",
+          "return_pct": 13.15,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.555,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2016-01-28",
+          "return_pct": 32.108,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.458,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2016-02-29",
+          "return_pct": 36.441,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.292,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2016-03-29",
+          "return_pct": 34.323,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.408,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2016-04-28",
+          "return_pct": 44.531,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -32.086,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2016-05-31",
+          "return_pct": 21.708,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.274,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2016-06-28",
+          "return_pct": 39.311,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.167,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2016-07-28",
+          "return_pct": 48.245,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -35.462,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2016-08-29",
+          "return_pct": 36.039,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.943,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2016-09-27",
+          "return_pct": 51.012,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.048,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2016-10-27",
+          "return_pct": 63.587,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.02,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2016-11-28",
+          "return_pct": 57.877,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.044,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2016-12-28",
+          "return_pct": 62.752,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.305,
+          "trades": 10,
+          "exits": 0
+        }
+      ]
+    },
+    "current_quality50/take30_reinvest": {
+      "summary": {
+        "cohorts": 60,
+        "mean_return_pct": 35.52,
+        "median_return_pct": 32.99,
+        "reached_double_pct": 0.0,
+        "ended_double_pct": 0.0,
+        "annual30_pct": 0.0,
+        "loss_pct": 0.0,
+        "worst_return_pct": 5.495,
+        "median_max_drawdown_pct": -19.85,
+        "worst_max_drawdown_pct": -28.559,
+        "mean_trades": 23.8
+      },
+      "cohorts": [
+        {
+          "start": "2012-01-27",
+          "return_pct": 42.45,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.902,
+          "trades": 23,
+          "exits": 14
+        },
+        {
+          "start": "2012-02-28",
+          "return_pct": 31.21,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.445,
+          "trades": 21,
+          "exits": 12
+        },
+        {
+          "start": "2012-03-29",
+          "return_pct": 16.215,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.575,
+          "trades": 20,
+          "exits": 10
+        },
+        {
+          "start": "2012-04-30",
+          "return_pct": 19.986,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.05,
+          "trades": 19,
+          "exits": 10
+        },
+        {
+          "start": "2012-05-30",
+          "return_pct": 63.46,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.693,
+          "trades": 29,
+          "exits": 19
+        },
+        {
+          "start": "2012-06-29",
+          "return_pct": 27.174,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.578,
+          "trades": 23,
+          "exits": 13
+        },
+        {
+          "start": "2012-07-31",
+          "return_pct": 47.47,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.055,
+          "trades": 25,
+          "exits": 15
+        },
+        {
+          "start": "2012-08-30",
+          "return_pct": 29.401,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -12.373,
+          "trades": 23,
+          "exits": 14
+        },
+        {
+          "start": "2012-10-01",
+          "return_pct": 34.05,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -11.074,
+          "trades": 27,
+          "exits": 17
+        },
+        {
+          "start": "2012-11-01",
+          "return_pct": 41.573,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -11.074,
+          "trades": 26,
+          "exits": 16
+        },
+        {
+          "start": "2012-12-03",
+          "return_pct": 46.567,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -10.32,
+          "trades": 29,
+          "exits": 19
+        },
+        {
+          "start": "2013-01-02",
+          "return_pct": 19.808,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.845,
+          "trades": 26,
+          "exits": 16
+        },
+        {
+          "start": "2013-01-31",
+          "return_pct": 17.723,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.633,
+          "trades": 26,
+          "exits": 16
+        },
+        {
+          "start": "2013-03-04",
+          "return_pct": 29.235,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.107,
+          "trades": 25,
+          "exits": 15
+        },
+        {
+          "start": "2013-04-02",
+          "return_pct": 32.556,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.1,
+          "trades": 25,
+          "exits": 15
+        },
+        {
+          "start": "2013-05-02",
+          "return_pct": 33.356,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.852,
+          "trades": 25,
+          "exits": 15
+        },
+        {
+          "start": "2013-06-03",
+          "return_pct": 25.158,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.848,
+          "trades": 23,
+          "exits": 13
+        },
+        {
+          "start": "2013-07-02",
+          "return_pct": 19.263,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.923,
+          "trades": 22,
+          "exits": 12
+        },
+        {
+          "start": "2013-08-01",
+          "return_pct": 22.211,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.801,
+          "trades": 21,
+          "exits": 11
+        },
+        {
+          "start": "2013-09-03",
+          "return_pct": 12.857,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.085,
+          "trades": 20,
+          "exits": 10
+        },
+        {
+          "start": "2013-10-01",
+          "return_pct": 9.778,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.049,
+          "trades": 19,
+          "exits": 9
+        },
+        {
+          "start": "2013-10-31",
+          "return_pct": 5.495,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.213,
+          "trades": 20,
+          "exits": 10
+        },
+        {
+          "start": "2013-12-02",
+          "return_pct": 24.215,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.116,
+          "trades": 21,
+          "exits": 11
+        },
+        {
+          "start": "2013-12-31",
+          "return_pct": 24.692,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.745,
+          "trades": 22,
+          "exits": 12
+        },
+        {
+          "start": "2014-01-30",
+          "return_pct": 22.14,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.184,
+          "trades": 21,
+          "exits": 11
+        },
+        {
+          "start": "2014-03-03",
+          "return_pct": 26.29,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.25,
+          "trades": 23,
+          "exits": 13
+        },
+        {
+          "start": "2014-04-01",
+          "return_pct": 25.339,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.302,
+          "trades": 23,
+          "exits": 13
+        },
+        {
+          "start": "2014-05-01",
+          "return_pct": 30.062,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.893,
+          "trades": 23,
+          "exits": 13
+        },
+        {
+          "start": "2014-06-02",
+          "return_pct": 29.512,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.499,
+          "trades": 22,
+          "exits": 12
+        },
+        {
+          "start": "2014-07-01",
+          "return_pct": 27.242,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.599,
+          "trades": 21,
+          "exits": 12
+        },
+        {
+          "start": "2014-07-31",
+          "return_pct": 28.632,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.758,
+          "trades": 22,
+          "exits": 12
+        },
+        {
+          "start": "2014-09-02",
+          "return_pct": 30.575,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.303,
+          "trades": 22,
+          "exits": 12
+        },
+        {
+          "start": "2014-09-30",
+          "return_pct": 35.267,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.43,
+          "trades": 22,
+          "exits": 12
+        },
+        {
+          "start": "2014-10-30",
+          "return_pct": 32.748,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.251,
+          "trades": 21,
+          "exits": 13
+        },
+        {
+          "start": "2014-12-01",
+          "return_pct": 32.52,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.685,
+          "trades": 20,
+          "exits": 13
+        },
+        {
+          "start": "2014-12-30",
+          "return_pct": 24.049,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.144,
+          "trades": 20,
+          "exits": 10
+        },
+        {
+          "start": "2015-01-29",
+          "return_pct": 39.58,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -12.513,
+          "trades": 22,
+          "exits": 13
+        },
+        {
+          "start": "2015-03-02",
+          "return_pct": 38.319,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.301,
+          "trades": 22,
+          "exits": 14
+        },
+        {
+          "start": "2015-03-31",
+          "return_pct": 35.276,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.323,
+          "trades": 24,
+          "exits": 15
+        },
+        {
+          "start": "2015-04-30",
+          "return_pct": 33.229,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.346,
+          "trades": 25,
+          "exits": 15
+        },
+        {
+          "start": "2015-06-01",
+          "return_pct": 37.961,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.664,
+          "trades": 23,
+          "exits": 14
+        },
+        {
+          "start": "2015-06-30",
+          "return_pct": 35.793,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.664,
+          "trades": 24,
+          "exits": 14
+        },
+        {
+          "start": "2015-07-30",
+          "return_pct": 40.848,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.668,
+          "trades": 24,
+          "exits": 14
+        },
+        {
+          "start": "2015-08-31",
+          "return_pct": 49.906,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -12.877,
+          "trades": 25,
+          "exits": 16
+        },
+        {
+          "start": "2015-09-29",
+          "return_pct": 47.403,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -12.586,
+          "trades": 26,
+          "exits": 16
+        },
+        {
+          "start": "2015-10-29",
+          "return_pct": 24.142,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.492,
+          "trades": 25,
+          "exits": 15
+        },
+        {
+          "start": "2015-11-30",
+          "return_pct": 39.266,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.743,
+          "trades": 25,
+          "exits": 16
+        },
+        {
+          "start": "2015-12-29",
+          "return_pct": 11.089,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -28.559,
+          "trades": 23,
+          "exits": 13
+        },
+        {
+          "start": "2016-01-28",
+          "return_pct": 35.52,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.029,
+          "trades": 25,
+          "exits": 15
+        },
+        {
+          "start": "2016-02-29",
+          "return_pct": 52.37,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.189,
+          "trades": 26,
+          "exits": 16
+        },
+        {
+          "start": "2016-03-29",
+          "return_pct": 56.48,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.394,
+          "trades": 26,
+          "exits": 17
+        },
+        {
+          "start": "2016-04-28",
+          "return_pct": 68.313,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.131,
+          "trades": 28,
+          "exits": 20
+        },
+        {
+          "start": "2016-05-31",
+          "return_pct": 38.856,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.114,
+          "trades": 29,
+          "exits": 19
+        },
+        {
+          "start": "2016-06-28",
+          "return_pct": 54.911,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.199,
+          "trades": 29,
+          "exits": 19
+        },
+        {
+          "start": "2016-07-28",
+          "return_pct": 55.29,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.287,
+          "trades": 27,
+          "exits": 17
+        },
+        {
+          "start": "2016-08-29",
+          "return_pct": 53.422,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.33,
+          "trades": 26,
+          "exits": 16
+        },
+        {
+          "start": "2016-09-27",
+          "return_pct": 62.64,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.354,
+          "trades": 26,
+          "exits": 18
+        },
+        {
+          "start": "2016-10-27",
+          "return_pct": 71.48,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.682,
+          "trades": 27,
+          "exits": 18
+        },
+        {
+          "start": "2016-11-28",
+          "return_pct": 63.238,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.741,
+          "trades": 25,
+          "exits": 16
+        },
+        {
+          "start": "2016-12-28",
+          "return_pct": 65.374,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.652,
+          "trades": 24,
+          "exits": 16
+        }
+      ]
+    },
+    "current_quality50/take100_reinvest": {
+      "summary": {
+        "cohorts": 60,
+        "mean_return_pct": 38.84,
+        "median_return_pct": 37.52,
+        "reached_double_pct": 0.0,
+        "ended_double_pct": 0.0,
+        "annual30_pct": 0.0,
+        "loss_pct": 0.0,
+        "worst_return_pct": 5.421,
+        "median_max_drawdown_pct": -23.15,
+        "worst_max_drawdown_pct": -35.462,
+        "mean_trades": 13.1
+      },
+      "cohorts": [
+        {
+          "start": "2012-01-27",
+          "return_pct": 48.378,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.902,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2012-02-28",
+          "return_pct": 37.83,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.445,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2012-03-29",
+          "return_pct": 37.731,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.575,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2012-04-30",
+          "return_pct": 44.561,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.05,
+          "trades": 12,
+          "exits": 3
+        },
+        {
+          "start": "2012-05-30",
+          "return_pct": 18.411,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -14.525,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2012-06-29",
+          "return_pct": 17.989,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -14.266,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2012-07-31",
+          "return_pct": 20.794,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.055,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2012-08-30",
+          "return_pct": 17.619,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.997,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2012-10-01",
+          "return_pct": 9.282,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.692,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2012-11-01",
+          "return_pct": 38.598,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.738,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2012-12-03",
+          "return_pct": 25.653,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -26.757,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2013-01-02",
+          "return_pct": 56.652,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.464,
+          "trades": 17,
+          "exits": 7
+        },
+        {
+          "start": "2013-01-31",
+          "return_pct": 30.541,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -28.361,
+          "trades": 15,
+          "exits": 5
+        },
+        {
+          "start": "2013-03-04",
+          "return_pct": 25.952,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -28.304,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2013-04-02",
+          "return_pct": 27.545,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -28.167,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2013-05-02",
+          "return_pct": 22.844,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.539,
+          "trades": 15,
+          "exits": 5
+        },
+        {
+          "start": "2013-06-03",
+          "return_pct": 31.773,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.319,
+          "trades": 16,
+          "exits": 6
+        },
+        {
+          "start": "2013-07-02",
+          "return_pct": 27.298,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.985,
+          "trades": 15,
+          "exits": 5
+        },
+        {
+          "start": "2013-08-01",
+          "return_pct": 27.052,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.11,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2013-09-03",
+          "return_pct": 28.16,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.495,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2013-10-01",
+          "return_pct": 29.003,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.979,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2013-10-31",
+          "return_pct": 15.637,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.531,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2013-12-02",
+          "return_pct": 25.003,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.369,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2013-12-31",
+          "return_pct": 22.834,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -28.38,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2014-01-30",
+          "return_pct": 26.252,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -26.813,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2014-03-03",
+          "return_pct": 30.112,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.855,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2014-04-01",
+          "return_pct": 33.102,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.6,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2014-05-01",
+          "return_pct": 57.983,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.355,
+          "trades": 15,
+          "exits": 5
+        },
+        {
+          "start": "2014-06-02",
+          "return_pct": 18.729,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -30.683,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2014-07-01",
+          "return_pct": 5.421,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -30.532,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2014-07-31",
+          "return_pct": 23.116,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -29.825,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2014-09-02",
+          "return_pct": 27.268,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -28.348,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2014-09-30",
+          "return_pct": 42.714,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -28.418,
+          "trades": 13,
+          "exits": 4
+        },
+        {
+          "start": "2014-10-30",
+          "return_pct": 45.426,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -30.265,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2014-12-01",
+          "return_pct": 33.765,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -29.03,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2014-12-30",
+          "return_pct": 45.028,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.837,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2015-01-29",
+          "return_pct": 63.608,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -12.909,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2015-03-02",
+          "return_pct": 65.998,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -11.837,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2015-03-31",
+          "return_pct": 62.55,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -11.87,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2015-04-30",
+          "return_pct": 61.221,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -11.905,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2015-06-01",
+          "return_pct": 61.681,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.071,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2015-06-30",
+          "return_pct": 55.837,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.071,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2015-07-30",
+          "return_pct": 55.933,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.074,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2015-08-31",
+          "return_pct": 59.652,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -12.8,
+          "trades": 13,
+          "exits": 4
+        },
+        {
+          "start": "2015-09-29",
+          "return_pct": 54.719,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -12.545,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2015-10-29",
+          "return_pct": 26.819,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.967,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2015-11-30",
+          "return_pct": 49.039,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.696,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2015-12-29",
+          "return_pct": 34.942,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.023,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2016-01-28",
+          "return_pct": 52.957,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.126,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2016-02-29",
+          "return_pct": 59.236,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.633,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2016-03-29",
+          "return_pct": 49.341,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.95,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2016-04-28",
+          "return_pct": 52.217,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -26.517,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2016-05-31",
+          "return_pct": 27.976,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -28.563,
+          "trades": 12,
+          "exits": 3
+        },
+        {
+          "start": "2016-06-28",
+          "return_pct": 48.476,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -31.166,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2016-07-28",
+          "return_pct": 47.667,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -35.462,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2016-08-29",
+          "return_pct": 37.309,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.943,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2016-09-27",
+          "return_pct": 50.248,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.048,
+          "trades": 12,
+          "exits": 3
+        },
+        {
+          "start": "2016-10-27",
+          "return_pct": 61.633,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -30.803,
+          "trades": 12,
+          "exits": 3
+        },
+        {
+          "start": "2016-11-28",
+          "return_pct": 56.939,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.044,
+          "trades": 11,
+          "exits": 2
+        },
+        {
+          "start": "2016-12-28",
+          "return_pct": 58.474,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.305,
+          "trades": 11,
+          "exits": 2
+        }
+      ]
+    },
+    "current_quality50/take100_stop30_reinvest": {
+      "summary": {
+        "cohorts": 60,
+        "mean_return_pct": 44.95,
+        "median_return_pct": 45.6,
+        "reached_double_pct": 0.0,
+        "ended_double_pct": 0.0,
+        "annual30_pct": 0.0,
+        "loss_pct": 0.0,
+        "worst_return_pct": 20.785,
+        "median_max_drawdown_pct": -19.47,
+        "worst_max_drawdown_pct": -34.709,
+        "mean_trades": 18.1
+      },
+      "cohorts": [
+        {
+          "start": "2012-01-27",
+          "return_pct": 44.873,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.361,
+          "trades": 20,
+          "exits": 10
+        },
+        {
+          "start": "2012-02-28",
+          "return_pct": 37.42,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.821,
+          "trades": 20,
+          "exits": 10
+        },
+        {
+          "start": "2012-03-29",
+          "return_pct": 45.668,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.046,
+          "trades": 19,
+          "exits": 9
+        },
+        {
+          "start": "2012-04-30",
+          "return_pct": 44.687,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.152,
+          "trades": 19,
+          "exits": 10
+        },
+        {
+          "start": "2012-05-30",
+          "return_pct": 25.376,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -14.525,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2012-06-29",
+          "return_pct": 26.814,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -14.266,
+          "trades": 13,
+          "exits": 4
+        },
+        {
+          "start": "2012-07-31",
+          "return_pct": 34.511,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.055,
+          "trades": 15,
+          "exits": 5
+        },
+        {
+          "start": "2012-08-30",
+          "return_pct": 51.734,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -11.235,
+          "trades": 16,
+          "exits": 6
+        },
+        {
+          "start": "2012-10-01",
+          "return_pct": 32.528,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -11.074,
+          "trades": 17,
+          "exits": 7
+        },
+        {
+          "start": "2012-11-01",
+          "return_pct": 45.539,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.867,
+          "trades": 16,
+          "exits": 6
+        },
+        {
+          "start": "2012-12-03",
+          "return_pct": 30.627,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.718,
+          "trades": 19,
+          "exits": 10
+        },
+        {
+          "start": "2013-01-02",
+          "return_pct": 58.554,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.48,
+          "trades": 21,
+          "exits": 12
+        },
+        {
+          "start": "2013-01-31",
+          "return_pct": 28.374,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -28.659,
+          "trades": 20,
+          "exits": 11
+        },
+        {
+          "start": "2013-03-04",
+          "return_pct": 46.915,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.544,
+          "trades": 19,
+          "exits": 9
+        },
+        {
+          "start": "2013-04-02",
+          "return_pct": 46.85,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.453,
+          "trades": 19,
+          "exits": 9
+        },
+        {
+          "start": "2013-05-02",
+          "return_pct": 37.01,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.306,
+          "trades": 20,
+          "exits": 10
+        },
+        {
+          "start": "2013-06-03",
+          "return_pct": 56.761,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.466,
+          "trades": 21,
+          "exits": 11
+        },
+        {
+          "start": "2013-07-02",
+          "return_pct": 31.294,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.356,
+          "trades": 19,
+          "exits": 9
+        },
+        {
+          "start": "2013-08-01",
+          "return_pct": 31.965,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.222,
+          "trades": 18,
+          "exits": 8
+        },
+        {
+          "start": "2013-09-03",
+          "return_pct": 29.685,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.325,
+          "trades": 20,
+          "exits": 10
+        },
+        {
+          "start": "2013-10-01",
+          "return_pct": 30.36,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.663,
+          "trades": 20,
+          "exits": 10
+        },
+        {
+          "start": "2013-10-31",
+          "return_pct": 30.899,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.759,
+          "trades": 19,
+          "exits": 10
+        },
+        {
+          "start": "2013-12-02",
+          "return_pct": 45.52,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.872,
+          "trades": 20,
+          "exits": 12
+        },
+        {
+          "start": "2013-12-31",
+          "return_pct": 20.785,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.652,
+          "trades": 19,
+          "exits": 9
+        },
+        {
+          "start": "2014-01-30",
+          "return_pct": 25.196,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.057,
+          "trades": 18,
+          "exits": 8
+        },
+        {
+          "start": "2014-03-03",
+          "return_pct": 35.589,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.166,
+          "trades": 19,
+          "exits": 9
+        },
+        {
+          "start": "2014-04-01",
+          "return_pct": 49.232,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.738,
+          "trades": 18,
+          "exits": 8
+        },
+        {
+          "start": "2014-05-01",
+          "return_pct": 71.708,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.458,
+          "trades": 21,
+          "exits": 12
+        },
+        {
+          "start": "2014-06-02",
+          "return_pct": 31.679,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.916,
+          "trades": 21,
+          "exits": 11
+        },
+        {
+          "start": "2014-07-01",
+          "return_pct": 25.529,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.22,
+          "trades": 22,
+          "exits": 12
+        },
+        {
+          "start": "2014-07-31",
+          "return_pct": 24.69,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.763,
+          "trades": 21,
+          "exits": 11
+        },
+        {
+          "start": "2014-09-02",
+          "return_pct": 46.171,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.304,
+          "trades": 24,
+          "exits": 14
+        },
+        {
+          "start": "2014-09-30",
+          "return_pct": 57.766,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.339,
+          "trades": 24,
+          "exits": 15
+        },
+        {
+          "start": "2014-10-30",
+          "return_pct": 51.88,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.211,
+          "trades": 24,
+          "exits": 14
+        },
+        {
+          "start": "2014-12-01",
+          "return_pct": 52.06,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.184,
+          "trades": 24,
+          "exits": 14
+        },
+        {
+          "start": "2014-12-30",
+          "return_pct": 67.106,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -12.56,
+          "trades": 22,
+          "exits": 12
+        },
+        {
+          "start": "2015-01-29",
+          "return_pct": 82.797,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -12.506,
+          "trades": 20,
+          "exits": 10
+        },
+        {
+          "start": "2015-03-02",
+          "return_pct": 68.512,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -12.447,
+          "trades": 18,
+          "exits": 9
+        },
+        {
+          "start": "2015-03-31",
+          "return_pct": 63.525,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.11,
+          "trades": 18,
+          "exits": 8
+        },
+        {
+          "start": "2015-04-30",
+          "return_pct": 63.657,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.076,
+          "trades": 18,
+          "exits": 8
+        },
+        {
+          "start": "2015-06-01",
+          "return_pct": 61.97,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.51,
+          "trades": 17,
+          "exits": 7
+        },
+        {
+          "start": "2015-06-30",
+          "return_pct": 55.117,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.51,
+          "trades": 17,
+          "exits": 7
+        },
+        {
+          "start": "2015-07-30",
+          "return_pct": 61.639,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.509,
+          "trades": 17,
+          "exits": 7
+        },
+        {
+          "start": "2015-08-31",
+          "return_pct": 65.07,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.531,
+          "trades": 16,
+          "exits": 7
+        },
+        {
+          "start": "2015-09-29",
+          "return_pct": 59.922,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.264,
+          "trades": 18,
+          "exits": 8
+        },
+        {
+          "start": "2015-10-29",
+          "return_pct": 25.959,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.733,
+          "trades": 18,
+          "exits": 8
+        },
+        {
+          "start": "2015-11-30",
+          "return_pct": 43.864,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.31,
+          "trades": 17,
+          "exits": 7
+        },
+        {
+          "start": "2015-12-29",
+          "return_pct": 26.856,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.569,
+          "trades": 17,
+          "exits": 8
+        },
+        {
+          "start": "2016-01-28",
+          "return_pct": 44.913,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.517,
+          "trades": 18,
+          "exits": 8
+        },
+        {
+          "start": "2016-02-29",
+          "return_pct": 53.435,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.911,
+          "trades": 18,
+          "exits": 8
+        },
+        {
+          "start": "2016-03-29",
+          "return_pct": 52.103,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.82,
+          "trades": 17,
+          "exits": 7
+        },
+        {
+          "start": "2016-04-28",
+          "return_pct": 50.507,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -26.903,
+          "trades": 15,
+          "exits": 5
+        },
+        {
+          "start": "2016-05-31",
+          "return_pct": 28.212,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -26.818,
+          "trades": 14,
+          "exits": 5
+        },
+        {
+          "start": "2016-06-28",
+          "return_pct": 49.365,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -29.243,
+          "trades": 15,
+          "exits": 5
+        },
+        {
+          "start": "2016-07-28",
+          "return_pct": 39.894,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.259,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2016-08-29",
+          "return_pct": 36.022,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.25,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2016-09-27",
+          "return_pct": 48.989,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.35,
+          "trades": 13,
+          "exits": 4
+        },
+        {
+          "start": "2016-10-27",
+          "return_pct": 57.981,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.63,
+          "trades": 14,
+          "exits": 5
+        },
+        {
+          "start": "2016-11-28",
+          "return_pct": 52.761,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.331,
+          "trades": 12,
+          "exits": 3
+        },
+        {
+          "start": "2016-12-28",
+          "return_pct": 50.772,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.709,
+          "trades": 13,
+          "exits": 4
+        }
+      ]
+    },
+    "discounted_cash_growth/hold_no_reinvestment": {
+      "summary": {
+        "cohorts": 60,
+        "mean_return_pct": 24.83,
+        "median_return_pct": 18.67,
+        "reached_double_pct": 0.0,
+        "ended_double_pct": 0.0,
+        "annual30_pct": 0.0,
+        "loss_pct": 6.67,
+        "worst_return_pct": -6.298,
+        "median_max_drawdown_pct": -17.42,
+        "worst_max_drawdown_pct": -34.505,
+        "mean_trades": 6.3
+      },
+      "cohorts": [
+        {
+          "start": "2012-01-27",
+          "return_pct": 15.764,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -12.082,
+          "trades": 4,
+          "exits": 0
+        },
+        {
+          "start": "2012-02-28",
+          "return_pct": 38.102,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -9.465,
+          "trades": 6,
+          "exits": 2
+        },
+        {
+          "start": "2012-03-29",
+          "return_pct": 37.969,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -11.766,
+          "trades": 7,
+          "exits": 1
+        },
+        {
+          "start": "2012-04-30",
+          "return_pct": 55.597,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.126,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2012-05-30",
+          "return_pct": 78.057,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -11.357,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2012-06-29",
+          "return_pct": 52.696,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.943,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2012-07-31",
+          "return_pct": 53.614,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -11.119,
+          "trades": 7,
+          "exits": 0
+        },
+        {
+          "start": "2012-08-30",
+          "return_pct": 12.682,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.788,
+          "trades": 4,
+          "exits": 0
+        },
+        {
+          "start": "2012-10-01",
+          "return_pct": 27.013,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.206,
+          "trades": 9,
+          "exits": 0
+        },
+        {
+          "start": "2012-11-01",
+          "return_pct": 52.904,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.607,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2012-12-03",
+          "return_pct": 55.708,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.917,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2013-01-02",
+          "return_pct": 34.125,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.313,
+          "trades": 8,
+          "exits": 0
+        },
+        {
+          "start": "2013-01-31",
+          "return_pct": 27.482,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.726,
+          "trades": 7,
+          "exits": 0
+        },
+        {
+          "start": "2013-03-04",
+          "return_pct": 9.312,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.327,
+          "trades": 6,
+          "exits": 0
+        },
+        {
+          "start": "2013-04-02",
+          "return_pct": 28.528,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.264,
+          "trades": 10,
+          "exits": 2
+        },
+        {
+          "start": "2013-05-02",
+          "return_pct": 7.041,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.796,
+          "trades": 9,
+          "exits": 1
+        },
+        {
+          "start": "2013-06-03",
+          "return_pct": 21.246,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.879,
+          "trades": 9,
+          "exits": 1
+        },
+        {
+          "start": "2013-07-02",
+          "return_pct": 37.293,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.442,
+          "trades": 7,
+          "exits": 0
+        },
+        {
+          "start": "2013-08-01",
+          "return_pct": 20.301,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -26.65,
+          "trades": 7,
+          "exits": 0
+        },
+        {
+          "start": "2013-09-03",
+          "return_pct": 18.501,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -11.14,
+          "trades": 5,
+          "exits": 1
+        },
+        {
+          "start": "2013-10-01",
+          "return_pct": 31.593,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -8.642,
+          "trades": 5,
+          "exits": 1
+        },
+        {
+          "start": "2013-10-31",
+          "return_pct": 8.964,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -12.159,
+          "trades": 5,
+          "exits": 1
+        },
+        {
+          "start": "2013-12-02",
+          "return_pct": 18.481,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.415,
+          "trades": 4,
+          "exits": 0
+        },
+        {
+          "start": "2013-12-31",
+          "return_pct": 4.91,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -10.741,
+          "trades": 4,
+          "exits": 0
+        },
+        {
+          "start": "2014-01-30",
+          "return_pct": 7.967,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -14.808,
+          "trades": 3,
+          "exits": 0
+        },
+        {
+          "start": "2014-03-03",
+          "return_pct": 44.159,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.137,
+          "trades": 6,
+          "exits": 1
+        },
+        {
+          "start": "2014-04-01",
+          "return_pct": 43.048,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -26.089,
+          "trades": 7,
+          "exits": 2
+        },
+        {
+          "start": "2014-05-01",
+          "return_pct": 17.232,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -28.619,
+          "trades": 7,
+          "exits": 2
+        },
+        {
+          "start": "2014-06-02",
+          "return_pct": 14.143,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -32.187,
+          "trades": 6,
+          "exits": 1
+        },
+        {
+          "start": "2014-07-01",
+          "return_pct": 6.007,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -26.586,
+          "trades": 6,
+          "exits": 1
+        },
+        {
+          "start": "2014-07-31",
+          "return_pct": 4.754,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -26.638,
+          "trades": 7,
+          "exits": 1
+        },
+        {
+          "start": "2014-09-02",
+          "return_pct": 18.677,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.266,
+          "trades": 7,
+          "exits": 1
+        },
+        {
+          "start": "2014-09-30",
+          "return_pct": 18.756,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -11.957,
+          "trades": 4,
+          "exits": 0
+        },
+        {
+          "start": "2014-10-30",
+          "return_pct": 18.655,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.856,
+          "trades": 6,
+          "exits": 0
+        },
+        {
+          "start": "2014-12-01",
+          "return_pct": 44.116,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.571,
+          "trades": 6,
+          "exits": 0
+        },
+        {
+          "start": "2014-12-30",
+          "return_pct": 31.495,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.88,
+          "trades": 5,
+          "exits": 0
+        },
+        {
+          "start": "2015-01-29",
+          "return_pct": 14.457,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.489,
+          "trades": 6,
+          "exits": 1
+        },
+        {
+          "start": "2015-03-02",
+          "return_pct": -6.298,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.908,
+          "trades": 7,
+          "exits": 0
+        },
+        {
+          "start": "2015-03-31",
+          "return_pct": -5.459,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.521,
+          "trades": 6,
+          "exits": 0
+        },
+        {
+          "start": "2015-04-30",
+          "return_pct": -2.963,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -14.136,
+          "trades": 3,
+          "exits": 0
+        },
+        {
+          "start": "2015-06-01",
+          "return_pct": 4.014,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -12.225,
+          "trades": 5,
+          "exits": 2
+        },
+        {
+          "start": "2015-06-30",
+          "return_pct": 9.092,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -10.123,
+          "trades": 5,
+          "exits": 2
+        },
+        {
+          "start": "2015-07-30",
+          "return_pct": 9.108,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -12.88,
+          "trades": 5,
+          "exits": 2
+        },
+        {
+          "start": "2015-08-31",
+          "return_pct": 51.195,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.453,
+          "trades": 6,
+          "exits": 0
+        },
+        {
+          "start": "2015-09-29",
+          "return_pct": 32.199,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.144,
+          "trades": 6,
+          "exits": 0
+        },
+        {
+          "start": "2015-10-29",
+          "return_pct": 10.49,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.965,
+          "trades": 2,
+          "exits": 0
+        },
+        {
+          "start": "2015-11-30",
+          "return_pct": 33.986,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.931,
+          "trades": 9,
+          "exits": 1
+        },
+        {
+          "start": "2015-12-29",
+          "return_pct": -0.264,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -32.548,
+          "trades": 9,
+          "exits": 0
+        },
+        {
+          "start": "2016-01-28",
+          "return_pct": 43.916,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.656,
+          "trades": 9,
+          "exits": 1
+        },
+        {
+          "start": "2016-02-29",
+          "return_pct": 2.617,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.505,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2016-03-29",
+          "return_pct": 14.91,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.026,
+          "trades": 7,
+          "exits": 0
+        },
+        {
+          "start": "2016-04-28",
+          "return_pct": 4.981,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.843,
+          "trades": 6,
+          "exits": 0
+        },
+        {
+          "start": "2016-05-31",
+          "return_pct": 12.642,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.768,
+          "trades": 6,
+          "exits": 1
+        },
+        {
+          "start": "2016-06-28",
+          "return_pct": 4.508,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.084,
+          "trades": 9,
+          "exits": 1
+        },
+        {
+          "start": "2016-07-28",
+          "return_pct": 10.007,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.775,
+          "trades": 6,
+          "exits": 1
+        },
+        {
+          "start": "2016-08-29",
+          "return_pct": 18.257,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.996,
+          "trades": 6,
+          "exits": 1
+        },
+        {
+          "start": "2016-09-27",
+          "return_pct": 43.83,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.908,
+          "trades": 2,
+          "exits": 1
+        },
+        {
+          "start": "2016-10-27",
+          "return_pct": 58.197,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.122,
+          "trades": 3,
+          "exits": 1
+        },
+        {
+          "start": "2016-11-28",
+          "return_pct": 51.641,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.721,
+          "trades": 1,
+          "exits": 0
+        },
+        {
+          "start": "2016-12-28",
+          "return_pct": 57.699,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.344,
+          "trades": 3,
+          "exits": 1
+        }
+      ]
+    },
+    "discounted_cash_growth/hold_add_to_empty_slots": {
+      "summary": {
+        "cohorts": 60,
+        "mean_return_pct": 40.58,
+        "median_return_pct": 39.89,
+        "reached_double_pct": 3.33,
+        "ended_double_pct": 0.0,
+        "annual30_pct": 0.0,
+        "loss_pct": 1.67,
+        "worst_return_pct": -11.331,
+        "median_max_drawdown_pct": -23.32,
+        "worst_max_drawdown_pct": -35.794,
+        "mean_trades": 11.1
+      },
+      "cohorts": [
+        {
+          "start": "2012-01-27",
+          "return_pct": 56.203,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.051,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2012-02-28",
+          "return_pct": 49.895,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.418,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2012-03-29",
+          "return_pct": 58.497,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.559,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2012-04-30",
+          "return_pct": 59.677,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.126,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2012-05-30",
+          "return_pct": 80.836,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -12.905,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2012-06-29",
+          "return_pct": 53.537,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.943,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2012-07-31",
+          "return_pct": 70.306,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -14.624,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2012-08-30",
+          "return_pct": 43.177,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.271,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2012-10-01",
+          "return_pct": 33.807,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.909,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2012-11-01",
+          "return_pct": 52.904,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.607,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2012-12-03",
+          "return_pct": 55.708,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.917,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2013-01-02",
+          "return_pct": 30.256,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.059,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2013-01-31",
+          "return_pct": 22.761,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.711,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2013-03-04",
+          "return_pct": 17.339,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.236,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2013-04-02",
+          "return_pct": 27.637,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.256,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2013-05-02",
+          "return_pct": 16.812,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.663,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2013-06-03",
+          "return_pct": 28.156,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.182,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2013-07-02",
+          "return_pct": 37.332,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.508,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2013-08-01",
+          "return_pct": 34.533,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.783,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2013-09-03",
+          "return_pct": 58.659,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.922,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2013-10-01",
+          "return_pct": 60.169,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.799,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2013-10-31",
+          "return_pct": 23.06,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.98,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2013-12-02",
+          "return_pct": 44.733,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -35.794,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2013-12-31",
+          "return_pct": 50.977,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.029,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2014-01-30",
+          "return_pct": 57.619,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -32.768,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2014-03-03",
+          "return_pct": 57.713,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -32.816,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2014-04-01",
+          "return_pct": 51.902,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -32.573,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2014-05-01",
+          "return_pct": 27.321,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.655,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2014-06-02",
+          "return_pct": 39.546,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.061,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2014-07-01",
+          "return_pct": 38.392,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.622,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2014-07-31",
+          "return_pct": 47.64,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -28.193,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2014-09-02",
+          "return_pct": 40.236,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -26.328,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2014-09-30",
+          "return_pct": 61.164,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.164,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2014-10-30",
+          "return_pct": 66.218,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -26.809,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2014-12-01",
+          "return_pct": 55.384,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.185,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2014-12-30",
+          "return_pct": 19.245,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.417,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2015-01-29",
+          "return_pct": 13.804,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.629,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2015-03-02",
+          "return_pct": 1.224,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.224,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2015-03-31",
+          "return_pct": 2.303,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.977,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2015-04-30",
+          "return_pct": 9.848,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.237,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2015-06-01",
+          "return_pct": 38.346,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.849,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2015-06-30",
+          "return_pct": 38.888,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.957,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2015-07-30",
+          "return_pct": 50.401,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.83,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2015-08-31",
+          "return_pct": 76.417,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.326,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2015-09-29",
+          "return_pct": 63.993,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.223,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2015-10-29",
+          "return_pct": 26.314,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.683,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2015-11-30",
+          "return_pct": 32.962,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.72,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2015-12-29",
+          "return_pct": 24.759,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.242,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2016-01-28",
+          "return_pct": 65.921,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -32.398,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2016-02-29",
+          "return_pct": 2.617,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.505,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2016-03-29",
+          "return_pct": 29.285,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.206,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2016-04-28",
+          "return_pct": 26.532,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.333,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2016-05-31",
+          "return_pct": -11.331,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -29.009,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2016-06-28",
+          "return_pct": 5.102,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -26.466,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2016-07-28",
+          "return_pct": 29.411,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -30.966,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2016-08-29",
+          "return_pct": 12.26,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -28.55,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2016-09-27",
+          "return_pct": 48.45,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -30.775,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2016-10-27",
+          "return_pct": 71.323,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -31.419,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2016-11-28",
+          "return_pct": 65.735,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -30.82,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2016-12-28",
+          "return_pct": 80.956,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -30.939,
+          "trades": 11,
+          "exits": 1
+        }
+      ]
+    },
+    "discounted_cash_growth/take30_reinvest": {
+      "summary": {
+        "cohorts": 60,
+        "mean_return_pct": 23.81,
+        "median_return_pct": 23.51,
+        "reached_double_pct": 0.0,
+        "ended_double_pct": 0.0,
+        "annual30_pct": 0.0,
+        "loss_pct": 13.33,
+        "worst_return_pct": -17.228,
+        "median_max_drawdown_pct": -19.9,
+        "worst_max_drawdown_pct": -30.599,
+        "mean_trades": 24.6
+      },
+      "cohorts": [
+        {
+          "start": "2012-01-27",
+          "return_pct": 39.762,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.051,
+          "trades": 24,
+          "exits": 14
+        },
+        {
+          "start": "2012-02-28",
+          "return_pct": 39.798,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.418,
+          "trades": 22,
+          "exits": 13
+        },
+        {
+          "start": "2012-03-29",
+          "return_pct": 34.184,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.559,
+          "trades": 21,
+          "exits": 12
+        },
+        {
+          "start": "2012-04-30",
+          "return_pct": 37.709,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.126,
+          "trades": 23,
+          "exits": 13
+        },
+        {
+          "start": "2012-05-30",
+          "return_pct": 72.796,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.198,
+          "trades": 31,
+          "exits": 21
+        },
+        {
+          "start": "2012-06-29",
+          "return_pct": 53.872,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -14.455,
+          "trades": 30,
+          "exits": 20
+        },
+        {
+          "start": "2012-07-31",
+          "return_pct": 71.143,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.913,
+          "trades": 36,
+          "exits": 26
+        },
+        {
+          "start": "2012-08-30",
+          "return_pct": 39.957,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.958,
+          "trades": 31,
+          "exits": 21
+        },
+        {
+          "start": "2012-10-01",
+          "return_pct": 35.505,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.889,
+          "trades": 30,
+          "exits": 20
+        },
+        {
+          "start": "2012-11-01",
+          "return_pct": 52.148,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.459,
+          "trades": 34,
+          "exits": 24
+        },
+        {
+          "start": "2012-12-03",
+          "return_pct": 45.272,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.215,
+          "trades": 31,
+          "exits": 21
+        },
+        {
+          "start": "2013-01-02",
+          "return_pct": 36.517,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.643,
+          "trades": 28,
+          "exits": 18
+        },
+        {
+          "start": "2013-01-31",
+          "return_pct": 31.625,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.224,
+          "trades": 28,
+          "exits": 18
+        },
+        {
+          "start": "2013-03-04",
+          "return_pct": 29.684,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -26.035,
+          "trades": 28,
+          "exits": 18
+        },
+        {
+          "start": "2013-04-02",
+          "return_pct": 49.439,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.504,
+          "trades": 29,
+          "exits": 19
+        },
+        {
+          "start": "2013-05-02",
+          "return_pct": 33.179,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.647,
+          "trades": 29,
+          "exits": 19
+        },
+        {
+          "start": "2013-06-03",
+          "return_pct": 23.054,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.156,
+          "trades": 23,
+          "exits": 13
+        },
+        {
+          "start": "2013-07-02",
+          "return_pct": 29.98,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.634,
+          "trades": 27,
+          "exits": 17
+        },
+        {
+          "start": "2013-08-01",
+          "return_pct": 38.075,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.039,
+          "trades": 28,
+          "exits": 18
+        },
+        {
+          "start": "2013-09-03",
+          "return_pct": 29.659,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.562,
+          "trades": 23,
+          "exits": 13
+        },
+        {
+          "start": "2013-10-01",
+          "return_pct": 22.088,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.752,
+          "trades": 20,
+          "exits": 10
+        },
+        {
+          "start": "2013-10-31",
+          "return_pct": 19.145,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.113,
+          "trades": 24,
+          "exits": 14
+        },
+        {
+          "start": "2013-12-02",
+          "return_pct": 28.97,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.441,
+          "trades": 24,
+          "exits": 15
+        },
+        {
+          "start": "2013-12-31",
+          "return_pct": 23.384,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.73,
+          "trades": 24,
+          "exits": 14
+        },
+        {
+          "start": "2014-01-30",
+          "return_pct": 23.241,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.506,
+          "trades": 24,
+          "exits": 15
+        },
+        {
+          "start": "2014-03-03",
+          "return_pct": 23.645,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.047,
+          "trades": 24,
+          "exits": 14
+        },
+        {
+          "start": "2014-04-01",
+          "return_pct": 27.025,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.456,
+          "trades": 25,
+          "exits": 15
+        },
+        {
+          "start": "2014-05-01",
+          "return_pct": 20.401,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.834,
+          "trades": 24,
+          "exits": 14
+        },
+        {
+          "start": "2014-06-02",
+          "return_pct": 12.89,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.567,
+          "trades": 21,
+          "exits": 11
+        },
+        {
+          "start": "2014-07-01",
+          "return_pct": 12.573,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.375,
+          "trades": 20,
+          "exits": 10
+        },
+        {
+          "start": "2014-07-31",
+          "return_pct": 12.734,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.207,
+          "trades": 20,
+          "exits": 11
+        },
+        {
+          "start": "2014-09-02",
+          "return_pct": -12.741,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -30.599,
+          "trades": 18,
+          "exits": 8
+        },
+        {
+          "start": "2014-09-30",
+          "return_pct": 10.138,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -26.482,
+          "trades": 21,
+          "exits": 11
+        },
+        {
+          "start": "2014-10-30",
+          "return_pct": 0.172,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.99,
+          "trades": 22,
+          "exits": 13
+        },
+        {
+          "start": "2014-12-01",
+          "return_pct": 8.54,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.913,
+          "trades": 23,
+          "exits": 15
+        },
+        {
+          "start": "2014-12-30",
+          "return_pct": -0.514,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.007,
+          "trades": 22,
+          "exits": 12
+        },
+        {
+          "start": "2015-01-29",
+          "return_pct": 1.695,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.855,
+          "trades": 21,
+          "exits": 11
+        },
+        {
+          "start": "2015-03-02",
+          "return_pct": 3.933,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.224,
+          "trades": 23,
+          "exits": 13
+        },
+        {
+          "start": "2015-03-31",
+          "return_pct": -10.149,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.747,
+          "trades": 20,
+          "exits": 10
+        },
+        {
+          "start": "2015-04-30",
+          "return_pct": -4.593,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.88,
+          "trades": 21,
+          "exits": 11
+        },
+        {
+          "start": "2015-06-01",
+          "return_pct": -0.866,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.975,
+          "trades": 20,
+          "exits": 11
+        },
+        {
+          "start": "2015-06-30",
+          "return_pct": 2.869,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.482,
+          "trades": 21,
+          "exits": 11
+        },
+        {
+          "start": "2015-07-30",
+          "return_pct": 8.097,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.542,
+          "trades": 22,
+          "exits": 12
+        },
+        {
+          "start": "2015-08-31",
+          "return_pct": 25.464,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.026,
+          "trades": 26,
+          "exits": 16
+        },
+        {
+          "start": "2015-09-29",
+          "return_pct": 26.574,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.774,
+          "trades": 27,
+          "exits": 17
+        },
+        {
+          "start": "2015-10-29",
+          "return_pct": 7.79,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.188,
+          "trades": 25,
+          "exits": 15
+        },
+        {
+          "start": "2015-11-30",
+          "return_pct": 11.202,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.373,
+          "trades": 23,
+          "exits": 13
+        },
+        {
+          "start": "2015-12-29",
+          "return_pct": 6.765,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.28,
+          "trades": 25,
+          "exits": 15
+        },
+        {
+          "start": "2016-01-28",
+          "return_pct": 17.382,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.248,
+          "trades": 26,
+          "exits": 16
+        },
+        {
+          "start": "2016-02-29",
+          "return_pct": -4.544,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -29.776,
+          "trades": 20,
+          "exits": 10
+        },
+        {
+          "start": "2016-03-29",
+          "return_pct": 22.309,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.252,
+          "trades": 23,
+          "exits": 13
+        },
+        {
+          "start": "2016-04-28",
+          "return_pct": 24.773,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.484,
+          "trades": 24,
+          "exits": 14
+        },
+        {
+          "start": "2016-05-31",
+          "return_pct": 11.767,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.565,
+          "trades": 26,
+          "exits": 16
+        },
+        {
+          "start": "2016-06-28",
+          "return_pct": 27.458,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.985,
+          "trades": 26,
+          "exits": 16
+        },
+        {
+          "start": "2016-07-28",
+          "return_pct": -3.826,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.44,
+          "trades": 20,
+          "exits": 10
+        },
+        {
+          "start": "2016-08-29",
+          "return_pct": -17.228,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.261,
+          "trades": 18,
+          "exits": 8
+        },
+        {
+          "start": "2016-09-27",
+          "return_pct": 42.785,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.698,
+          "trades": 27,
+          "exits": 18
+        },
+        {
+          "start": "2016-10-27",
+          "return_pct": 44.667,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.245,
+          "trades": 25,
+          "exits": 15
+        },
+        {
+          "start": "2016-11-28",
+          "return_pct": 61.299,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.824,
+          "trades": 26,
+          "exits": 17
+        },
+        {
+          "start": "2016-12-28",
+          "return_pct": 68.199,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.8,
+          "trades": 27,
+          "exits": 17
+        }
+      ]
+    },
+    "discounted_cash_growth/take100_reinvest": {
+      "summary": {
+        "cohorts": 60,
+        "mean_return_pct": 39.96,
+        "median_return_pct": 38.51,
+        "reached_double_pct": 1.67,
+        "ended_double_pct": 0.0,
+        "annual30_pct": 0.0,
+        "loss_pct": 5.0,
+        "worst_return_pct": -15.178,
+        "median_max_drawdown_pct": -21.03,
+        "worst_max_drawdown_pct": -34.805,
+        "mean_trades": 14.9
+      },
+      "cohorts": [
+        {
+          "start": "2012-01-27",
+          "return_pct": 52.235,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.051,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2012-02-28",
+          "return_pct": 45.668,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.418,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2012-03-29",
+          "return_pct": 46.274,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.559,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2012-04-30",
+          "return_pct": 49.176,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.126,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2012-05-30",
+          "return_pct": 77.715,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.534,
+          "trades": 15,
+          "exits": 5
+        },
+        {
+          "start": "2012-06-29",
+          "return_pct": 51.553,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -14.812,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2012-07-31",
+          "return_pct": 86.901,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.867,
+          "trades": 17,
+          "exits": 7
+        },
+        {
+          "start": "2012-08-30",
+          "return_pct": 52.361,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.531,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2012-10-01",
+          "return_pct": 71.392,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -12.759,
+          "trades": 15,
+          "exits": 5
+        },
+        {
+          "start": "2012-11-01",
+          "return_pct": 70.126,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -14.497,
+          "trades": 17,
+          "exits": 7
+        },
+        {
+          "start": "2012-12-03",
+          "return_pct": 77.744,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.71,
+          "trades": 17,
+          "exits": 7
+        },
+        {
+          "start": "2013-01-02",
+          "return_pct": 11.239,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -29.152,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2013-01-31",
+          "return_pct": 7.743,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -32.17,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2013-03-04",
+          "return_pct": 17.343,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.352,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2013-04-02",
+          "return_pct": 29.69,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.006,
+          "trades": 15,
+          "exits": 5
+        },
+        {
+          "start": "2013-05-02",
+          "return_pct": 23.04,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.326,
+          "trades": 15,
+          "exits": 5
+        },
+        {
+          "start": "2013-06-03",
+          "return_pct": 31.882,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.547,
+          "trades": 16,
+          "exits": 6
+        },
+        {
+          "start": "2013-07-02",
+          "return_pct": 38.189,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.582,
+          "trades": 16,
+          "exits": 6
+        },
+        {
+          "start": "2013-08-01",
+          "return_pct": 38.834,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.293,
+          "trades": 15,
+          "exits": 5
+        },
+        {
+          "start": "2013-09-03",
+          "return_pct": 55.674,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.696,
+          "trades": 17,
+          "exits": 7
+        },
+        {
+          "start": "2013-10-01",
+          "return_pct": 53.026,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.547,
+          "trades": 18,
+          "exits": 8
+        },
+        {
+          "start": "2013-10-31",
+          "return_pct": 35.821,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.913,
+          "trades": 16,
+          "exits": 6
+        },
+        {
+          "start": "2013-12-02",
+          "return_pct": 54.66,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.925,
+          "trades": 16,
+          "exits": 6
+        },
+        {
+          "start": "2013-12-31",
+          "return_pct": 58.255,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.4,
+          "trades": 15,
+          "exits": 5
+        },
+        {
+          "start": "2014-01-30",
+          "return_pct": 74.614,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.653,
+          "trades": 15,
+          "exits": 5
+        },
+        {
+          "start": "2014-03-03",
+          "return_pct": 71.625,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.25,
+          "trades": 16,
+          "exits": 6
+        },
+        {
+          "start": "2014-04-01",
+          "return_pct": 56.049,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.494,
+          "trades": 15,
+          "exits": 5
+        },
+        {
+          "start": "2014-05-01",
+          "return_pct": 50.504,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.985,
+          "trades": 13,
+          "exits": 4
+        },
+        {
+          "start": "2014-06-02",
+          "return_pct": 31.501,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.163,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2014-07-01",
+          "return_pct": 28.443,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.346,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2014-07-31",
+          "return_pct": 27.398,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.744,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2014-09-02",
+          "return_pct": 25.595,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.863,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2014-09-30",
+          "return_pct": 46.317,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.414,
+          "trades": 15,
+          "exits": 5
+        },
+        {
+          "start": "2014-10-30",
+          "return_pct": 57.665,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.013,
+          "trades": 16,
+          "exits": 6
+        },
+        {
+          "start": "2014-12-01",
+          "return_pct": 54.758,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.404,
+          "trades": 15,
+          "exits": 6
+        },
+        {
+          "start": "2014-12-30",
+          "return_pct": 16.516,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.417,
+          "trades": 14,
+          "exits": 5
+        },
+        {
+          "start": "2015-01-29",
+          "return_pct": 25.139,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.629,
+          "trades": 16,
+          "exits": 6
+        },
+        {
+          "start": "2015-03-02",
+          "return_pct": 7.797,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.224,
+          "trades": 15,
+          "exits": 5
+        },
+        {
+          "start": "2015-03-31",
+          "return_pct": 29.838,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.977,
+          "trades": 15,
+          "exits": 6
+        },
+        {
+          "start": "2015-04-30",
+          "return_pct": 33.021,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.197,
+          "trades": 16,
+          "exits": 6
+        },
+        {
+          "start": "2015-06-01",
+          "return_pct": 66.795,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.016,
+          "trades": 18,
+          "exits": 8
+        },
+        {
+          "start": "2015-06-30",
+          "return_pct": 67.897,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.117,
+          "trades": 18,
+          "exits": 8
+        },
+        {
+          "start": "2015-07-30",
+          "return_pct": 59.021,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.331,
+          "trades": 18,
+          "exits": 8
+        },
+        {
+          "start": "2015-08-31",
+          "return_pct": 79.323,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.128,
+          "trades": 18,
+          "exits": 8
+        },
+        {
+          "start": "2015-09-29",
+          "return_pct": 54.002,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.227,
+          "trades": 18,
+          "exits": 8
+        },
+        {
+          "start": "2015-10-29",
+          "return_pct": 32.745,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.842,
+          "trades": 16,
+          "exits": 6
+        },
+        {
+          "start": "2015-11-30",
+          "return_pct": 31.596,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.965,
+          "trades": 15,
+          "exits": 5
+        },
+        {
+          "start": "2015-12-29",
+          "return_pct": 9.901,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.127,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2016-01-28",
+          "return_pct": 40.657,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.407,
+          "trades": 16,
+          "exits": 6
+        },
+        {
+          "start": "2016-02-29",
+          "return_pct": 13.229,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -26.146,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2016-03-29",
+          "return_pct": 34.873,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.818,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2016-04-28",
+          "return_pct": 29.09,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.383,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2016-05-31",
+          "return_pct": -14.564,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.41,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2016-06-28",
+          "return_pct": -0.536,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.065,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2016-07-28",
+          "return_pct": 1.5,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.416,
+          "trades": 16,
+          "exits": 6
+        },
+        {
+          "start": "2016-08-29",
+          "return_pct": -15.178,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.805,
+          "trades": 15,
+          "exits": 5
+        },
+        {
+          "start": "2016-09-27",
+          "return_pct": 24.017,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.75,
+          "trades": 17,
+          "exits": 7
+        },
+        {
+          "start": "2016-10-27",
+          "return_pct": 30.854,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.836,
+          "trades": 15,
+          "exits": 5
+        },
+        {
+          "start": "2016-11-28",
+          "return_pct": 35.631,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.529,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2016-12-28",
+          "return_pct": 43.409,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.441,
+          "trades": 14,
+          "exits": 4
+        }
+      ]
+    },
+    "discounted_cash_growth/take100_stop30_reinvest": {
+      "summary": {
+        "cohorts": 60,
+        "mean_return_pct": 47.76,
+        "median_return_pct": 45.68,
+        "reached_double_pct": 6.67,
+        "ended_double_pct": 0.0,
+        "annual30_pct": 0.0,
+        "loss_pct": 0.0,
+        "worst_return_pct": 10.765,
+        "median_max_drawdown_pct": -20.79,
+        "worst_max_drawdown_pct": -29.718,
+        "mean_trades": 23.6
+      },
+      "cohorts": [
+        {
+          "start": "2012-01-27",
+          "return_pct": 55.405,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.416,
+          "trades": 18,
+          "exits": 8
+        },
+        {
+          "start": "2012-02-28",
+          "return_pct": 45.361,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.418,
+          "trades": 16,
+          "exits": 6
+        },
+        {
+          "start": "2012-03-29",
+          "return_pct": 42.621,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.634,
+          "trades": 16,
+          "exits": 6
+        },
+        {
+          "start": "2012-04-30",
+          "return_pct": 43.119,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.19,
+          "trades": 16,
+          "exits": 6
+        },
+        {
+          "start": "2012-05-30",
+          "return_pct": 78.118,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -11.873,
+          "trades": 17,
+          "exits": 7
+        },
+        {
+          "start": "2012-06-29",
+          "return_pct": 54.061,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -14.812,
+          "trades": 14,
+          "exits": 5
+        },
+        {
+          "start": "2012-07-31",
+          "return_pct": 86.901,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.867,
+          "trades": 17,
+          "exits": 7
+        },
+        {
+          "start": "2012-08-30",
+          "return_pct": 51.809,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.531,
+          "trades": 14,
+          "exits": 5
+        },
+        {
+          "start": "2012-10-01",
+          "return_pct": 69.429,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.126,
+          "trades": 17,
+          "exits": 7
+        },
+        {
+          "start": "2012-11-01",
+          "return_pct": 71.107,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.007,
+          "trades": 21,
+          "exits": 11
+        },
+        {
+          "start": "2012-12-03",
+          "return_pct": 76.587,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.815,
+          "trades": 21,
+          "exits": 11
+        },
+        {
+          "start": "2013-01-02",
+          "return_pct": 13.553,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.306,
+          "trades": 16,
+          "exits": 6
+        },
+        {
+          "start": "2013-01-31",
+          "return_pct": 18.165,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.504,
+          "trades": 18,
+          "exits": 8
+        },
+        {
+          "start": "2013-03-04",
+          "return_pct": 29.628,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.464,
+          "trades": 19,
+          "exits": 9
+        },
+        {
+          "start": "2013-04-02",
+          "return_pct": 41.652,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.883,
+          "trades": 20,
+          "exits": 10
+        },
+        {
+          "start": "2013-05-02",
+          "return_pct": 27.01,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.991,
+          "trades": 22,
+          "exits": 12
+        },
+        {
+          "start": "2013-06-03",
+          "return_pct": 39.61,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.001,
+          "trades": 22,
+          "exits": 12
+        },
+        {
+          "start": "2013-07-02",
+          "return_pct": 42.701,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.111,
+          "trades": 21,
+          "exits": 11
+        },
+        {
+          "start": "2013-08-01",
+          "return_pct": 54.894,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.552,
+          "trades": 20,
+          "exits": 10
+        },
+        {
+          "start": "2013-09-03",
+          "return_pct": 55.338,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.796,
+          "trades": 22,
+          "exits": 12
+        },
+        {
+          "start": "2013-10-01",
+          "return_pct": 51.689,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.711,
+          "trades": 25,
+          "exits": 16
+        },
+        {
+          "start": "2013-10-31",
+          "return_pct": 31.873,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.837,
+          "trades": 25,
+          "exits": 15
+        },
+        {
+          "start": "2013-12-02",
+          "return_pct": 56.34,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.876,
+          "trades": 24,
+          "exits": 15
+        },
+        {
+          "start": "2013-12-31",
+          "return_pct": 50.164,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -26.724,
+          "trades": 22,
+          "exits": 12
+        },
+        {
+          "start": "2014-01-30",
+          "return_pct": 63.087,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.161,
+          "trades": 21,
+          "exits": 11
+        },
+        {
+          "start": "2014-03-03",
+          "return_pct": 70.066,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.28,
+          "trades": 23,
+          "exits": 13
+        },
+        {
+          "start": "2014-04-01",
+          "return_pct": 58.014,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.171,
+          "trades": 22,
+          "exits": 12
+        },
+        {
+          "start": "2014-05-01",
+          "return_pct": 53.352,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.894,
+          "trades": 21,
+          "exits": 12
+        },
+        {
+          "start": "2014-06-02",
+          "return_pct": 50.795,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.423,
+          "trades": 23,
+          "exits": 13
+        },
+        {
+          "start": "2014-07-01",
+          "return_pct": 32.656,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.588,
+          "trades": 27,
+          "exits": 19
+        },
+        {
+          "start": "2014-07-31",
+          "return_pct": 36.458,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.258,
+          "trades": 25,
+          "exits": 15
+        },
+        {
+          "start": "2014-09-02",
+          "return_pct": 31.016,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.2,
+          "trades": 28,
+          "exits": 18
+        },
+        {
+          "start": "2014-09-30",
+          "return_pct": 47.722,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.669,
+          "trades": 31,
+          "exits": 21
+        },
+        {
+          "start": "2014-10-30",
+          "return_pct": 46.0,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -26.328,
+          "trades": 27,
+          "exits": 18
+        },
+        {
+          "start": "2014-12-01",
+          "return_pct": 40.343,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -26.694,
+          "trades": 25,
+          "exits": 18
+        },
+        {
+          "start": "2014-12-30",
+          "return_pct": 29.496,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.564,
+          "trades": 29,
+          "exits": 21
+        },
+        {
+          "start": "2015-01-29",
+          "return_pct": 27.349,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.43,
+          "trades": 31,
+          "exits": 23
+        },
+        {
+          "start": "2015-03-02",
+          "return_pct": 30.037,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.775,
+          "trades": 31,
+          "exits": 23
+        },
+        {
+          "start": "2015-03-31",
+          "return_pct": 54.154,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.377,
+          "trades": 29,
+          "exits": 19
+        },
+        {
+          "start": "2015-04-30",
+          "return_pct": 77.812,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.007,
+          "trades": 28,
+          "exits": 18
+        },
+        {
+          "start": "2015-06-01",
+          "return_pct": 69.756,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.35,
+          "trades": 32,
+          "exits": 22
+        },
+        {
+          "start": "2015-06-30",
+          "return_pct": 78.219,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.183,
+          "trades": 29,
+          "exits": 19
+        },
+        {
+          "start": "2015-07-30",
+          "return_pct": 84.787,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.331,
+          "trades": 29,
+          "exits": 19
+        },
+        {
+          "start": "2015-08-31",
+          "return_pct": 88.128,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -13.128,
+          "trades": 28,
+          "exits": 18
+        },
+        {
+          "start": "2015-09-29",
+          "return_pct": 97.398,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.227,
+          "trades": 26,
+          "exits": 16
+        },
+        {
+          "start": "2015-10-29",
+          "return_pct": 29.727,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.663,
+          "trades": 25,
+          "exits": 16
+        },
+        {
+          "start": "2015-11-30",
+          "return_pct": 53.498,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.67,
+          "trades": 26,
+          "exits": 16
+        },
+        {
+          "start": "2015-12-29",
+          "return_pct": 28.9,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.234,
+          "trades": 23,
+          "exits": 16
+        },
+        {
+          "start": "2016-01-28",
+          "return_pct": 50.578,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.733,
+          "trades": 32,
+          "exits": 22
+        },
+        {
+          "start": "2016-02-29",
+          "return_pct": 32.133,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.332,
+          "trades": 26,
+          "exits": 17
+        },
+        {
+          "start": "2016-03-29",
+          "return_pct": 42.16,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -29.718,
+          "trades": 23,
+          "exits": 13
+        },
+        {
+          "start": "2016-04-28",
+          "return_pct": 41.195,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.115,
+          "trades": 21,
+          "exits": 11
+        },
+        {
+          "start": "2016-05-31",
+          "return_pct": 10.765,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.704,
+          "trades": 27,
+          "exits": 18
+        },
+        {
+          "start": "2016-06-28",
+          "return_pct": 22.894,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.271,
+          "trades": 29,
+          "exits": 19
+        },
+        {
+          "start": "2016-07-28",
+          "return_pct": 17.965,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.34,
+          "trades": 27,
+          "exits": 17
+        },
+        {
+          "start": "2016-08-29",
+          "return_pct": 12.977,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.129,
+          "trades": 27,
+          "exits": 19
+        },
+        {
+          "start": "2016-09-27",
+          "return_pct": 33.396,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.762,
+          "trades": 26,
+          "exits": 16
+        },
+        {
+          "start": "2016-10-27",
+          "return_pct": 44.574,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.596,
+          "trades": 26,
+          "exits": 16
+        },
+        {
+          "start": "2016-11-28",
+          "return_pct": 41.577,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.485,
+          "trades": 24,
+          "exits": 15
+        },
+        {
+          "start": "2016-12-28",
+          "return_pct": 49.744,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.405,
+          "trades": 25,
+          "exits": 15
+        }
+      ]
+    }
+  },
+  "spy_benchmark": {
+    "cohorts": 60,
+    "mean_return_pct": 42.87,
+    "median_return_pct": 39.24,
+    "ended_double_pct": 0.0,
+    "worst_return_pct": 26.39
+  }
+}

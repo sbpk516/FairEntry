@@ -1,0 +1,3200 @@
+{
+  "generated_at": "2026-10-07T13:34:35.673472+00:00",
+  "rules": {
+    "current_quality50": "Current rules: Q\u226550, strength/growth\u226570, fair value, historical ROIC direction, no veto.",
+    "quality_growth": "Q\u226570, strength\u226570, growth\u226570; no fixed-multiple fair-value requirement.",
+    "balanced_growth": "Q\u226550, strength\u226570, growth\u226570, market confirmation\u226560.",
+    "quality_momentum": "Q\u226550, strength\u226560, growth\u226560, confirmation\u226575, price above 200-day average.",
+    "growth_acceleration": "Sales growth\u226520%, reported EPS growth\u226520%, growth accelerating, positive FCF margin, dilution\u22645%, strength\u226560.",
+    "durable_compounder": "Three-year sales and EPS CAGR\u226515%, ROIC\u226515%, positive FCF, strength\u226570.",
+    "growth_at_reasonable_pe": "Sales growth\u226515%, reported EPS growth\u226515%, trailing P/E 0\u201340, FCF margin\u22655%, strength\u226570.",
+    "cash_compounder": "ROIC\u226515%, FCF margin\u226510%, sales growth\u226515%, at least 75% of recorded quarters FCF-positive, strength\u226570.",
+    "profitable_hypergrowth": "Sales growth\u226530%, operating margin\u226510%, P/S\u226415, dilution\u22645%, strength\u226570.",
+    "recovery_momentum": "Q\u226540, strength\u226570, growth\u226580, positive operating margin and price above 200-day average.",
+    "discounted_cash_growth": "Q\u226550, strength\u226570, growth\u226550, positive FCF margin and model upside\u226530%.",
+    "high_selectivity": "Q\u226585, strength\u226585, growth\u226585, confirmation\u226570."
+  },
+  "splits": {
+    "development": [
+      "1998-01-01",
+      "2009-01-01"
+    ],
+    "validation": [
+      "2012-01-01",
+      "2017-01-01"
+    ],
+    "test": [
+      "2020-01-01",
+      "2023-08-08"
+    ]
+  },
+  "observations": 67070,
+  "policies": {
+    "current_quality50": {
+      "development": {
+        "n": 94,
+        "issuers": 89,
+        "hit30_1_pct": 60.64,
+        "hit30_2_pct": 69.15,
+        "hit30_3_pct": 73.4,
+        "hit100_1_pct": 7.45,
+        "hit100_2_pct": 15.96,
+        "hit100_3_pct": 24.47,
+        "hit200_1_pct": 0.0,
+        "hit200_2_pct": 3.19,
+        "hit200_3_pct": 6.38,
+        "hit400_1_pct": 0.0,
+        "hit400_2_pct": 0.0,
+        "hit400_3_pct": 2.13,
+        "annual30_pct": 1.06,
+        "hold_return": {
+          "mean": 19.1,
+          "median": 0.59,
+          "doubled_pct": 10.64,
+          "loss_pct": 50.0,
+          "loss30_pct": 31.91,
+          "worst": -90.96
+        },
+        "exit30": {
+          "mean": 12.26,
+          "median": 29.6,
+          "doubled_pct": 0.0,
+          "loss_pct": 24.47,
+          "loss30_pct": 17.02,
+          "worst": -90.96
+        },
+        "exit100": {
+          "mean": 15.29,
+          "median": 5.86,
+          "doubled_pct": 12.77,
+          "loss_pct": 45.74,
+          "loss30_pct": 30.85,
+          "worst": -90.96
+        },
+        "stop30_exit100": {
+          "mean": 5.18,
+          "median": -27.52,
+          "doubled_pct": 8.51,
+          "loss_pct": 62.77,
+          "loss30_pct": 43.62,
+          "worst": -49.13
+        },
+        "hit100_3_ci90": [
+          17.96,
+          32.41
+        ],
+        "hit30_3_ci90": [
+          65.33,
+          80.17
+        ],
+        "median_worst_loss": -47.99,
+        "median_max_drawdown": -60.51,
+        "worst_max_drawdown": -96.2,
+        "median_days_to_double": 601
+      },
+      "validation": {
+        "n": 54,
+        "issuers": 53,
+        "hit30_1_pct": 40.74,
+        "hit30_2_pct": 72.22,
+        "hit30_3_pct": 83.33,
+        "hit100_1_pct": 9.26,
+        "hit100_2_pct": 14.81,
+        "hit100_3_pct": 27.78,
+        "hit200_1_pct": 0.0,
+        "hit200_2_pct": 3.7,
+        "hit200_3_pct": 5.56,
+        "hit400_1_pct": 0.0,
+        "hit400_2_pct": 0.0,
+        "hit400_3_pct": 0.0,
+        "annual30_pct": 0.0,
+        "hold_return": {
+          "mean": 45.27,
+          "median": 34.63,
+          "doubled_pct": 14.81,
+          "loss_pct": 20.37,
+          "loss30_pct": 9.26,
+          "worst": -91.92
+        },
+        "exit30": {
+          "mean": 25.52,
+          "median": 30.86,
+          "doubled_pct": 0.0,
+          "loss_pct": 9.26,
+          "loss30_pct": 1.85,
+          "worst": -33.79
+        },
+        "exit100": {
+          "mean": 43.18,
+          "median": 42.49,
+          "doubled_pct": 22.22,
+          "loss_pct": 18.52,
+          "loss30_pct": 9.26,
+          "worst": -91.92
+        },
+        "stop30_exit100": {
+          "mean": 36.97,
+          "median": 34.63,
+          "doubled_pct": 22.22,
+          "loss_pct": 29.63,
+          "loss30_pct": 18.52,
+          "worst": -47.75
+        },
+        "hit100_3_ci90": [
+          19.0,
+          38.68
+        ],
+        "hit30_3_ci90": [
+          73.45,
+          90.04
+        ],
+        "median_worst_loss": -14.57,
+        "median_max_drawdown": -33.44,
+        "worst_max_drawdown": -94.01,
+        "median_days_to_double": 665
+      },
+      "test": {
+        "n": 67,
+        "issuers": 67,
+        "hit30_1_pct": 53.73,
+        "hit30_2_pct": 68.66,
+        "hit30_3_pct": 74.63,
+        "hit100_1_pct": 13.43,
+        "hit100_2_pct": 28.36,
+        "hit100_3_pct": 37.31,
+        "hit200_1_pct": 0.0,
+        "hit200_2_pct": 5.97,
+        "hit200_3_pct": 10.45,
+        "hit400_1_pct": 0.0,
+        "hit400_2_pct": 0.0,
+        "hit400_3_pct": 2.99,
+        "annual30_pct": 1.49,
+        "hold_return": {
+          "mean": 47.82,
+          "median": 8.0,
+          "doubled_pct": 14.93,
+          "loss_pct": 38.81,
+          "loss30_pct": 16.42,
+          "worst": -94.19
+        },
+        "exit30": {
+          "mean": 19.28,
+          "median": 30.59,
+          "doubled_pct": 0.0,
+          "loss_pct": 16.42,
+          "loss30_pct": 10.45,
+          "worst": -64.19
+        },
+        "exit100": {
+          "mean": 30.53,
+          "median": 12.35,
+          "doubled_pct": 23.88,
+          "loss_pct": 35.82,
+          "loss30_pct": 16.42,
+          "worst": -94.19
+        },
+        "stop30_exit100": {
+          "mean": 18.08,
+          "median": -6.73,
+          "doubled_pct": 17.91,
+          "loss_pct": 53.73,
+          "loss30_pct": 29.85,
+          "worst": -44.17
+        },
+        "hit100_3_ci90": [
+          28.26,
+          47.35
+        ],
+        "hit30_3_ci90": [
+          65.04,
+          82.3
+        ],
+        "median_worst_loss": -28.81,
+        "median_max_drawdown": -48.83,
+        "worst_max_drawdown": -96.74,
+        "median_days_to_double": 430
+      },
+      "test_portfolio": {
+        "cohorts": 42,
+        "minimum_positions": 3,
+        "median_positions": 8.0,
+        "hold_return": {
+          "mean_return": 21.14,
+          "median_return": 13.09,
+          "doubled_pct": 0.0,
+          "worst_return": -26.04
+        },
+        "exit30": {
+          "mean_return": 9.37,
+          "median_return": 12.77,
+          "doubled_pct": 0.0,
+          "worst_return": -21.76
+        },
+        "exit100": {
+          "mean_return": 22.14,
+          "median_return": 17.44,
+          "doubled_pct": 0.0,
+          "worst_return": -26.04
+        },
+        "stop30_exit100": {
+          "mean_return": 14.82,
+          "median_return": 6.88,
+          "doubled_pct": 0.0,
+          "worst_return": -27.62
+        },
+        "note": "Monthly start cohorts overlap. 10 equal 10% slots, cash for missing slots; no reinvestment after exit. These are terminal portfolio returns, not daily portfolio drawdowns. Months with zero qualifying names are omitted."
+      },
+      "test_by_sector": {
+        "Consumer Cyclical": {
+          "n": 27,
+          "issuers": 27,
+          "hit30_1_pct": 62.96,
+          "hit30_2_pct": 81.48,
+          "hit30_3_pct": 88.89,
+          "hit100_1_pct": 14.81,
+          "hit100_2_pct": 37.04,
+          "hit100_3_pct": 51.85,
+          "hit200_1_pct": 0.0,
+          "hit200_2_pct": 7.41,
+          "hit200_3_pct": 11.11,
+          "hit400_1_pct": 0.0,
+          "hit400_2_pct": 0.0,
+          "hit400_3_pct": 0.0,
+          "annual30_pct": 0.0,
+          "hold_return": {
+            "mean": 48.51,
+            "median": 45.18,
+            "doubled_pct": 14.81,
+            "loss_pct": 29.63,
+            "loss30_pct": 11.11,
+            "worst": -72.26
+          },
+          "exit30": {
+            "mean": 24.84,
+            "median": 30.9,
+            "doubled_pct": 0.0,
+            "loss_pct": 11.11,
+            "loss30_pct": 7.41,
+            "worst": -53.74
+          },
+          "exit100": {
+            "mean": 50.03,
+            "median": 88.38,
+            "doubled_pct": 29.63,
+            "loss_pct": 29.63,
+            "loss30_pct": 11.11,
+            "worst": -72.26
+          },
+          "stop30_exit100": {
+            "mean": 33.67,
+            "median": 35.27,
+            "doubled_pct": 22.22,
+            "loss_pct": 48.15,
+            "loss30_pct": 40.74,
+            "worst": -44.17
+          },
+          "hit100_3_ci90": [
+            36.6,
+            66.76
+          ],
+          "hit30_3_ci90": [
+            75.22,
+            95.47
+          ],
+          "median_worst_loss": -20.87,
+          "median_max_drawdown": -45.12,
+          "worst_max_drawdown": -84.46,
+          "median_days_to_double": 494.0
+        },
+        "Technology": {
+          "n": 35,
+          "issuers": 35,
+          "hit30_1_pct": 45.71,
+          "hit30_2_pct": 60.0,
+          "hit30_3_pct": 62.86,
+          "hit100_1_pct": 8.57,
+          "hit100_2_pct": 20.0,
+          "hit100_3_pct": 25.71,
+          "hit200_1_pct": 0.0,
+          "hit200_2_pct": 2.86,
+          "hit200_3_pct": 8.57,
+          "hit400_1_pct": 0.0,
+          "hit400_2_pct": 0.0,
+          "hit400_3_pct": 2.86,
+          "annual30_pct": 0.0,
+          "hold_return": {
+            "mean": 28.75,
+            "median": 1.03,
+            "doubled_pct": 11.43,
+            "loss_pct": 48.57,
+            "loss30_pct": 22.86,
+            "worst": -94.19
+          },
+          "exit30": {
+            "mean": 13.51,
+            "median": 29.93,
+            "doubled_pct": 0.0,
+            "loss_pct": 22.86,
+            "loss30_pct": 14.29,
+            "worst": -64.19
+          },
+          "exit100": {
+            "mean": 13.78,
+            "median": 3.38,
+            "doubled_pct": 20.0,
+            "loss_pct": 42.86,
+            "loss30_pct": 22.86,
+            "worst": -94.19
+          },
+          "stop30_exit100": {
+            "mean": 2.72,
+            "median": -27.24,
+            "doubled_pct": 14.29,
+            "loss_pct": 62.86,
+            "loss30_pct": 22.86,
+            "worst": -38.33
+          },
+          "hit100_3_ci90": [
+            15.62,
+            39.29
+          ],
+          "hit30_3_ci90": [
+            48.96,
+            74.91
+          ],
+          "median_worst_loss": -31.93,
+          "median_max_drawdown": -52.05,
+          "worst_max_drawdown": -96.74,
+          "median_days_to_double": 444
+        },
+        "Communication Services": {
+          "n": 5,
+          "issuers": 5,
+          "hit30_1_pct": 60.0,
+          "hit30_2_pct": 60.0,
+          "hit30_3_pct": 80.0,
+          "hit100_1_pct": 40.0,
+          "hit100_2_pct": 40.0,
+          "hit100_3_pct": 40.0,
+          "hit200_1_pct": 0.0,
+          "hit200_2_pct": 20.0,
+          "hit200_3_pct": 20.0,
+          "hit400_1_pct": 0.0,
+          "hit400_2_pct": 0.0,
+          "hit400_3_pct": 20.0,
+          "annual30_pct": 20.0,
+          "hold_return": {
+            "mean": 177.58,
+            "median": 30.9,
+            "doubled_pct": 40.0,
+            "loss_pct": 20.0,
+            "loss30_pct": 0.0,
+            "worst": -25.97
+          },
+          "exit30": {
+            "mean": 29.57,
+            "median": 31.31,
+            "doubled_pct": 0.0,
+            "loss_pct": 0.0,
+            "loss30_pct": 0.0,
+            "worst": 6.9
+          },
+          "exit100": {
+            "mean": 42.5,
+            "median": 30.9,
+            "doubled_pct": 20.0,
+            "loss_pct": 20.0,
+            "loss30_pct": 0.0,
+            "worst": -25.97
+          },
+          "stop30_exit100": {
+            "mean": 41.43,
+            "median": 30.9,
+            "doubled_pct": 20.0,
+            "loss_pct": 20.0,
+            "loss30_pct": 20.0,
+            "worst": -31.32
+          },
+          "hit100_3_ci90": [
+            14.27,
+            72.75
+          ],
+          "hit30_3_ci90": [
+            43.53,
+            95.4
+          ],
+          "median_worst_loss": -7.92,
+          "median_max_drawdown": -23.88,
+          "worst_max_drawdown": -59.16,
+          "median_days_to_double": 249.5
+        }
+      },
+      "test_by_year": {
+        "2020": {
+          "n": 16,
+          "issuers": 16,
+          "hit30_1_pct": 68.75,
+          "hit30_2_pct": 68.75,
+          "hit30_3_pct": 68.75,
+          "hit100_1_pct": 25.0,
+          "hit100_2_pct": 25.0,
+          "hit100_3_pct": 31.25,
+          "hit200_1_pct": 0.0,
+          "hit200_2_pct": 6.25,
+          "hit200_3_pct": 6.25,
+          "hit400_1_pct": 0.0,
+          "hit400_2_pct": 0.0,
+          "hit400_3_pct": 0.0,
+          "annual30_pct": 0.0,
+          "hold_return": {
+            "mean": 27.05,
+            "median": 7.45,
+            "doubled_pct": 12.5,
+            "loss_pct": 31.25,
+            "loss30_pct": 18.75,
+            "worst": -72.26
+          },
+          "exit30": {
+            "mean": 18.21,
+            "median": 28.0,
+            "doubled_pct": 0.0,
+            "loss_pct": 12.5,
+            "loss30_pct": 12.5,
+            "worst": -47.03
+          },
+          "exit100": {
+            "mean": 28.13,
+            "median": 7.45,
+            "doubled_pct": 12.5,
+            "loss_pct": 31.25,
+            "loss30_pct": 18.75,
+            "worst": -72.26
+          },
+          "stop30_exit100": {
+            "mean": 30.78,
+            "median": 7.45,
+            "doubled_pct": 12.5,
+            "loss_pct": 31.25,
+            "loss30_pct": 25.0,
+            "worst": -44.17
+          },
+          "hit100_3_ci90": [
+            16.13,
+            51.8
+          ],
+          "hit30_3_ci90": [
+            48.2,
+            83.87
+          ],
+          "median_worst_loss": -19.28,
+          "median_max_drawdown": -52.52,
+          "worst_max_drawdown": -84.46,
+          "median_days_to_double": 274
+        },
+        "2021": {
+          "n": 14,
+          "issuers": 14,
+          "hit30_1_pct": 21.43,
+          "hit30_2_pct": 42.86,
+          "hit30_3_pct": 57.14,
+          "hit100_1_pct": 0.0,
+          "hit100_2_pct": 7.14,
+          "hit100_3_pct": 14.29,
+          "hit200_1_pct": 0.0,
+          "hit200_2_pct": 0.0,
+          "hit200_3_pct": 7.14,
+          "hit400_1_pct": 0.0,
+          "hit400_2_pct": 0.0,
+          "hit400_3_pct": 0.0,
+          "annual30_pct": 0.0,
+          "hold_return": {
+            "mean": 14.18,
+            "median": -6.05,
+            "doubled_pct": 7.14,
+            "loss_pct": 50.0,
+            "loss30_pct": 14.29,
+            "worst": -64.19
+          },
+          "exit30": {
+            "mean": 7.84,
+            "median": 29.98,
+            "doubled_pct": 0.0,
+            "loss_pct": 35.71,
+            "loss30_pct": 14.29,
+            "worst": -64.19
+          },
+          "exit100": {
+            "mean": 7.94,
+            "median": -6.05,
+            "doubled_pct": 14.29,
+            "loss_pct": 50.0,
+            "loss30_pct": 14.29,
+            "worst": -64.19
+          },
+          "stop30_exit100": {
+            "mean": -26.9,
+            "median": -31.42,
+            "doubled_pct": 0.0,
+            "loss_pct": 92.86,
+            "loss30_pct": 57.14,
+            "worst": -38.31
+          },
+          "hit100_3_ci90": [
+            4.85,
+            35.29
+          ],
+          "hit30_3_ci90": [
+            36.04,
+            75.94
+          ],
+          "median_worst_loss": -43.73,
+          "median_max_drawdown": -51.48,
+          "worst_max_drawdown": -76.55,
+          "median_days_to_double": 807.5
+        },
+        "2022": {
+          "n": 26,
+          "issuers": 26,
+          "hit30_1_pct": 61.54,
+          "hit30_2_pct": 80.77,
+          "hit30_3_pct": 84.62,
+          "hit100_1_pct": 11.54,
+          "hit100_2_pct": 42.31,
+          "hit100_3_pct": 53.85,
+          "hit200_1_pct": 0.0,
+          "hit200_2_pct": 7.69,
+          "hit200_3_pct": 11.54,
+          "hit400_1_pct": 0.0,
+          "hit400_2_pct": 0.0,
+          "hit400_3_pct": 3.85,
+          "annual30_pct": 3.85,
+          "hold_return": {
+            "mean": 63.28,
+            "median": 13.32,
+            "doubled_pct": 11.54,
+            "loss_pct": 38.46,
+            "loss30_pct": 11.54,
+            "worst": -60.23
+          },
+          "exit30": {
+            "mean": 26.54,
+            "median": 31.48,
+            "doubled_pct": 0.0,
+            "loss_pct": 7.69,
+            "loss30_pct": 3.85,
+            "worst": -35.94
+          },
+          "exit100": {
+            "mean": 46.21,
+            "median": 87.03,
+            "doubled_pct": 30.77,
+            "loss_pct": 30.77,
+            "loss30_pct": 11.54,
+            "worst": -60.23
+          },
+          "stop30_exit100": {
+            "mean": 27.83,
+            "median": -6.64,
+            "doubled_pct": 23.08,
+            "loss_pct": 53.85,
+            "loss30_pct": 23.08,
+            "worst": -38.33
+          },
+          "hit100_3_ci90": [
+            38.17,
+            68.79
+          ],
+          "hit30_3_ci90": [
+            69.81,
+            92.9
+          ],
+          "median_worst_loss": -26.14,
+          "median_max_drawdown": -46.8,
+          "worst_max_drawdown": -81.77,
+          "median_days_to_double": 449.0
+        },
+        "2023": {
+          "n": 11,
+          "issuers": 11,
+          "hit30_1_pct": 54.55,
+          "hit30_2_pct": 72.73,
+          "hit30_3_pct": 81.82,
+          "hit100_1_pct": 18.18,
+          "hit100_2_pct": 27.27,
+          "hit100_3_pct": 36.36,
+          "hit200_1_pct": 0.0,
+          "hit200_2_pct": 9.09,
+          "hit200_3_pct": 18.18,
+          "hit400_1_pct": 0.0,
+          "hit400_2_pct": 0.0,
+          "hit400_3_pct": 9.09,
+          "annual30_pct": 0.0,
+          "hold_return": {
+            "mean": 84.29,
+            "median": 30.9,
+            "doubled_pct": 36.36,
+            "loss_pct": 36.36,
+            "loss30_pct": 27.27,
+            "worst": -94.19
+          },
+          "exit30": {
+            "mean": 18.2,
+            "median": 30.9,
+            "doubled_pct": 0.0,
+            "loss_pct": 18.18,
+            "loss30_pct": 18.18,
+            "worst": -53.74
+          },
+          "exit100": {
+            "mean": 25.73,
+            "median": 30.9,
+            "doubled_pct": 36.36,
+            "loss_pct": 36.36,
+            "loss30_pct": 27.27,
+            "worst": -94.19
+          },
+          "stop30_exit100": {
+            "mean": 33.8,
+            "median": 30.9,
+            "doubled_pct": 36.36,
+            "loss_pct": 36.36,
+            "loss30_pct": 18.18,
+            "worst": -34.9
+          },
+          "hit100_3_ci90": [
+            17.51,
+            60.6
+          ],
+          "hit30_3_ci90": [
+            57.29,
+            93.79
+          ],
+          "median_worst_loss": -16.67,
+          "median_max_drawdown": -45.97,
+          "worst_max_drawdown": -96.74,
+          "median_days_to_double": 343.5
+        }
+      }
+    },
+    "quality_growth": {
+      "development": {
+        "n": 457,
+        "issuers": 304,
+        "hit30_1_pct": 48.8,
+        "hit30_2_pct": 59.08,
+        "hit30_3_pct": 64.11,
+        "hit100_1_pct": 12.25,
+        "hit100_2_pct": 19.47,
+        "hit100_3_pct": 25.38,
+        "hit200_1_pct": 4.38,
+        "hit200_2_pct": 8.53,
+        "hit200_3_pct": 11.38,
+        "hit400_1_pct": 1.97,
+        "hit400_2_pct": 4.38,
+        "hit400_3_pct": 5.03,
+        "annual30_pct": 0.88,
+        "hold_return": {
+          "mean": 14.56,
+          "median": -2.74,
+          "doubled_pct": 11.38,
+          "loss_pct": 52.52,
+          "loss30_pct": 32.6,
+          "worst": -100.0
+        },
+        "exit30": {
+          "mean": 8.94,
+          "median": 28.66,
+          "doubled_pct": 0.22,
+          "loss_pct": 28.45,
+          "loss30_pct": 20.35,
+          "worst": -99.06
+        },
+        "exit100": {
+          "mean": 15.57,
+          "median": 4.52,
+          "doubled_pct": 17.29,
+          "loss_pct": 47.26,
+          "loss30_pct": 29.1,
+          "worst": -100.0
+        },
+        "stop30_exit100": {
+          "mean": 8.24,
+          "median": -28.3,
+          "doubled_pct": 14.88,
+          "loss_pct": 63.46,
+          "loss30_pct": 41.14,
+          "worst": -70.57
+        },
+        "hit100_3_ci90": [
+          22.19,
+          28.87
+        ],
+        "hit30_3_ci90": [
+          60.35,
+          67.71
+        ],
+        "median_worst_loss": -48.17,
+        "median_max_drawdown": -63.11,
+        "worst_max_drawdown": -100.0,
+        "median_days_to_double": 383.5
+      },
+      "validation": {
+        "n": 248,
+        "issuers": 204,
+        "hit30_1_pct": 33.47,
+        "hit30_2_pct": 60.48,
+        "hit30_3_pct": 72.18,
+        "hit100_1_pct": 3.63,
+        "hit100_2_pct": 12.9,
+        "hit100_3_pct": 24.6,
+        "hit200_1_pct": 0.81,
+        "hit200_2_pct": 2.02,
+        "hit200_3_pct": 8.47,
+        "hit400_1_pct": 0.0,
+        "hit400_2_pct": 1.21,
+        "hit400_3_pct": 1.21,
+        "annual30_pct": 0.0,
+        "hold_return": {
+          "mean": 43.67,
+          "median": 37.05,
+          "doubled_pct": 13.31,
+          "loss_pct": 25.4,
+          "loss30_pct": 10.48,
+          "worst": -91.85
+        },
+        "exit30": {
+          "mean": 18.13,
+          "median": 29.76,
+          "doubled_pct": 0.0,
+          "loss_pct": 18.15,
+          "loss30_pct": 8.47,
+          "worst": -91.85
+        },
+        "exit100": {
+          "mean": 37.6,
+          "median": 38.59,
+          "doubled_pct": 18.15,
+          "loss_pct": 25.0,
+          "loss30_pct": 10.48,
+          "worst": -91.85
+        },
+        "stop30_exit100": {
+          "mean": 27.7,
+          "median": 24.93,
+          "doubled_pct": 16.13,
+          "loss_pct": 38.71,
+          "loss30_pct": 27.42,
+          "worst": -48.33
+        },
+        "hit100_3_ci90": [
+          20.39,
+          29.35
+        ],
+        "hit30_3_ci90": [
+          67.28,
+          76.6
+        ],
+        "median_worst_loss": -22.12,
+        "median_max_drawdown": -39.06,
+        "worst_max_drawdown": -92.25,
+        "median_days_to_double": 704
+      },
+      "test": {
+        "n": 220,
+        "issuers": 210,
+        "hit30_1_pct": 57.73,
+        "hit30_2_pct": 64.09,
+        "hit30_3_pct": 70.45,
+        "hit100_1_pct": 9.55,
+        "hit100_2_pct": 24.09,
+        "hit100_3_pct": 31.82,
+        "hit200_1_pct": 0.45,
+        "hit200_2_pct": 3.64,
+        "hit200_3_pct": 6.82,
+        "hit400_1_pct": 0.0,
+        "hit400_2_pct": 0.45,
+        "hit400_3_pct": 1.36,
+        "annual30_pct": 0.91,
+        "hold_return": {
+          "mean": 21.44,
+          "median": 8.06,
+          "doubled_pct": 13.64,
+          "loss_pct": 41.82,
+          "loss30_pct": 26.82,
+          "worst": -96.92
+        },
+        "exit30": {
+          "mean": 12.1,
+          "median": 29.79,
+          "doubled_pct": 0.0,
+          "loss_pct": 22.73,
+          "loss30_pct": 16.82,
+          "worst": -96.92
+        },
+        "exit100": {
+          "mean": 23.38,
+          "median": 11.24,
+          "doubled_pct": 24.09,
+          "loss_pct": 40.91,
+          "loss30_pct": 26.36,
+          "worst": -96.92
+        },
+        "stop30_exit100": {
+          "mean": 11.86,
+          "median": -27.46,
+          "doubled_pct": 19.09,
+          "loss_pct": 62.27,
+          "loss30_pct": 37.27,
+          "worst": -44.17
+        },
+        "hit100_3_ci90": [
+          26.9,
+          37.18
+        ],
+        "hit30_3_ci90": [
+          65.17,
+          75.24
+        ],
+        "median_worst_loss": -35.26,
+        "median_max_drawdown": -53.05,
+        "worst_max_drawdown": -97.9,
+        "median_days_to_double": 467.5
+      }
+    },
+    "balanced_growth": {
+      "development": {
+        "n": 314,
+        "issuers": 248,
+        "hit30_1_pct": 48.09,
+        "hit30_2_pct": 56.05,
+        "hit30_3_pct": 62.42,
+        "hit100_1_pct": 12.74,
+        "hit100_2_pct": 19.43,
+        "hit100_3_pct": 25.16,
+        "hit200_1_pct": 5.1,
+        "hit200_2_pct": 9.87,
+        "hit200_3_pct": 11.46,
+        "hit400_1_pct": 2.23,
+        "hit400_2_pct": 3.82,
+        "hit400_3_pct": 4.14,
+        "annual30_pct": 0.64,
+        "hold_return": {
+          "mean": 8.15,
+          "median": -9.14,
+          "doubled_pct": 11.78,
+          "loss_pct": 56.05,
+          "loss30_pct": 34.08,
+          "worst": -99.06
+        },
+        "exit30": {
+          "mean": 6.78,
+          "median": 29.47,
+          "doubled_pct": 0.32,
+          "loss_pct": 33.12,
+          "loss30_pct": 20.7,
+          "worst": -99.06
+        },
+        "exit100": {
+          "mean": 12.79,
+          "median": 0.0,
+          "doubled_pct": 17.2,
+          "loss_pct": 50.0,
+          "loss30_pct": 29.94,
+          "worst": -99.06
+        },
+        "stop30_exit100": {
+          "mean": 6.36,
+          "median": -28.03,
+          "doubled_pct": 14.65,
+          "loss_pct": 64.65,
+          "loss30_pct": 42.36,
+          "worst": -70.57
+        },
+        "hit100_3_ci90": [
+          21.36,
+          29.39
+        ],
+        "hit30_3_ci90": [
+          57.84,
+          66.79
+        ],
+        "median_worst_loss": -46.86,
+        "median_max_drawdown": -63.05,
+        "worst_max_drawdown": -99.86,
+        "median_days_to_double": 353
+      },
+      "validation": {
+        "n": 196,
+        "issuers": 180,
+        "hit30_1_pct": 31.63,
+        "hit30_2_pct": 55.61,
+        "hit30_3_pct": 68.37,
+        "hit100_1_pct": 5.1,
+        "hit100_2_pct": 14.29,
+        "hit100_3_pct": 23.98,
+        "hit200_1_pct": 0.51,
+        "hit200_2_pct": 4.08,
+        "hit200_3_pct": 8.67,
+        "hit400_1_pct": 0.0,
+        "hit400_2_pct": 1.53,
+        "hit400_3_pct": 1.53,
+        "annual30_pct": 0.51,
+        "hold_return": {
+          "mean": 42.71,
+          "median": 29.1,
+          "doubled_pct": 15.31,
+          "loss_pct": 26.02,
+          "loss30_pct": 7.65,
+          "worst": -91.85
+        },
+        "exit30": {
+          "mean": 17.01,
+          "median": 29.51,
+          "doubled_pct": 0.0,
+          "loss_pct": 20.41,
+          "loss30_pct": 7.14,
+          "worst": -91.85
+        },
+        "exit100": {
+          "mean": 37.05,
+          "median": 33.95,
+          "doubled_pct": 17.35,
+          "loss_pct": 24.49,
+          "loss30_pct": 7.65,
+          "worst": -91.85
+        },
+        "stop30_exit100": {
+          "mean": 23.73,
+          "median": 10.96,
+          "doubled_pct": 14.8,
+          "loss_pct": 42.35,
+          "loss30_pct": 29.59,
+          "worst": -47.47
+        },
+        "hit100_3_ci90": [
+          19.34,
+          29.33
+        ],
+        "hit30_3_ci90": [
+          62.69,
+          73.55
+        ],
+        "median_worst_loss": -21.19,
+        "median_max_drawdown": -39.11,
+        "worst_max_drawdown": -93.0,
+        "median_days_to_double": 595
+      },
+      "test": {
+        "n": 168,
+        "issuers": 166,
+        "hit30_1_pct": 47.62,
+        "hit30_2_pct": 57.14,
+        "hit30_3_pct": 64.29,
+        "hit100_1_pct": 6.55,
+        "hit100_2_pct": 20.24,
+        "hit100_3_pct": 24.4,
+        "hit200_1_pct": 0.6,
+        "hit200_2_pct": 2.38,
+        "hit200_3_pct": 4.76,
+        "hit400_1_pct": 0.0,
+        "hit400_2_pct": 0.0,
+        "hit400_3_pct": 0.0,
+        "annual30_pct": 0.6,
+        "hold_return": {
+          "mean": 11.71,
+          "median": 1.34,
+          "doubled_pct": 8.33,
+          "loss_pct": 47.02,
+          "loss30_pct": 23.81,
+          "worst": -95.95
+        },
+        "exit30": {
+          "mean": 11.17,
+          "median": 29.62,
+          "doubled_pct": 0.0,
+          "loss_pct": 26.19,
+          "loss30_pct": 16.67,
+          "worst": -95.95
+        },
+        "exit100": {
+          "mean": 18.32,
+          "median": 5.83,
+          "doubled_pct": 13.1,
+          "loss_pct": 42.86,
+          "loss30_pct": 23.21,
+          "worst": -95.95
+        },
+        "stop30_exit100": {
+          "mean": 4.97,
+          "median": -28.47,
+          "doubled_pct": 10.12,
+          "loss_pct": 62.5,
+          "loss30_pct": 42.86,
+          "worst": -43.55
+        },
+        "hit100_3_ci90": [
+          19.39,
+          30.23
+        ],
+        "hit30_3_ci90": [
+          58.02,
+          70.1
+        ],
+        "median_worst_loss": -37.33,
+        "median_max_drawdown": -54.27,
+        "worst_max_drawdown": -97.43,
+        "median_days_to_double": 474
+      }
+    },
+    "quality_momentum": {
+      "development": {
+        "n": 256,
+        "issuers": 216,
+        "hit30_1_pct": 48.05,
+        "hit30_2_pct": 55.47,
+        "hit30_3_pct": 60.55,
+        "hit100_1_pct": 10.55,
+        "hit100_2_pct": 18.36,
+        "hit100_3_pct": 22.66,
+        "hit200_1_pct": 4.3,
+        "hit200_2_pct": 7.81,
+        "hit200_3_pct": 10.16,
+        "hit400_1_pct": 1.17,
+        "hit400_2_pct": 2.34,
+        "hit400_3_pct": 3.12,
+        "annual30_pct": 0.78,
+        "hold_return": {
+          "mean": 3.42,
+          "median": -14.93,
+          "doubled_pct": 9.38,
+          "loss_pct": 58.98,
+          "loss30_pct": 33.98,
+          "worst": -99.06
+        },
+        "exit30": {
+          "mean": 5.54,
+          "median": 29.05,
+          "doubled_pct": 0.39,
+          "loss_pct": 35.16,
+          "loss30_pct": 19.53,
+          "worst": -99.06
+        },
+        "exit100": {
+          "mean": 9.2,
+          "median": -3.63,
+          "doubled_pct": 15.23,
+          "loss_pct": 53.12,
+          "loss30_pct": 29.3,
+          "worst": -99.06
+        },
+        "stop30_exit100": {
+          "mean": 4.37,
+          "median": -28.11,
+          "doubled_pct": 13.67,
+          "loss_pct": 67.19,
+          "loss30_pct": 44.14,
+          "worst": -56.62
+        },
+        "hit100_3_ci90": [
+          18.65,
+          27.23
+        ],
+        "hit30_3_ci90": [
+          55.44,
+          65.44
+        ],
+        "median_worst_loss": -46.87,
+        "median_max_drawdown": -63.05,
+        "worst_max_drawdown": -99.86,
+        "median_days_to_double": 385.0
+      },
+      "validation": {
+        "n": 154,
+        "issuers": 148,
+        "hit30_1_pct": 40.26,
+        "hit30_2_pct": 64.94,
+        "hit30_3_pct": 77.92,
+        "hit100_1_pct": 7.79,
+        "hit100_2_pct": 20.78,
+        "hit100_3_pct": 31.17,
+        "hit200_1_pct": 0.65,
+        "hit200_2_pct": 5.19,
+        "hit200_3_pct": 9.74,
+        "hit400_1_pct": 0.0,
+        "hit400_2_pct": 1.95,
+        "hit400_3_pct": 1.95,
+        "annual30_pct": 1.3,
+        "hold_return": {
+          "mean": 48.22,
+          "median": 37.95,
+          "doubled_pct": 17.53,
+          "loss_pct": 22.08,
+          "loss30_pct": 7.14,
+          "worst": -91.85
+        },
+        "exit30": {
+          "mean": 22.18,
+          "median": 30.25,
+          "doubled_pct": 0.0,
+          "loss_pct": 12.99,
+          "loss30_pct": 3.9,
+          "worst": -91.85
+        },
+        "exit100": {
+          "mean": 44.34,
+          "median": 41.79,
+          "doubled_pct": 22.73,
+          "loss_pct": 20.13,
+          "loss30_pct": 6.49,
+          "worst": -91.85
+        },
+        "stop30_exit100": {
+          "mean": 32.2,
+          "median": 26.31,
+          "doubled_pct": 19.48,
+          "loss_pct": 37.01,
+          "loss30_pct": 24.03,
+          "worst": -44.88
+        },
+        "hit100_3_ci90": [
+          25.4,
+          37.59
+        ],
+        "hit30_3_ci90": [
+          71.97,
+          82.91
+        ],
+        "median_worst_loss": -21.19,
+        "median_max_drawdown": -38.89,
+        "worst_max_drawdown": -92.04,
+        "median_days_to_double": 589.0
+      },
+      "test": {
+        "n": 156,
+        "issuers": 154,
+        "hit30_1_pct": 44.87,
+        "hit30_2_pct": 57.05,
+        "hit30_3_pct": 64.74,
+        "hit100_1_pct": 6.41,
+        "hit100_2_pct": 19.23,
+        "hit100_3_pct": 28.85,
+        "hit200_1_pct": 1.28,
+        "hit200_2_pct": 1.92,
+        "hit200_3_pct": 7.69,
+        "hit400_1_pct": 0.0,
+        "hit400_2_pct": 0.64,
+        "hit400_3_pct": 1.28,
+        "annual30_pct": 1.28,
+        "hold_return": {
+          "mean": 23.72,
+          "median": 9.24,
+          "doubled_pct": 14.1,
+          "loss_pct": 41.67,
+          "loss30_pct": 24.36,
+          "worst": -95.95
+        },
+        "exit30": {
+          "mean": 9.23,
+          "median": 29.84,
+          "doubled_pct": 0.0,
+          "loss_pct": 27.56,
+          "loss30_pct": 19.23,
+          "worst": -95.95
+        },
+        "exit100": {
+          "mean": 23.21,
+          "median": 11.33,
+          "doubled_pct": 19.87,
+          "loss_pct": 39.1,
+          "loss30_pct": 24.36,
+          "worst": -95.95
+        },
+        "stop30_exit100": {
+          "mean": 9.56,
+          "median": -28.29,
+          "doubled_pct": 14.1,
+          "loss_pct": 60.26,
+          "loss30_pct": 39.74,
+          "worst": -55.96
+        },
+        "hit100_3_ci90": [
+          23.28,
+          35.13
+        ],
+        "hit30_3_ci90": [
+          58.25,
+          70.74
+        ],
+        "median_worst_loss": -37.47,
+        "median_max_drawdown": -54.02,
+        "worst_max_drawdown": -97.43,
+        "median_days_to_double": 511
+      }
+    },
+    "growth_acceleration": {
+      "development": {
+        "n": 312,
+        "issuers": 233,
+        "hit30_1_pct": 42.95,
+        "hit30_2_pct": 52.88,
+        "hit30_3_pct": 58.65,
+        "hit100_1_pct": 9.94,
+        "hit100_2_pct": 16.67,
+        "hit100_3_pct": 22.12,
+        "hit200_1_pct": 1.28,
+        "hit200_2_pct": 3.85,
+        "hit200_3_pct": 5.45,
+        "hit400_1_pct": 0.64,
+        "hit400_2_pct": 1.28,
+        "hit400_3_pct": 1.6,
+        "annual30_pct": 0.32,
+        "hold_return": {
+          "mean": 12.33,
+          "median": -0.73,
+          "doubled_pct": 10.9,
+          "loss_pct": 50.64,
+          "loss30_pct": 28.21,
+          "worst": -91.83
+        },
+        "exit30": {
+          "mean": 8.6,
+          "median": 28.71,
+          "doubled_pct": 0.32,
+          "loss_pct": 31.09,
+          "loss30_pct": 16.99,
+          "worst": -91.83
+        },
+        "exit100": {
+          "mean": 14.3,
+          "median": 4.41,
+          "doubled_pct": 16.67,
+          "loss_pct": 46.79,
+          "loss30_pct": 25.32,
+          "worst": -91.83
+        },
+        "stop30_exit100": {
+          "mean": 4.49,
+          "median": -28.47,
+          "doubled_pct": 14.1,
+          "loss_pct": 65.38,
+          "loss30_pct": 42.63,
+          "worst": -50.13
+        },
+        "hit100_3_ci90": [
+          18.5,
+          26.21
+        ],
+        "hit30_3_ci90": [
+          54.01,
+          63.15
+        ],
+        "median_worst_loss": -45.43,
+        "median_max_drawdown": -58.17,
+        "worst_max_drawdown": -97.65,
+        "median_days_to_double": 399
+      },
+      "validation": {
+        "n": 121,
+        "issuers": 110,
+        "hit30_1_pct": 42.15,
+        "hit30_2_pct": 66.12,
+        "hit30_3_pct": 77.69,
+        "hit100_1_pct": 4.96,
+        "hit100_2_pct": 15.7,
+        "hit100_3_pct": 30.58,
+        "hit200_1_pct": 0.0,
+        "hit200_2_pct": 3.31,
+        "hit200_3_pct": 6.61,
+        "hit400_1_pct": 0.0,
+        "hit400_2_pct": 0.0,
+        "hit400_3_pct": 0.0,
+        "annual30_pct": 0.83,
+        "hold_return": {
+          "mean": 46.87,
+          "median": 43.03,
+          "doubled_pct": 22.31,
+          "loss_pct": 27.27,
+          "loss30_pct": 10.74,
+          "worst": -91.94
+        },
+        "exit30": {
+          "mean": 19.13,
+          "median": 30.32,
+          "doubled_pct": 0.0,
+          "loss_pct": 19.83,
+          "loss30_pct": 9.09,
+          "worst": -76.09
+        },
+        "exit100": {
+          "mean": 43.93,
+          "median": 46.48,
+          "doubled_pct": 22.31,
+          "loss_pct": 25.62,
+          "loss30_pct": 10.74,
+          "worst": -91.94
+        },
+        "stop30_exit100": {
+          "mean": 32.92,
+          "median": 39.1,
+          "doubled_pct": 19.83,
+          "loss_pct": 39.67,
+          "loss30_pct": 27.27,
+          "worst": -41.02
+        },
+        "hit100_3_ci90": [
+          24.18,
+          37.83
+        ],
+        "hit30_3_ci90": [
+          70.89,
+          83.27
+        ],
+        "median_worst_loss": -20.3,
+        "median_max_drawdown": -40.3,
+        "worst_max_drawdown": -94.58,
+        "median_days_to_double": 713
+      },
+      "test": {
+        "n": 208,
+        "issuers": 205,
+        "hit30_1_pct": 44.71,
+        "hit30_2_pct": 56.25,
+        "hit30_3_pct": 64.9,
+        "hit100_1_pct": 9.13,
+        "hit100_2_pct": 14.9,
+        "hit100_3_pct": 25.48,
+        "hit200_1_pct": 0.0,
+        "hit200_2_pct": 3.37,
+        "hit200_3_pct": 6.25,
+        "hit400_1_pct": 0.0,
+        "hit400_2_pct": 0.0,
+        "hit400_3_pct": 0.96,
+        "annual30_pct": 0.96,
+        "hold_return": {
+          "mean": 24.16,
+          "median": 8.88,
+          "doubled_pct": 13.46,
+          "loss_pct": 44.71,
+          "loss30_pct": 23.08,
+          "worst": -96.66
+        },
+        "exit30": {
+          "mean": 10.69,
+          "median": 29.32,
+          "doubled_pct": 0.0,
+          "loss_pct": 27.88,
+          "loss30_pct": 16.35,
+          "worst": -96.66
+        },
+        "exit100": {
+          "mean": 20.04,
+          "median": 11.79,
+          "doubled_pct": 18.27,
+          "loss_pct": 42.79,
+          "loss30_pct": 22.6,
+          "worst": -96.66
+        },
+        "stop30_exit100": {
+          "mean": 5.64,
+          "median": -28.49,
+          "doubled_pct": 14.42,
+          "loss_pct": 63.46,
+          "loss30_pct": 37.5,
+          "worst": -49.23
+        },
+        "hit100_3_ci90": [
+          20.85,
+          30.74
+        ],
+        "hit30_3_ci90": [
+          59.3,
+          70.12
+        ],
+        "median_worst_loss": -34.33,
+        "median_max_drawdown": -49.51,
+        "worst_max_drawdown": -96.76,
+        "median_days_to_double": 598
+      }
+    },
+    "durable_compounder": {
+      "development": {
+        "n": 215,
+        "issuers": 178,
+        "hit30_1_pct": 40.47,
+        "hit30_2_pct": 52.09,
+        "hit30_3_pct": 56.28,
+        "hit100_1_pct": 5.58,
+        "hit100_2_pct": 13.49,
+        "hit100_3_pct": 20.47,
+        "hit200_1_pct": 0.0,
+        "hit200_2_pct": 4.19,
+        "hit200_3_pct": 6.98,
+        "hit400_1_pct": 0.0,
+        "hit400_2_pct": 0.47,
+        "hit400_3_pct": 2.33,
+        "annual30_pct": 0.93,
+        "hold_return": {
+          "mean": 14.18,
+          "median": 1.12,
+          "doubled_pct": 10.23,
+          "loss_pct": 48.84,
+          "loss30_pct": 31.63,
+          "worst": -86.15
+        },
+        "exit30": {
+          "mean": 5.62,
+          "median": 27.64,
+          "doubled_pct": 0.0,
+          "loss_pct": 33.02,
+          "loss30_pct": 22.33,
+          "worst": -86.15
+        },
+        "exit100": {
+          "mean": 12.4,
+          "median": 2.87,
+          "doubled_pct": 13.95,
+          "loss_pct": 47.44,
+          "loss30_pct": 30.7,
+          "worst": -86.15
+        },
+        "stop30_exit100": {
+          "mean": 0.81,
+          "median": -29.84,
+          "doubled_pct": 10.7,
+          "loss_pct": 67.44,
+          "loss30_pct": 47.91,
+          "worst": -45.93
+        },
+        "hit100_3_ci90": [
+          16.32,
+          25.34
+        ],
+        "hit30_3_ci90": [
+          50.67,
+          61.73
+        ],
+        "median_worst_loss": -45.69,
+        "median_max_drawdown": -60.26,
+        "worst_max_drawdown": -97.03,
+        "median_days_to_double": 524.5
+      },
+      "validation": {
+        "n": 99,
+        "issuers": 90,
+        "hit30_1_pct": 41.41,
+        "hit30_2_pct": 62.63,
+        "hit30_3_pct": 68.69,
+        "hit100_1_pct": 4.04,
+        "hit100_2_pct": 16.16,
+        "hit100_3_pct": 26.26,
+        "hit200_1_pct": 0.0,
+        "hit200_2_pct": 0.0,
+        "hit200_3_pct": 3.03,
+        "hit400_1_pct": 0.0,
+        "hit400_2_pct": 0.0,
+        "hit400_3_pct": 1.01,
+        "annual30_pct": 1.01,
+        "hold_return": {
+          "mean": 38.75,
+          "median": 29.62,
+          "doubled_pct": 14.14,
+          "loss_pct": 29.29,
+          "loss30_pct": 9.09,
+          "worst": -85.58
+        },
+        "exit30": {
+          "mean": 16.21,
+          "median": 29.82,
+          "doubled_pct": 0.0,
+          "loss_pct": 21.21,
+          "loss30_pct": 8.08,
+          "worst": -85.58
+        },
+        "exit100": {
+          "mean": 38.19,
+          "median": 39.71,
+          "doubled_pct": 19.19,
+          "loss_pct": 27.27,
+          "loss30_pct": 8.08,
+          "worst": -85.58
+        },
+        "stop30_exit100": {
+          "mean": 28.59,
+          "median": 20.43,
+          "doubled_pct": 18.18,
+          "loss_pct": 41.41,
+          "loss30_pct": 22.22,
+          "worst": -45.35
+        },
+        "hit100_3_ci90": [
+          19.69,
+          34.1
+        ],
+        "hit30_3_ci90": [
+          60.61,
+          75.77
+        ],
+        "median_worst_loss": -23.35,
+        "median_max_drawdown": -42.18,
+        "worst_max_drawdown": -87.21,
+        "median_days_to_double": 650.5
+      },
+      "test": {
+        "n": 93,
+        "issuers": 87,
+        "hit30_1_pct": 67.74,
+        "hit30_2_pct": 76.34,
+        "hit30_3_pct": 79.57,
+        "hit100_1_pct": 16.13,
+        "hit100_2_pct": 31.18,
+        "hit100_3_pct": 41.94,
+        "hit200_1_pct": 3.23,
+        "hit200_2_pct": 13.98,
+        "hit200_3_pct": 18.28,
+        "hit400_1_pct": 0.0,
+        "hit400_2_pct": 1.08,
+        "hit400_3_pct": 1.08,
+        "annual30_pct": 2.15,
+        "hold_return": {
+          "mean": 47.86,
+          "median": 20.73,
+          "doubled_pct": 23.66,
+          "loss_pct": 31.18,
+          "loss30_pct": 17.2,
+          "worst": -90.11
+        },
+        "exit30": {
+          "mean": 19.22,
+          "median": 30.08,
+          "doubled_pct": 1.08,
+          "loss_pct": 15.05,
+          "loss30_pct": 10.75,
+          "worst": -90.11
+        },
+        "exit100": {
+          "mean": 38.17,
+          "median": 28.64,
+          "doubled_pct": 30.11,
+          "loss_pct": 29.03,
+          "loss30_pct": 17.2,
+          "worst": -90.11
+        },
+        "stop30_exit100": {
+          "mean": 12.94,
+          "median": -28.01,
+          "doubled_pct": 19.35,
+          "loss_pct": 60.22,
+          "loss30_pct": 36.56,
+          "worst": -44.96
+        },
+        "hit100_3_ci90": [
+          33.86,
+          50.46
+        ],
+        "hit30_3_ci90": [
+          71.9,
+          85.56
+        ],
+        "median_worst_loss": -34.29,
+        "median_max_drawdown": -54.78,
+        "worst_max_drawdown": -91.16,
+        "median_days_to_double": 422
+      }
+    },
+    "growth_at_reasonable_pe": {
+      "development": {
+        "n": 336,
+        "issuers": 249,
+        "hit30_1_pct": 47.32,
+        "hit30_2_pct": 58.93,
+        "hit30_3_pct": 66.37,
+        "hit100_1_pct": 8.63,
+        "hit100_2_pct": 17.26,
+        "hit100_3_pct": 23.21,
+        "hit200_1_pct": 2.38,
+        "hit200_2_pct": 5.65,
+        "hit200_3_pct": 8.93,
+        "hit400_1_pct": 0.0,
+        "hit400_2_pct": 0.89,
+        "hit400_3_pct": 1.49,
+        "annual30_pct": 1.49,
+        "hold_return": {
+          "mean": 18.03,
+          "median": 2.1,
+          "doubled_pct": 11.31,
+          "loss_pct": 47.92,
+          "loss30_pct": 25.89,
+          "worst": -97.51
+        },
+        "exit30": {
+          "mean": 12.03,
+          "median": 29.37,
+          "doubled_pct": 0.0,
+          "loss_pct": 27.08,
+          "loss30_pct": 15.48,
+          "worst": -92.2
+        },
+        "exit100": {
+          "mean": 16.73,
+          "median": 8.25,
+          "doubled_pct": 16.67,
+          "loss_pct": 44.35,
+          "loss30_pct": 23.81,
+          "worst": -97.51
+        },
+        "stop30_exit100": {
+          "mean": 5.13,
+          "median": -28.14,
+          "doubled_pct": 13.1,
+          "loss_pct": 63.39,
+          "loss30_pct": 41.37,
+          "worst": -54.69
+        },
+        "hit100_3_ci90": [
+          19.65,
+          27.21
+        ],
+        "hit30_3_ci90": [
+          62.01,
+          70.46
+        ],
+        "median_worst_loss": -44.45,
+        "median_max_drawdown": -58.13,
+        "worst_max_drawdown": -99.45,
+        "median_days_to_double": 491.0
+      },
+      "validation": {
+        "n": 142,
+        "issuers": 129,
+        "hit30_1_pct": 35.92,
+        "hit30_2_pct": 61.97,
+        "hit30_3_pct": 71.13,
+        "hit100_1_pct": 2.82,
+        "hit100_2_pct": 13.38,
+        "hit100_3_pct": 25.35,
+        "hit200_1_pct": 0.0,
+        "hit200_2_pct": 2.82,
+        "hit200_3_pct": 7.75,
+        "hit400_1_pct": 0.0,
+        "hit400_2_pct": 0.0,
+        "hit400_3_pct": 0.7,
+        "annual30_pct": 0.0,
+        "hold_return": {
+          "mean": 45.89,
+          "median": 37.03,
+          "doubled_pct": 16.9,
+          "loss_pct": 26.76,
+          "loss30_pct": 8.45,
+          "worst": -87.89
+        },
+        "exit30": {
+          "mean": 19.47,
+          "median": 29.98,
+          "doubled_pct": 0.0,
+          "loss_pct": 19.01,
+          "loss30_pct": 6.34,
+          "worst": -82.93
+        },
+        "exit100": {
+          "mean": 38.97,
+          "median": 37.03,
+          "doubled_pct": 19.01,
+          "loss_pct": 26.76,
+          "loss30_pct": 8.45,
+          "worst": -87.89
+        },
+        "stop30_exit100": {
+          "mean": 27.68,
+          "median": 22.55,
+          "doubled_pct": 16.2,
+          "loss_pct": 42.25,
+          "loss30_pct": 23.94,
+          "worst": -41.24
+        },
+        "hit100_3_ci90": [
+          19.85,
+          31.78
+        ],
+        "hit30_3_ci90": [
+          64.52,
+          76.94
+        ],
+        "median_worst_loss": -19.31,
+        "median_max_drawdown": -37.28,
+        "worst_max_drawdown": -95.37,
+        "median_days_to_double": 640.5
+      },
+      "test": {
+        "n": 148,
+        "issuers": 146,
+        "hit30_1_pct": 43.24,
+        "hit30_2_pct": 56.08,
+        "hit30_3_pct": 63.51,
+        "hit100_1_pct": 12.84,
+        "hit100_2_pct": 17.57,
+        "hit100_3_pct": 27.7,
+        "hit200_1_pct": 0.68,
+        "hit200_2_pct": 6.08,
+        "hit200_3_pct": 6.76,
+        "hit400_1_pct": 0.0,
+        "hit400_2_pct": 0.0,
+        "hit400_3_pct": 0.68,
+        "annual30_pct": 1.35,
+        "hold_return": {
+          "mean": 29.11,
+          "median": 9.56,
+          "doubled_pct": 12.16,
+          "loss_pct": 38.51,
+          "loss30_pct": 16.89,
+          "worst": -91.15
+        },
+        "exit30": {
+          "mean": 12.39,
+          "median": 28.63,
+          "doubled_pct": 0.0,
+          "loss_pct": 25.0,
+          "loss30_pct": 14.19,
+          "worst": -91.15
+        },
+        "exit100": {
+          "mean": 27.2,
+          "median": 11.96,
+          "doubled_pct": 24.32,
+          "loss_pct": 37.16,
+          "loss30_pct": 16.89,
+          "worst": -91.15
+        },
+        "stop30_exit100": {
+          "mean": 12.91,
+          "median": -22.75,
+          "doubled_pct": 19.59,
+          "loss_pct": 56.76,
+          "loss30_pct": 35.81,
+          "worst": -40.67
+        },
+        "hit100_3_ci90": [
+          22.09,
+          34.11
+        ],
+        "hit30_3_ci90": [
+          56.82,
+          69.73
+        ],
+        "median_worst_loss": -30.46,
+        "median_max_drawdown": -46.89,
+        "worst_max_drawdown": -93.5,
+        "median_days_to_double": 398
+      }
+    },
+    "cash_compounder": {
+      "development": {
+        "n": 293,
+        "issuers": 211,
+        "hit30_1_pct": 46.08,
+        "hit30_2_pct": 58.36,
+        "hit30_3_pct": 63.82,
+        "hit100_1_pct": 13.31,
+        "hit100_2_pct": 20.48,
+        "hit100_3_pct": 25.94,
+        "hit200_1_pct": 4.1,
+        "hit200_2_pct": 7.17,
+        "hit200_3_pct": 10.58,
+        "hit400_1_pct": 1.37,
+        "hit400_2_pct": 2.73,
+        "hit400_3_pct": 3.75,
+        "annual30_pct": 1.02,
+        "hold_return": {
+          "mean": 9.2,
+          "median": -2.74,
+          "doubled_pct": 9.22,
+          "loss_pct": 51.19,
+          "loss30_pct": 30.38,
+          "worst": -99.06
+        },
+        "exit30": {
+          "mean": 9.66,
+          "median": 28.89,
+          "doubled_pct": 0.0,
+          "loss_pct": 28.33,
+          "loss30_pct": 17.06,
+          "worst": -99.06
+        },
+        "exit100": {
+          "mean": 17.05,
+          "median": 9.57,
+          "doubled_pct": 16.72,
+          "loss_pct": 44.37,
+          "loss30_pct": 26.28,
+          "worst": -99.06
+        },
+        "stop30_exit100": {
+          "mean": 7.1,
+          "median": -28.33,
+          "doubled_pct": 13.99,
+          "loss_pct": 63.48,
+          "loss30_pct": 41.98,
+          "worst": -58.35
+        },
+        "hit100_3_ci90": [
+          21.96,
+          30.36
+        ],
+        "hit30_3_ci90": [
+          59.1,
+          68.29
+        ],
+        "median_worst_loss": -47.95,
+        "median_max_drawdown": -60.67,
+        "worst_max_drawdown": -99.63,
+        "median_days_to_double": 351.0
+      },
+      "validation": {
+        "n": 141,
+        "issuers": 123,
+        "hit30_1_pct": 35.46,
+        "hit30_2_pct": 67.38,
+        "hit30_3_pct": 78.01,
+        "hit100_1_pct": 4.26,
+        "hit100_2_pct": 17.02,
+        "hit100_3_pct": 27.66,
+        "hit200_1_pct": 0.0,
+        "hit200_2_pct": 2.13,
+        "hit200_3_pct": 10.64,
+        "hit400_1_pct": 0.0,
+        "hit400_2_pct": 0.71,
+        "hit400_3_pct": 0.71,
+        "annual30_pct": 0.71,
+        "hold_return": {
+          "mean": 51.61,
+          "median": 42.83,
+          "doubled_pct": 17.73,
+          "loss_pct": 22.7,
+          "loss30_pct": 9.22,
+          "worst": -90.8
+        },
+        "exit30": {
+          "mean": 19.98,
+          "median": 29.97,
+          "doubled_pct": 0.0,
+          "loss_pct": 16.31,
+          "loss30_pct": 8.51,
+          "worst": -90.8
+        },
+        "exit100": {
+          "mean": 42.79,
+          "median": 44.18,
+          "doubled_pct": 19.86,
+          "loss_pct": 22.7,
+          "loss30_pct": 9.22,
+          "worst": -90.8
+        },
+        "stop30_exit100": {
+          "mean": 31.69,
+          "median": 38.07,
+          "doubled_pct": 17.73,
+          "loss_pct": 36.17,
+          "loss30_pct": 26.95,
+          "worst": -54.05
+        },
+        "hit100_3_ci90": [
+          21.93,
+          34.23
+        ],
+        "hit30_3_ci90": [
+          71.78,
+          83.19
+        ],
+        "median_worst_loss": -20.37,
+        "median_max_drawdown": -39.56,
+        "worst_max_drawdown": -93.0,
+        "median_days_to_double": 630
+      },
+      "test": {
+        "n": 163,
+        "issuers": 159,
+        "hit30_1_pct": 52.15,
+        "hit30_2_pct": 58.28,
+        "hit30_3_pct": 66.87,
+        "hit100_1_pct": 8.59,
+        "hit100_2_pct": 17.18,
+        "hit100_3_pct": 25.15,
+        "hit200_1_pct": 0.61,
+        "hit200_2_pct": 5.52,
+        "hit200_3_pct": 6.75,
+        "hit400_1_pct": 0.0,
+        "hit400_2_pct": 0.0,
+        "hit400_3_pct": 0.61,
+        "annual30_pct": 0.61,
+        "hold_return": {
+          "mean": 18.77,
+          "median": 7.11,
+          "doubled_pct": 9.82,
+          "loss_pct": 39.88,
+          "loss30_pct": 19.02,
+          "worst": -85.02
+        },
+        "exit30": {
+          "mean": 14.54,
+          "median": 29.54,
+          "doubled_pct": 0.0,
+          "loss_pct": 22.09,
+          "loss30_pct": 12.27,
+          "worst": -85.02
+        },
+        "exit100": {
+          "mean": 21.99,
+          "median": 10.52,
+          "doubled_pct": 18.4,
+          "loss_pct": 38.04,
+          "loss30_pct": 17.79,
+          "worst": -85.02
+        },
+        "stop30_exit100": {
+          "mean": 6.67,
+          "median": -26.73,
+          "doubled_pct": 13.5,
+          "loss_pct": 62.58,
+          "loss30_pct": 33.74,
+          "worst": -43.51
+        },
+        "hit100_3_ci90": [
+          20.0,
+          31.12
+        ],
+        "hit30_3_ci90": [
+          60.58,
+          72.62
+        ],
+        "median_worst_loss": -32.09,
+        "median_max_drawdown": -51.14,
+        "worst_max_drawdown": -89.54,
+        "median_days_to_double": 476
+      }
+    },
+    "profitable_hypergrowth": {
+      "development": {
+        "n": 298,
+        "issuers": 224,
+        "hit30_1_pct": 52.35,
+        "hit30_2_pct": 61.74,
+        "hit30_3_pct": 65.1,
+        "hit100_1_pct": 14.43,
+        "hit100_2_pct": 20.47,
+        "hit100_3_pct": 26.51,
+        "hit200_1_pct": 4.7,
+        "hit200_2_pct": 7.05,
+        "hit200_3_pct": 8.72,
+        "hit400_1_pct": 0.67,
+        "hit400_2_pct": 2.01,
+        "hit400_3_pct": 2.01,
+        "annual30_pct": 0.34,
+        "hold_return": {
+          "mean": 5.43,
+          "median": -15.2,
+          "doubled_pct": 9.4,
+          "loss_pct": 57.72,
+          "loss30_pct": 36.24,
+          "worst": -98.75
+        },
+        "exit30": {
+          "mean": 8.83,
+          "median": 29.33,
+          "doubled_pct": 0.34,
+          "loss_pct": 28.19,
+          "loss30_pct": 19.46,
+          "worst": -98.75
+        },
+        "exit100": {
+          "mean": 14.06,
+          "median": 1.88,
+          "doubled_pct": 18.79,
+          "loss_pct": 49.33,
+          "loss30_pct": 30.87,
+          "worst": -98.75
+        },
+        "stop30_exit100": {
+          "mean": 4.46,
+          "median": -29.36,
+          "doubled_pct": 14.77,
+          "loss_pct": 68.46,
+          "loss30_pct": 47.65,
+          "worst": -55.88
+        },
+        "hit100_3_ci90": [
+          22.53,
+          30.91
+        ],
+        "hit30_3_ci90": [
+          60.44,
+          69.49
+        ],
+        "median_worst_loss": -53.15,
+        "median_max_drawdown": -66.68,
+        "worst_max_drawdown": -99.47,
+        "median_days_to_double": 336
+      },
+      "validation": {
+        "n": 90,
+        "issuers": 85,
+        "hit30_1_pct": 40.0,
+        "hit30_2_pct": 68.89,
+        "hit30_3_pct": 76.67,
+        "hit100_1_pct": 11.11,
+        "hit100_2_pct": 22.22,
+        "hit100_3_pct": 33.33,
+        "hit200_1_pct": 0.0,
+        "hit200_2_pct": 5.56,
+        "hit200_3_pct": 12.22,
+        "hit400_1_pct": 0.0,
+        "hit400_2_pct": 1.11,
+        "hit400_3_pct": 2.22,
+        "annual30_pct": 2.22,
+        "hold_return": {
+          "mean": 46.67,
+          "median": 40.11,
+          "doubled_pct": 17.78,
+          "loss_pct": 27.78,
+          "loss30_pct": 12.22,
+          "worst": -78.52
+        },
+        "exit30": {
+          "mean": 18.48,
+          "median": 31.24,
+          "doubled_pct": 0.0,
+          "loss_pct": 20.0,
+          "loss30_pct": 10.0,
+          "worst": -78.52
+        },
+        "exit100": {
+          "mean": 42.03,
+          "median": 43.74,
+          "doubled_pct": 24.44,
+          "loss_pct": 26.67,
+          "loss30_pct": 12.22,
+          "worst": -78.52
+        },
+        "stop30_exit100": {
+          "mean": 33.6,
+          "median": 42.17,
+          "doubled_pct": 21.11,
+          "loss_pct": 38.89,
+          "loss30_pct": 27.78,
+          "worst": -44.02
+        },
+        "hit100_3_ci90": [
+          25.75,
+          41.89
+        ],
+        "hit30_3_ci90": [
+          68.62,
+          83.16
+        ],
+        "median_worst_loss": -23.48,
+        "median_max_drawdown": -43.53,
+        "worst_max_drawdown": -87.03,
+        "median_days_to_double": 568.5
+      },
+      "test": {
+        "n": 140,
+        "issuers": 138,
+        "hit30_1_pct": 39.29,
+        "hit30_2_pct": 49.29,
+        "hit30_3_pct": 60.71,
+        "hit100_1_pct": 6.43,
+        "hit100_2_pct": 14.29,
+        "hit100_3_pct": 23.57,
+        "hit200_1_pct": 0.0,
+        "hit200_2_pct": 3.57,
+        "hit200_3_pct": 7.14,
+        "hit400_1_pct": 0.0,
+        "hit400_2_pct": 0.71,
+        "hit400_3_pct": 1.43,
+        "annual30_pct": 1.43,
+        "hold_return": {
+          "mean": 20.2,
+          "median": 4.34,
+          "doubled_pct": 12.14,
+          "loss_pct": 45.0,
+          "loss30_pct": 25.71,
+          "worst": -84.58
+        },
+        "exit30": {
+          "mean": 7.9,
+          "median": 28.9,
+          "doubled_pct": 0.0,
+          "loss_pct": 30.0,
+          "loss30_pct": 19.29,
+          "worst": -84.58
+        },
+        "exit100": {
+          "mean": 15.86,
+          "median": 5.57,
+          "doubled_pct": 17.86,
+          "loss_pct": 44.29,
+          "loss30_pct": 25.71,
+          "worst": -84.58
+        },
+        "stop30_exit100": {
+          "mean": 0.17,
+          "median": -29.49,
+          "doubled_pct": 12.14,
+          "loss_pct": 70.71,
+          "loss30_pct": 46.43,
+          "worst": -44.4
+        },
+        "hit100_3_ci90": [
+          18.21,
+          29.94
+        ],
+        "hit30_3_ci90": [
+          53.78,
+          67.24
+        ],
+        "median_worst_loss": -35.42,
+        "median_max_drawdown": -50.42,
+        "worst_max_drawdown": -96.45,
+        "median_days_to_double": 651
+      }
+    },
+    "recovery_momentum": {
+      "development": {
+        "n": 454,
+        "issuers": 329,
+        "hit30_1_pct": 48.02,
+        "hit30_2_pct": 55.73,
+        "hit30_3_pct": 61.89,
+        "hit100_1_pct": 13.88,
+        "hit100_2_pct": 20.04,
+        "hit100_3_pct": 24.89,
+        "hit200_1_pct": 5.51,
+        "hit200_2_pct": 8.81,
+        "hit200_3_pct": 11.01,
+        "hit400_1_pct": 1.98,
+        "hit400_2_pct": 3.74,
+        "hit400_3_pct": 4.41,
+        "annual30_pct": 0.88,
+        "hold_return": {
+          "mean": 8.77,
+          "median": -5.79,
+          "doubled_pct": 10.57,
+          "loss_pct": 54.85,
+          "loss30_pct": 34.8,
+          "worst": -100.0
+        },
+        "exit30": {
+          "mean": 7.44,
+          "median": 28.45,
+          "doubled_pct": 0.22,
+          "loss_pct": 31.06,
+          "loss30_pct": 20.48,
+          "worst": -99.06
+        },
+        "exit100": {
+          "mean": 12.93,
+          "median": 3.57,
+          "doubled_pct": 15.2,
+          "loss_pct": 48.68,
+          "loss30_pct": 29.74,
+          "worst": -100.0
+        },
+        "stop30_exit100": {
+          "mean": 7.08,
+          "median": -28.3,
+          "doubled_pct": 13.22,
+          "loss_pct": 63.66,
+          "loss30_pct": 40.97,
+          "worst": -70.57
+        },
+        "hit100_3_ci90": [
+          21.71,
+          28.37
+        ],
+        "hit30_3_ci90": [
+          58.09,
+          65.56
+        ],
+        "median_worst_loss": -49.03,
+        "median_max_drawdown": -63.26,
+        "worst_max_drawdown": -100.0,
+        "median_days_to_double": 333
+      },
+      "validation": {
+        "n": 284,
+        "issuers": 236,
+        "hit30_1_pct": 35.21,
+        "hit30_2_pct": 60.21,
+        "hit30_3_pct": 69.72,
+        "hit100_1_pct": 3.52,
+        "hit100_2_pct": 15.49,
+        "hit100_3_pct": 25.7,
+        "hit200_1_pct": 0.35,
+        "hit200_2_pct": 2.11,
+        "hit200_3_pct": 7.75,
+        "hit400_1_pct": 0.0,
+        "hit400_2_pct": 1.06,
+        "hit400_3_pct": 2.11,
+        "annual30_pct": 0.7,
+        "hold_return": {
+          "mean": 44.45,
+          "median": 31.27,
+          "doubled_pct": 15.14,
+          "loss_pct": 28.17,
+          "loss30_pct": 11.27,
+          "worst": -90.8
+        },
+        "exit30": {
+          "mean": 16.74,
+          "median": 29.86,
+          "doubled_pct": 0.0,
+          "loss_pct": 21.13,
+          "loss30_pct": 9.51,
+          "worst": -90.8
+        },
+        "exit100": {
+          "mean": 37.04,
+          "median": 35.2,
+          "doubled_pct": 19.01,
+          "loss_pct": 27.11,
+          "loss30_pct": 11.27,
+          "worst": -90.8
+        },
+        "stop30_exit100": {
+          "mean": 26.92,
+          "median": 19.27,
+          "doubled_pct": 16.9,
+          "loss_pct": 41.2,
+          "loss30_pct": 28.87,
+          "worst": -47.47
+        },
+        "hit100_3_ci90": [
+          21.68,
+          30.18
+        ],
+        "hit30_3_ci90": [
+          65.06,
+          74.0
+        ],
+        "median_worst_loss": -20.27,
+        "median_max_drawdown": -39.3,
+        "worst_max_drawdown": -93.0,
+        "median_days_to_double": 665
+      },
+      "test": {
+        "n": 221,
+        "issuers": 213,
+        "hit30_1_pct": 57.47,
+        "hit30_2_pct": 66.52,
+        "hit30_3_pct": 71.49,
+        "hit100_1_pct": 10.86,
+        "hit100_2_pct": 23.98,
+        "hit100_3_pct": 29.41,
+        "hit200_1_pct": 1.81,
+        "hit200_2_pct": 4.98,
+        "hit200_3_pct": 7.69,
+        "hit400_1_pct": 0.0,
+        "hit400_2_pct": 0.45,
+        "hit400_3_pct": 1.36,
+        "annual30_pct": 0.9,
+        "hold_return": {
+          "mean": 21.55,
+          "median": 6.52,
+          "doubled_pct": 12.22,
+          "loss_pct": 42.53,
+          "loss30_pct": 22.17,
+          "worst": -95.15
+        },
+        "exit30": {
+          "mean": 15.82,
+          "median": 30.38,
+          "doubled_pct": 0.0,
+          "loss_pct": 20.81,
+          "loss30_pct": 12.22,
+          "worst": -87.38
+        },
+        "exit100": {
+          "mean": 23.4,
+          "median": 12.2,
+          "doubled_pct": 21.72,
+          "loss_pct": 40.72,
+          "loss30_pct": 21.27,
+          "worst": -95.15
+        },
+        "stop30_exit100": {
+          "mean": 11.17,
+          "median": -27.07,
+          "doubled_pct": 18.1,
+          "loss_pct": 61.09,
+          "loss30_pct": 41.63,
+          "worst": -56.08
+        },
+        "hit100_3_ci90": [
+          24.64,
+          34.68
+        ],
+        "hit30_3_ci90": [
+          66.26,
+          76.2
+        ],
+        "median_worst_loss": -32.89,
+        "median_max_drawdown": -51.99,
+        "worst_max_drawdown": -97.43,
+        "median_days_to_double": 461
+      }
+    },
+    "discounted_cash_growth": {
+      "development": {
+        "n": 147,
+        "issuers": 126,
+        "hit30_1_pct": 54.42,
+        "hit30_2_pct": 61.22,
+        "hit30_3_pct": 65.31,
+        "hit100_1_pct": 13.61,
+        "hit100_2_pct": 24.49,
+        "hit100_3_pct": 31.97,
+        "hit200_1_pct": 4.08,
+        "hit200_2_pct": 8.16,
+        "hit200_3_pct": 13.61,
+        "hit400_1_pct": 0.68,
+        "hit400_2_pct": 0.68,
+        "hit400_3_pct": 3.4,
+        "annual30_pct": 0.68,
+        "hold_return": {
+          "mean": 28.09,
+          "median": -2.67,
+          "doubled_pct": 18.37,
+          "loss_pct": 51.02,
+          "loss30_pct": 34.69,
+          "worst": -92.2
+        },
+        "exit30": {
+          "mean": 6.24,
+          "median": 29.44,
+          "doubled_pct": 0.0,
+          "loss_pct": 31.29,
+          "loss30_pct": 22.45,
+          "worst": -92.2
+        },
+        "exit100": {
+          "mean": 19.18,
+          "median": 6.94,
+          "doubled_pct": 26.53,
+          "loss_pct": 48.3,
+          "loss30_pct": 32.65,
+          "worst": -92.2
+        },
+        "stop30_exit100": {
+          "mean": 13.98,
+          "median": -27.88,
+          "doubled_pct": 21.77,
+          "loss_pct": 61.9,
+          "loss30_pct": 39.46,
+          "worst": -46.59
+        },
+        "hit100_3_ci90": [
+          26.02,
+          38.58
+        ],
+        "hit30_3_ci90": [
+          58.62,
+          71.43
+        ],
+        "median_worst_loss": -47.64,
+        "median_max_drawdown": -63.5,
+        "worst_max_drawdown": -98.27,
+        "median_days_to_double": 476
+      },
+      "validation": {
+        "n": 85,
+        "issuers": 80,
+        "hit30_1_pct": 49.41,
+        "hit30_2_pct": 72.94,
+        "hit30_3_pct": 77.65,
+        "hit100_1_pct": 5.88,
+        "hit100_2_pct": 24.71,
+        "hit100_3_pct": 35.29,
+        "hit200_1_pct": 0.0,
+        "hit200_2_pct": 8.24,
+        "hit200_3_pct": 16.47,
+        "hit400_1_pct": 0.0,
+        "hit400_2_pct": 0.0,
+        "hit400_3_pct": 1.18,
+        "annual30_pct": 3.53,
+        "hold_return": {
+          "mean": 58.15,
+          "median": 47.2,
+          "doubled_pct": 24.71,
+          "loss_pct": 22.35,
+          "loss30_pct": 14.12,
+          "worst": -90.99
+        },
+        "exit30": {
+          "mean": 21.71,
+          "median": 30.73,
+          "doubled_pct": 0.0,
+          "loss_pct": 11.76,
+          "loss30_pct": 7.06,
+          "worst": -90.99
+        },
+        "exit100": {
+          "mean": 43.03,
+          "median": 47.74,
+          "doubled_pct": 24.71,
+          "loss_pct": 22.35,
+          "loss30_pct": 14.12,
+          "worst": -90.99
+        },
+        "stop30_exit100": {
+          "mean": 41.3,
+          "median": 47.2,
+          "doubled_pct": 24.71,
+          "loss_pct": 30.59,
+          "loss30_pct": 25.88,
+          "worst": -44.02
+        },
+        "hit100_3_ci90": [
+          27.34,
+          44.15
+        ],
+        "hit30_3_ci90": [
+          69.43,
+          84.16
+        ],
+        "median_worst_loss": -16.08,
+        "median_max_drawdown": -33.65,
+        "worst_max_drawdown": -95.37,
+        "median_days_to_double": 516.0
+      },
+      "test": {
+        "n": 90,
+        "issuers": 88,
+        "hit30_1_pct": 47.78,
+        "hit30_2_pct": 57.78,
+        "hit30_3_pct": 65.56,
+        "hit100_1_pct": 18.89,
+        "hit100_2_pct": 28.89,
+        "hit100_3_pct": 37.78,
+        "hit200_1_pct": 1.11,
+        "hit200_2_pct": 6.67,
+        "hit200_3_pct": 11.11,
+        "hit400_1_pct": 0.0,
+        "hit400_2_pct": 0.0,
+        "hit400_3_pct": 2.22,
+        "annual30_pct": 1.11,
+        "hold_return": {
+          "mean": 43.74,
+          "median": 27.37,
+          "doubled_pct": 18.89,
+          "loss_pct": 32.22,
+          "loss30_pct": 17.78,
+          "worst": -77.32
+        },
+        "exit30": {
+          "mean": 13.37,
+          "median": 29.07,
+          "doubled_pct": 0.0,
+          "loss_pct": 23.33,
+          "loss30_pct": 15.56,
+          "worst": -77.32
+        },
+        "exit100": {
+          "mean": 38.29,
+          "median": 35.28,
+          "doubled_pct": 23.33,
+          "loss_pct": 30.0,
+          "loss30_pct": 17.78,
+          "worst": -77.32
+        },
+        "stop30_exit100": {
+          "mean": 25.47,
+          "median": 7.56,
+          "doubled_pct": 21.11,
+          "loss_pct": 48.89,
+          "loss30_pct": 28.89,
+          "worst": -39.23
+        },
+        "hit100_3_ci90": [
+          29.84,
+          46.42
+        ],
+        "hit30_3_ci90": [
+          56.97,
+          73.23
+        ],
+        "median_worst_loss": -26.87,
+        "median_max_drawdown": -45.28,
+        "worst_max_drawdown": -84.8,
+        "median_days_to_double": 358.0
+      },
+      "test_portfolio": {
+        "cohorts": 43,
+        "minimum_positions": 2,
+        "median_positions": 10,
+        "hold_return": {
+          "mean_return": 22.45,
+          "median_return": 18.94,
+          "doubled_pct": 0.0,
+          "worst_return": -14.62
+        },
+        "exit30": {
+          "mean_return": 10.93,
+          "median_return": 15.48,
+          "doubled_pct": 0.0,
+          "worst_return": -23.49
+        },
+        "exit100": {
+          "mean_return": 22.84,
+          "median_return": 22.68,
+          "doubled_pct": 0.0,
+          "worst_return": -16.48
+        },
+        "stop30_exit100": {
+          "mean_return": 15.24,
+          "median_return": 15.29,
+          "doubled_pct": 0.0,
+          "worst_return": -18.48
+        },
+        "note": "Monthly start cohorts overlap. 10 equal 10% slots, cash for missing slots; no reinvestment after exit. These are terminal portfolio returns, not daily portfolio drawdowns. Months with zero qualifying names are omitted."
+      },
+      "test_by_sector": {
+        "Communication Services": {
+          "n": 8,
+          "issuers": 8,
+          "hit30_1_pct": 25.0,
+          "hit30_2_pct": 25.0,
+          "hit30_3_pct": 25.0,
+          "hit100_1_pct": 25.0,
+          "hit100_2_pct": 25.0,
+          "hit100_3_pct": 25.0,
+          "hit200_1_pct": 0.0,
+          "hit200_2_pct": 0.0,
+          "hit200_3_pct": 0.0,
+          "hit400_1_pct": 0.0,
+          "hit400_2_pct": 0.0,
+          "hit400_3_pct": 0.0,
+          "annual30_pct": 0.0,
+          "hold_return": {
+            "mean": 13.27,
+            "median": 9.68,
+            "doubled_pct": 12.5,
+            "loss_pct": 25.0,
+            "loss30_pct": 25.0,
+            "worst": -75.22
+          },
+          "exit30": {
+            "mean": -2.98,
+            "median": 9.68,
+            "doubled_pct": 0.0,
+            "loss_pct": 25.0,
+            "loss30_pct": 25.0,
+            "worst": -75.22
+          },
+          "exit100": {
+            "mean": 17.07,
+            "median": 9.68,
+            "doubled_pct": 12.5,
+            "loss_pct": 25.0,
+            "loss30_pct": 25.0,
+            "worst": -75.22
+          },
+          "stop30_exit100": {
+            "mean": 11.89,
+            "median": -11.97,
+            "doubled_pct": 12.5,
+            "loss_pct": 50.0,
+            "loss30_pct": 50.0,
+            "worst": -38.43
+          },
+          "hit100_3_ci90": [
+            8.65,
+            53.98
+          ],
+          "hit30_3_ci90": [
+            8.65,
+            53.98
+          ],
+          "median_worst_loss": -30.09,
+          "median_max_drawdown": -45.68,
+          "worst_max_drawdown": -84.45,
+          "median_days_to_double": 294.0
+        },
+        "Consumer Cyclical": {
+          "n": 35,
+          "issuers": 34,
+          "hit30_1_pct": 62.86,
+          "hit30_2_pct": 71.43,
+          "hit30_3_pct": 77.14,
+          "hit100_1_pct": 28.57,
+          "hit100_2_pct": 45.71,
+          "hit100_3_pct": 54.29,
+          "hit200_1_pct": 2.86,
+          "hit200_2_pct": 11.43,
+          "hit200_3_pct": 14.29,
+          "hit400_1_pct": 0.0,
+          "hit400_2_pct": 0.0,
+          "hit400_3_pct": 0.0,
+          "annual30_pct": 2.86,
+          "hold_return": {
+            "mean": 52.68,
+            "median": 45.47,
+            "doubled_pct": 22.86,
+            "loss_pct": 25.71,
+            "loss30_pct": 8.57,
+            "worst": -69.23
+          },
+          "exit30": {
+            "mean": 18.97,
+            "median": 30.11,
+            "doubled_pct": 0.0,
+            "loss_pct": 20.0,
+            "loss30_pct": 8.57,
+            "worst": -69.23
+          },
+          "exit100": {
+            "mean": 58.05,
+            "median": 96.51,
+            "doubled_pct": 34.29,
+            "loss_pct": 22.86,
+            "loss30_pct": 8.57,
+            "worst": -69.23
+          },
+          "stop30_exit100": {
+            "mean": 44.2,
+            "median": 74.17,
+            "doubled_pct": 31.43,
+            "loss_pct": 40.0,
+            "loss30_pct": 22.86,
+            "worst": -34.93
+          },
+          "hit100_3_ci90": [
+            40.63,
+            67.33
+          ],
+          "hit30_3_ci90": [
+            63.78,
+            86.61
+          ],
+          "median_worst_loss": -20.87,
+          "median_max_drawdown": -44.45,
+          "worst_max_drawdown": -84.8,
+          "median_days_to_double": 289
+        },
+        "Technology": {
+          "n": 47,
+          "issuers": 46,
+          "hit30_1_pct": 40.43,
+          "hit30_2_pct": 53.19,
+          "hit30_3_pct": 63.83,
+          "hit100_1_pct": 10.64,
+          "hit100_2_pct": 17.02,
+          "hit100_3_pct": 27.66,
+          "hit200_1_pct": 0.0,
+          "hit200_2_pct": 4.26,
+          "hit200_3_pct": 10.64,
+          "hit400_1_pct": 0.0,
+          "hit400_2_pct": 0.0,
+          "hit400_3_pct": 4.26,
+          "annual30_pct": 0.0,
+          "hold_return": {
+            "mean": 42.27,
+            "median": 19.78,
+            "doubled_pct": 17.02,
+            "loss_pct": 38.3,
+            "loss30_pct": 23.4,
+            "worst": -77.32
+          },
+          "exit30": {
+            "mean": 11.99,
+            "median": 29.93,
+            "doubled_pct": 0.0,
+            "loss_pct": 25.53,
+            "loss30_pct": 19.15,
+            "worst": -77.32
+          },
+          "exit100": {
+            "mean": 27.19,
+            "median": 21.28,
+            "doubled_pct": 17.02,
+            "loss_pct": 36.17,
+            "loss30_pct": 23.4,
+            "worst": -77.32
+          },
+          "stop30_exit100": {
+            "mean": 13.84,
+            "median": -17.29,
+            "doubled_pct": 14.89,
+            "loss_pct": 55.32,
+            "loss30_pct": 29.79,
+            "worst": -39.23
+          },
+          "hit100_3_ci90": [
+            18.37,
+            39.38
+          ],
+          "hit30_3_ci90": [
+            51.84,
+            74.31
+          ],
+          "median_worst_loss": -29.17,
+          "median_max_drawdown": -45.97,
+          "worst_max_drawdown": -81.95,
+          "median_days_to_double": 513
+        }
+      },
+      "test_by_year": {
+        "2020": {
+          "n": 28,
+          "issuers": 28,
+          "hit30_1_pct": 71.43,
+          "hit30_2_pct": 75.0,
+          "hit30_3_pct": 75.0,
+          "hit100_1_pct": 42.86,
+          "hit100_2_pct": 57.14,
+          "hit100_3_pct": 57.14,
+          "hit200_1_pct": 3.57,
+          "hit200_2_pct": 10.71,
+          "hit200_3_pct": 10.71,
+          "hit400_1_pct": 0.0,
+          "hit400_2_pct": 0.0,
+          "hit400_3_pct": 0.0,
+          "annual30_pct": 0.0,
+          "hold_return": {
+            "mean": 45.78,
+            "median": 35.43,
+            "doubled_pct": 21.43,
+            "loss_pct": 21.43,
+            "loss30_pct": 10.71,
+            "worst": -75.22
+          },
+          "exit30": {
+            "mean": 19.84,
+            "median": 28.39,
+            "doubled_pct": 0.0,
+            "loss_pct": 14.29,
+            "loss30_pct": 10.71,
+            "worst": -75.22
+          },
+          "exit100": {
+            "mean": 60.54,
+            "median": 96.23,
+            "doubled_pct": 35.71,
+            "loss_pct": 17.86,
+            "loss30_pct": 10.71,
+            "worst": -75.22
+          },
+          "stop30_exit100": {
+            "mean": 48.36,
+            "median": 70.87,
+            "doubled_pct": 32.14,
+            "loss_pct": 28.57,
+            "loss30_pct": 25.0,
+            "worst": -38.43
+          },
+          "hit100_3_ci90": [
+            41.81,
+            71.22
+          ],
+          "hit30_3_ci90": [
+            59.76,
+            85.84
+          ],
+          "median_worst_loss": -16.99,
+          "median_max_drawdown": -53.54,
+          "worst_max_drawdown": -84.8,
+          "median_days_to_double": 274.5
+        },
+        "2021": {
+          "n": 35,
+          "issuers": 35,
+          "hit30_1_pct": 28.57,
+          "hit30_2_pct": 34.29,
+          "hit30_3_pct": 45.71,
+          "hit100_1_pct": 5.71,
+          "hit100_2_pct": 5.71,
+          "hit100_3_pct": 17.14,
+          "hit200_1_pct": 0.0,
+          "hit200_2_pct": 2.86,
+          "hit200_3_pct": 8.57,
+          "hit400_1_pct": 0.0,
+          "hit400_2_pct": 0.0,
+          "hit400_3_pct": 2.86,
+          "annual30_pct": 2.86,
+          "hold_return": {
+            "mean": 19.48,
+            "median": 0.99,
+            "doubled_pct": 8.57,
+            "loss_pct": 48.57,
+            "loss30_pct": 25.71,
+            "worst": -77.32
+          },
+          "exit30": {
+            "mean": 2.48,
+            "median": 11.73,
+            "doubled_pct": 0.0,
+            "loss_pct": 40.0,
+            "loss30_pct": 22.86,
+            "worst": -77.32
+          },
+          "exit100": {
+            "mean": 11.33,
+            "median": 0.99,
+            "doubled_pct": 8.57,
+            "loss_pct": 48.57,
+            "loss30_pct": 25.71,
+            "worst": -77.32
+          },
+          "stop30_exit100": {
+            "mean": -4.73,
+            "median": -28.68,
+            "doubled_pct": 5.71,
+            "loss_pct": 74.29,
+            "loss30_pct": 40.0,
+            "worst": -34.93
+          },
+          "hit100_3_ci90": [
+            9.13,
+            29.87
+          ],
+          "hit30_3_ci90": [
+            32.67,
+            59.37
+          ],
+          "median_worst_loss": -38.21,
+          "median_max_drawdown": -47.0,
+          "worst_max_drawdown": -84.46,
+          "median_days_to_double": 868.5
+        },
+        "2022": {
+          "n": 16,
+          "issuers": 16,
+          "hit30_1_pct": 37.5,
+          "hit30_2_pct": 62.5,
+          "hit30_3_pct": 68.75,
+          "hit100_1_pct": 6.25,
+          "hit100_2_pct": 25.0,
+          "hit100_3_pct": 43.75,
+          "hit200_1_pct": 0.0,
+          "hit200_2_pct": 6.25,
+          "hit200_3_pct": 6.25,
+          "hit400_1_pct": 0.0,
+          "hit400_2_pct": 0.0,
+          "hit400_3_pct": 0.0,
+          "annual30_pct": 0.0,
+          "hold_return": {
+            "mean": 31.86,
+            "median": 10.6,
+            "doubled_pct": 25.0,
+            "loss_pct": 37.5,
+            "loss30_pct": 25.0,
+            "worst": -71.32
+          },
+          "exit30": {
+            "mean": 11.99,
+            "median": 29.95,
+            "doubled_pct": 0.0,
+            "loss_pct": 18.75,
+            "loss30_pct": 18.75,
+            "worst": -71.32
+          },
+          "exit100": {
+            "mean": 37.16,
+            "median": 39.86,
+            "doubled_pct": 25.0,
+            "loss_pct": 31.25,
+            "loss30_pct": 25.0,
+            "worst": -71.32
+          },
+          "stop30_exit100": {
+            "mean": 29.58,
+            "median": 2.9,
+            "doubled_pct": 25.0,
+            "loss_pct": 50.0,
+            "loss30_pct": 25.0,
+            "worst": -39.23
+          },
+          "hit100_3_ci90": [
+            25.77,
+            63.54
+          ],
+          "hit30_3_ci90": [
+            48.2,
+            83.87
+          ],
+          "median_worst_loss": -26.11,
+          "median_max_drawdown": -39.26,
+          "worst_max_drawdown": -78.84,
+          "median_days_to_double": 729
+        },
+        "2023": {
+          "n": 11,
+          "issuers": 11,
+          "hit30_1_pct": 63.64,
+          "hit30_2_pct": 81.82,
+          "hit30_3_pct": 100.0,
+          "hit100_1_pct": 18.18,
+          "hit100_2_pct": 36.36,
+          "hit100_3_pct": 45.45,
+          "hit200_1_pct": 0.0,
+          "hit200_2_pct": 9.09,
+          "hit200_3_pct": 27.27,
+          "hit400_1_pct": 0.0,
+          "hit400_2_pct": 0.0,
+          "hit400_3_pct": 9.09,
+          "annual30_pct": 0.0,
+          "hold_return": {
+            "mean": 133.03,
+            "median": 62.77,
+            "doubled_pct": 36.36,
+            "loss_pct": 0.0,
+            "loss30_pct": 0.0,
+            "worst": 14.95
+          },
+          "exit30": {
+            "mean": 33.6,
+            "median": 34.03,
+            "doubled_pct": 0.0,
+            "loss_pct": 0.0,
+            "loss30_pct": 0.0,
+            "worst": 29.39
+          },
+          "exit100": {
+            "mean": 69.14,
+            "median": 74.17,
+            "doubled_pct": 36.36,
+            "loss_pct": 0.0,
+            "loss30_pct": 0.0,
+            "worst": 14.95
+          },
+          "stop30_exit100": {
+            "mean": 57.3,
+            "median": 74.17,
+            "doubled_pct": 36.36,
+            "loss_pct": 18.18,
+            "loss30_pct": 9.09,
+            "worst": -32.14
+          },
+          "hit100_3_ci90": [
+            24.21,
+            68.49
+          ],
+          "hit30_3_ci90": [
+            80.26,
+            100.0
+          ],
+          "median_worst_loss": -7.85,
+          "median_max_drawdown": -40.6,
+          "worst_max_drawdown": -48.6,
+          "median_days_to_double": 398
+        }
+      }
+    },
+    "high_selectivity": {
+      "development": {
+        "n": 110,
+        "issuers": 96,
+        "hit30_1_pct": 48.18,
+        "hit30_2_pct": 56.36,
+        "hit30_3_pct": 67.27,
+        "hit100_1_pct": 17.27,
+        "hit100_2_pct": 25.45,
+        "hit100_3_pct": 30.0,
+        "hit200_1_pct": 9.09,
+        "hit200_2_pct": 12.73,
+        "hit200_3_pct": 17.27,
+        "hit400_1_pct": 1.82,
+        "hit400_2_pct": 4.55,
+        "hit400_3_pct": 5.45,
+        "annual30_pct": 1.82,
+        "hold_return": {
+          "mean": 6.79,
+          "median": -10.81,
+          "doubled_pct": 11.82,
+          "loss_pct": 54.55,
+          "loss30_pct": 37.27,
+          "worst": -99.06
+        },
+        "exit30": {
+          "mean": 9.14,
+          "median": 30.19,
+          "doubled_pct": 0.91,
+          "loss_pct": 30.0,
+          "loss30_pct": 19.09,
+          "worst": -99.06
+        },
+        "exit100": {
+          "mean": 17.52,
+          "median": 7.9,
+          "doubled_pct": 20.91,
+          "loss_pct": 45.45,
+          "loss30_pct": 29.09,
+          "worst": -99.06
+        },
+        "stop30_exit100": {
+          "mean": 10.7,
+          "median": -28.89,
+          "doubled_pct": 18.18,
+          "loss_pct": 61.82,
+          "loss30_pct": 43.64,
+          "worst": -55.78
+        },
+        "hit100_3_ci90": [
+          23.36,
+          37.6
+        ],
+        "hit30_3_ci90": [
+          59.58,
+          74.14
+        ],
+        "median_worst_loss": -53.2,
+        "median_max_drawdown": -68.24,
+        "worst_max_drawdown": -99.86,
+        "median_days_to_double": 324
+      },
+      "validation": {
+        "n": 51,
+        "issuers": 50,
+        "hit30_1_pct": 39.22,
+        "hit30_2_pct": 56.86,
+        "hit30_3_pct": 76.47,
+        "hit100_1_pct": 7.84,
+        "hit100_2_pct": 27.45,
+        "hit100_3_pct": 35.29,
+        "hit200_1_pct": 0.0,
+        "hit200_2_pct": 5.88,
+        "hit200_3_pct": 17.65,
+        "hit400_1_pct": 0.0,
+        "hit400_2_pct": 0.0,
+        "hit400_3_pct": 0.0,
+        "annual30_pct": 1.96,
+        "hold_return": {
+          "mean": 60.23,
+          "median": 37.57,
+          "doubled_pct": 23.53,
+          "loss_pct": 23.53,
+          "loss30_pct": 1.96,
+          "worst": -90.22
+        },
+        "exit30": {
+          "mean": 21.96,
+          "median": 29.82,
+          "doubled_pct": 0.0,
+          "loss_pct": 15.69,
+          "loss30_pct": 1.96,
+          "worst": -90.22
+        },
+        "exit100": {
+          "mean": 47.13,
+          "median": 41.27,
+          "doubled_pct": 23.53,
+          "loss_pct": 19.61,
+          "loss30_pct": 1.96,
+          "worst": -90.22
+        },
+        "stop30_exit100": {
+          "mean": 27.86,
+          "median": 24.89,
+          "doubled_pct": 17.65,
+          "loss_pct": 39.22,
+          "loss30_pct": 27.45,
+          "worst": -37.26
+        },
+        "hit100_3_ci90": [
+          25.28,
+          46.79
+        ],
+        "hit30_3_ci90": [
+          65.52,
+          84.75
+        ],
+        "median_worst_loss": -22.55,
+        "median_max_drawdown": -38.17,
+        "worst_max_drawdown": -95.37,
+        "median_days_to_double": 580.0
+      },
+      "test": {
+        "n": 36,
+        "issuers": 36,
+        "hit30_1_pct": 41.67,
+        "hit30_2_pct": 55.56,
+        "hit30_3_pct": 61.11,
+        "hit100_1_pct": 8.33,
+        "hit100_2_pct": 13.89,
+        "hit100_3_pct": 22.22,
+        "hit200_1_pct": 0.0,
+        "hit200_2_pct": 2.78,
+        "hit200_3_pct": 5.56,
+        "hit400_1_pct": 0.0,
+        "hit400_2_pct": 0.0,
+        "hit400_3_pct": 2.78,
+        "annual30_pct": 0.0,
+        "hold_return": {
+          "mean": 20.55,
+          "median": -2.47,
+          "doubled_pct": 8.33,
+          "loss_pct": 52.78,
+          "loss30_pct": 33.33,
+          "worst": -91.22
+        },
+        "exit30": {
+          "mean": 4.22,
+          "median": 28.74,
+          "doubled_pct": 0.0,
+          "loss_pct": 30.56,
+          "loss30_pct": 25.0,
+          "worst": -91.22
+        },
+        "exit100": {
+          "mean": 7.94,
+          "median": -1.94,
+          "doubled_pct": 11.11,
+          "loss_pct": 50.0,
+          "loss30_pct": 33.33,
+          "worst": -91.22
+        },
+        "stop30_exit100": {
+          "mean": -3.08,
+          "median": -29.88,
+          "doubled_pct": 5.56,
+          "loss_pct": 72.22,
+          "loss30_pct": 50.0,
+          "worst": -38.97
+        },
+        "hit100_3_ci90": [
+          13.0,
+          35.33
+        ],
+        "hit30_3_ci90": [
+          47.42,
+          73.25
+        ],
+        "median_worst_loss": -40.98,
+        "median_max_drawdown": -57.42,
+        "worst_max_drawdown": -92.23,
+        "median_days_to_double": 492.0
+      }
+    }
+  },
+  "selections": {
+    "hit100_3_pct": {
+      "rule": "discounted_cash_growth",
+      "selection": "Highest minimum development/validation Wilson lower bound; \u226580 development episodes and \u226540 validation episodes / 25 issuers."
+    },
+    "hit30_3_pct": {
+      "rule": "current_quality50",
+      "selection": "Highest minimum development/validation Wilson lower bound; \u226580 development episodes and \u226540 validation episodes / 25 issuers."
+    }
+  },
+  "limitations": [
+    "Research only; no live recommendations or deployment changed.",
+    "Frozen scores and fundamentals reused from prior point-in-time replay; daily forward price outcomes recalculated locally.",
+    "Only previously screened Technology, Consumer Cyclical and Communication Services companies; not all global stocks.",
+    "Entry at next close, 15 bps per entry/exit, dividend-adjusted closes. Targets observed at close, exits at following close; no intraday-perfect fills.",
+    "All included entries have three-year follow-up or terminal outcomes. Unknown delistings follow the existing last-close policy; bankruptcy zero-return policy retained.",
+    "Development entries end in 2008, validation begins 2012 and ends 2016, test begins 2020. Three-year outcome gaps reduce leakage.",
+    "The dataset has been explored in earlier research; this is not a truly pristine external holdout. Rules selected before revealing test results in this run.",
+    "Wilson intervals treat trades as independent and may be too narrow; issuers and market cycles remain correlated.",
+    "One entry per issuer per 1095 days for stock statistics; this is not an immediately reinvested trading portfolio.",
+    "Portfolio cohorts overlap, omit zero-signal months and hold unused/realized capital in cash at zero interest. No taxes modeled.",
+    "Yearly +30% means each separate anniversary-to-anniversary year, not simply 30% CAGR.",
+    "3x and 5x statistics are threshold touches, not guaranteed realizable exits."
+  ]
+}

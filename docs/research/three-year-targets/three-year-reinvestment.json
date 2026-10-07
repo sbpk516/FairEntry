@@ -1,0 +1,4494 @@
+{
+  "period": "test",
+  "entry_window": [
+    "2020-01-01",
+    "2023-08-08"
+  ],
+  "scope": "Three-year portfolio starts within the stated entry window, monthly signals, ten 10% slots, daily mark-to-market; following-close target/stop execution; 30-day issuer cooldown after exits; cash earns zero; 15 bps each side.",
+  "selection": "Rules frozen by the development/validation selection from the preceding stock-level experiment. No test-period retuning.",
+  "limitations": [
+    "Monthly start cohorts strongly overlap and are not independent trials.",
+    "No taxes; delisting handling inherited from replay; unknown delistings valued at last available close.",
+    "The available universe is limited to three sectors and previously screened stocks.",
+    "These are historical results, not forward probabilities."
+  ],
+  "results": {
+    "current_quality50/hold_no_reinvestment": {
+      "summary": {
+        "cohorts": 43,
+        "mean_return_pct": 20.63,
+        "median_return_pct": 10.9,
+        "reached_double_pct": 9.3,
+        "ended_double_pct": 0.0,
+        "annual30_pct": 0.0,
+        "loss_pct": 34.88,
+        "worst_return_pct": -26.015,
+        "median_max_drawdown_pct": -28.0,
+        "worst_max_drawdown_pct": -44.636,
+        "mean_trades": 7.1
+      },
+      "cohorts": [
+        {
+          "start": "2020-01-30",
+          "return_pct": 0.0,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": 0.0,
+          "trades": 0,
+          "exits": 0
+        },
+        {
+          "start": "2020-03-02",
+          "return_pct": 6.915,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -14.931,
+          "trades": 3,
+          "exits": 1
+        },
+        {
+          "start": "2020-03-31",
+          "return_pct": 40.495,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.047,
+          "trades": 4,
+          "exits": 1
+        },
+        {
+          "start": "2020-04-30",
+          "return_pct": 9.407,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.029,
+          "trades": 4,
+          "exits": 1
+        },
+        {
+          "start": "2020-06-01",
+          "return_pct": -3.979,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -16.257,
+          "trades": 3,
+          "exits": 1
+        },
+        {
+          "start": "2020-06-30",
+          "return_pct": -9.077,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.935,
+          "trades": 4,
+          "exits": 1
+        },
+        {
+          "start": "2020-07-30",
+          "return_pct": -1.647,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.691,
+          "trades": 5,
+          "exits": 1
+        },
+        {
+          "start": "2020-08-31",
+          "return_pct": 10.905,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.298,
+          "trades": 5,
+          "exits": 2
+        },
+        {
+          "start": "2020-09-29",
+          "return_pct": -1.258,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -26.165,
+          "trades": 4,
+          "exits": 1
+        },
+        {
+          "start": "2020-10-29",
+          "return_pct": -6.09,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.929,
+          "trades": 4,
+          "exits": 0
+        },
+        {
+          "start": "2020-11-30",
+          "return_pct": -3.556,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.292,
+          "trades": 3,
+          "exits": 0
+        },
+        {
+          "start": "2020-12-29",
+          "return_pct": -0.986,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.373,
+          "trades": 3,
+          "exits": 0
+        },
+        {
+          "start": "2021-01-28",
+          "return_pct": 0.153,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.013,
+          "trades": 5,
+          "exits": 0
+        },
+        {
+          "start": "2021-03-01",
+          "return_pct": -6.944,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -39.51,
+          "trades": 8,
+          "exits": 0
+        },
+        {
+          "start": "2021-03-30",
+          "return_pct": -6.604,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -39.713,
+          "trades": 8,
+          "exits": 0
+        },
+        {
+          "start": "2021-04-29",
+          "return_pct": -6.652,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -37.423,
+          "trades": 8,
+          "exits": 0
+        },
+        {
+          "start": "2021-06-01",
+          "return_pct": -26.015,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -44.636,
+          "trades": 9,
+          "exits": 0
+        },
+        {
+          "start": "2021-06-29",
+          "return_pct": -18.789,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -40.307,
+          "trades": 8,
+          "exits": 0
+        },
+        {
+          "start": "2021-07-29",
+          "return_pct": -13.664,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -35.483,
+          "trades": 7,
+          "exits": 0
+        },
+        {
+          "start": "2021-08-30",
+          "return_pct": -19.049,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.479,
+          "trades": 4,
+          "exits": 0
+        },
+        {
+          "start": "2021-09-28",
+          "return_pct": -8.779,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -14.443,
+          "trades": 3,
+          "exits": 0
+        },
+        {
+          "start": "2021-10-28",
+          "return_pct": 9.51,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.186,
+          "trades": 4,
+          "exits": 0
+        },
+        {
+          "start": "2021-11-29",
+          "return_pct": 9.505,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -31.299,
+          "trades": 7,
+          "exits": 2
+        },
+        {
+          "start": "2021-12-28",
+          "return_pct": 15.248,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -37.457,
+          "trades": 9,
+          "exits": 2
+        },
+        {
+          "start": "2022-01-27",
+          "return_pct": 17.816,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.475,
+          "trades": 8,
+          "exits": 1
+        },
+        {
+          "start": "2022-02-28",
+          "return_pct": 29.385,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -32.835,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2022-03-29",
+          "return_pct": 28.277,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.962,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2022-04-28",
+          "return_pct": 51.212,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -38.147,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2022-05-31",
+          "return_pct": 17.263,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -32.946,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2022-06-28",
+          "return_pct": 50.931,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.767,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2022-07-28",
+          "return_pct": 36.244,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -31.253,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2022-08-29",
+          "return_pct": 62.17,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.6,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2022-09-27",
+          "return_pct": 92.579,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.849,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2022-10-27",
+          "return_pct": 82.198,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -31.513,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2022-11-28",
+          "return_pct": 54.88,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -35.898,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2022-12-28",
+          "return_pct": 51.45,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -37.788,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2023-01-27",
+          "return_pct": 80.846,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.788,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2023-02-28",
+          "return_pct": 52.692,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -28.002,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2023-03-30",
+          "return_pct": 29.848,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -28.541,
+          "trades": 10,
+          "exits": 2
+        },
+        {
+          "start": "2023-05-01",
+          "return_pct": 89.253,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.351,
+          "trades": 9,
+          "exits": 2
+        },
+        {
+          "start": "2023-05-31",
+          "return_pct": 27.479,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.303,
+          "trades": 7,
+          "exits": 1
+        },
+        {
+          "start": "2023-06-30",
+          "return_pct": 47.324,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -31.102,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2023-08-01",
+          "return_pct": 16.25,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.541,
+          "trades": 10,
+          "exits": 1
+        }
+      ]
+    },
+    "current_quality50/hold_add_to_empty_slots": {
+      "summary": {
+        "cohorts": 43,
+        "mean_return_pct": 26.68,
+        "median_return_pct": 26.3,
+        "reached_double_pct": 11.63,
+        "ended_double_pct": 0.0,
+        "annual30_pct": 0.0,
+        "loss_pct": 18.6,
+        "worst_return_pct": -29.833,
+        "median_max_drawdown_pct": -40.18,
+        "worst_max_drawdown_pct": -49.769,
+        "mean_trades": 11.0
+      },
+      "cohorts": [
+        {
+          "start": "2020-01-30",
+          "return_pct": 27.916,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -41.32,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2020-03-02",
+          "return_pct": 31.403,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -41.32,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2020-03-31",
+          "return_pct": 40.622,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -40.954,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2020-04-30",
+          "return_pct": 18.828,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -38.771,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2020-06-01",
+          "return_pct": 3.232,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -40.412,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2020-06-30",
+          "return_pct": 9.678,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -40.386,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2020-07-30",
+          "return_pct": 16.612,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -40.156,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2020-08-31",
+          "return_pct": 11.359,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -40.184,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2020-09-29",
+          "return_pct": 0.292,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -45.388,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2020-10-29",
+          "return_pct": -22.997,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -49.769,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2020-11-30",
+          "return_pct": -7.585,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -45.799,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2020-12-29",
+          "return_pct": 4.899,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -45.754,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2021-01-28",
+          "return_pct": -2.529,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -45.75,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2021-03-01",
+          "return_pct": -1.327,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -45.749,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2021-03-30",
+          "return_pct": 1.074,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -46.106,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2021-04-29",
+          "return_pct": -15.684,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -49.56,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2021-06-01",
+          "return_pct": -29.833,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -49.464,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2021-06-29",
+          "return_pct": -25.632,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -49.26,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2021-07-29",
+          "return_pct": -2.204,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -45.03,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2021-08-30",
+          "return_pct": 11.286,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -42.724,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2021-09-28",
+          "return_pct": 29.47,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -41.754,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2021-10-28",
+          "return_pct": 25.601,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -41.724,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2021-11-29",
+          "return_pct": 30.173,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -42.714,
+          "trades": 11,
+          "exits": 2
+        },
+        {
+          "start": "2021-12-28",
+          "return_pct": 16.322,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -40.482,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2022-01-27",
+          "return_pct": 41.465,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.32,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2022-02-28",
+          "return_pct": 31.304,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -32.835,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2022-03-29",
+          "return_pct": 31.572,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.962,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2022-04-28",
+          "return_pct": 53.037,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -37.94,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2022-05-31",
+          "return_pct": 19.145,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -32.692,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2022-06-28",
+          "return_pct": 53.652,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.503,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2022-07-28",
+          "return_pct": 38.492,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -30.932,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2022-08-29",
+          "return_pct": 66.401,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.313,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2022-09-27",
+          "return_pct": 98.167,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.547,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2022-10-27",
+          "return_pct": 87.471,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -31.242,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2022-11-28",
+          "return_pct": 54.88,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -35.898,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2022-12-28",
+          "return_pct": 51.45,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -37.788,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2023-01-27",
+          "return_pct": 80.846,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.788,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2023-02-28",
+          "return_pct": 52.692,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -28.002,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2023-03-30",
+          "return_pct": 26.302,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -28.541,
+          "trades": 12,
+          "exits": 3
+        },
+        {
+          "start": "2023-05-01",
+          "return_pct": 95.711,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.947,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2023-05-31",
+          "return_pct": 33.399,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -31.31,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2023-06-30",
+          "return_pct": 47.324,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -31.102,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2023-08-01",
+          "return_pct": 12.824,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.541,
+          "trades": 12,
+          "exits": 2
+        }
+      ]
+    },
+    "current_quality50/take30_reinvest": {
+      "summary": {
+        "cohorts": 43,
+        "mean_return_pct": 18.34,
+        "median_return_pct": 19.45,
+        "reached_double_pct": 0.0,
+        "ended_double_pct": 0.0,
+        "annual30_pct": 0.0,
+        "loss_pct": 20.93,
+        "worst_return_pct": -27.013,
+        "median_max_drawdown_pct": -37.68,
+        "worst_max_drawdown_pct": -49.26,
+        "mean_trades": 23.8
+      },
+      "cohorts": [
+        {
+          "start": "2020-01-30",
+          "return_pct": 19.938,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -37.644,
+          "trades": 29,
+          "exits": 19
+        },
+        {
+          "start": "2020-03-02",
+          "return_pct": 20.277,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -37.644,
+          "trades": 29,
+          "exits": 19
+        },
+        {
+          "start": "2020-03-31",
+          "return_pct": 23.98,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -38.073,
+          "trades": 29,
+          "exits": 19
+        },
+        {
+          "start": "2020-04-30",
+          "return_pct": 14.183,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -37.684,
+          "trades": 27,
+          "exits": 17
+        },
+        {
+          "start": "2020-06-01",
+          "return_pct": 9.472,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -37.982,
+          "trades": 25,
+          "exits": 15
+        },
+        {
+          "start": "2020-06-30",
+          "return_pct": 14.358,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -38.121,
+          "trades": 25,
+          "exits": 16
+        },
+        {
+          "start": "2020-07-30",
+          "return_pct": 17.464,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -38.898,
+          "trades": 27,
+          "exits": 17
+        },
+        {
+          "start": "2020-08-31",
+          "return_pct": 10.756,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -39.68,
+          "trades": 25,
+          "exits": 15
+        },
+        {
+          "start": "2020-09-29",
+          "return_pct": 11.277,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -38.358,
+          "trades": 25,
+          "exits": 15
+        },
+        {
+          "start": "2020-10-29",
+          "return_pct": -11.404,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -40.236,
+          "trades": 21,
+          "exits": 11
+        },
+        {
+          "start": "2020-11-30",
+          "return_pct": -5.15,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -41.711,
+          "trades": 20,
+          "exits": 10
+        },
+        {
+          "start": "2020-12-29",
+          "return_pct": 1.163,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -41.441,
+          "trades": 20,
+          "exits": 11
+        },
+        {
+          "start": "2021-01-28",
+          "return_pct": -5.304,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -41.255,
+          "trades": 20,
+          "exits": 10
+        },
+        {
+          "start": "2021-03-01",
+          "return_pct": 0.787,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -39.75,
+          "trades": 20,
+          "exits": 10
+        },
+        {
+          "start": "2021-03-30",
+          "return_pct": -12.205,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -45.15,
+          "trades": 17,
+          "exits": 7
+        },
+        {
+          "start": "2021-04-29",
+          "return_pct": -22.418,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -46.838,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2021-06-01",
+          "return_pct": -27.013,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -48.106,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2021-06-29",
+          "return_pct": -26.442,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -49.26,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2021-07-29",
+          "return_pct": -22.02,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -45.03,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2021-08-30",
+          "return_pct": -9.665,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -42.724,
+          "trades": 16,
+          "exits": 6
+        },
+        {
+          "start": "2021-09-28",
+          "return_pct": 8.227,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -41.754,
+          "trades": 17,
+          "exits": 7
+        },
+        {
+          "start": "2021-10-28",
+          "return_pct": 8.252,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -41.724,
+          "trades": 17,
+          "exits": 8
+        },
+        {
+          "start": "2021-11-29",
+          "return_pct": 19.449,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -42.714,
+          "trades": 19,
+          "exits": 10
+        },
+        {
+          "start": "2021-12-28",
+          "return_pct": 17.805,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -40.482,
+          "trades": 19,
+          "exits": 10
+        },
+        {
+          "start": "2022-01-27",
+          "return_pct": 29.254,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.32,
+          "trades": 22,
+          "exits": 12
+        },
+        {
+          "start": "2022-02-28",
+          "return_pct": 28.246,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -32.835,
+          "trades": 24,
+          "exits": 14
+        },
+        {
+          "start": "2022-03-29",
+          "return_pct": 34.437,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.564,
+          "trades": 28,
+          "exits": 18
+        },
+        {
+          "start": "2022-04-28",
+          "return_pct": 41.409,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.358,
+          "trades": 32,
+          "exits": 22
+        },
+        {
+          "start": "2022-05-31",
+          "return_pct": 29.459,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.209,
+          "trades": 29,
+          "exits": 19
+        },
+        {
+          "start": "2022-06-28",
+          "return_pct": 55.812,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.095,
+          "trades": 32,
+          "exits": 22
+        },
+        {
+          "start": "2022-07-28",
+          "return_pct": 31.764,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -26.476,
+          "trades": 26,
+          "exits": 16
+        },
+        {
+          "start": "2022-08-29",
+          "return_pct": 37.472,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.625,
+          "trades": 28,
+          "exits": 18
+        },
+        {
+          "start": "2022-09-27",
+          "return_pct": 73.173,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.652,
+          "trades": 33,
+          "exits": 24
+        },
+        {
+          "start": "2022-10-27",
+          "return_pct": 64.116,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.697,
+          "trades": 33,
+          "exits": 23
+        },
+        {
+          "start": "2022-11-28",
+          "return_pct": 41.427,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.929,
+          "trades": 29,
+          "exits": 19
+        },
+        {
+          "start": "2022-12-28",
+          "return_pct": 78.002,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.878,
+          "trades": 34,
+          "exits": 25
+        },
+        {
+          "start": "2023-01-27",
+          "return_pct": 33.106,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.781,
+          "trades": 27,
+          "exits": 18
+        },
+        {
+          "start": "2023-02-28",
+          "return_pct": 19.629,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.377,
+          "trades": 25,
+          "exits": 15
+        },
+        {
+          "start": "2023-03-30",
+          "return_pct": 21.304,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.465,
+          "trades": 26,
+          "exits": 16
+        },
+        {
+          "start": "2023-05-01",
+          "return_pct": 51.505,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.721,
+          "trades": 26,
+          "exits": 18
+        },
+        {
+          "start": "2023-05-31",
+          "return_pct": 22.007,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.988,
+          "trades": 23,
+          "exits": 14
+        },
+        {
+          "start": "2023-06-30",
+          "return_pct": 9.701,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.318,
+          "trades": 22,
+          "exits": 12
+        },
+        {
+          "start": "2023-08-01",
+          "return_pct": 30.854,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.748,
+          "trades": 27,
+          "exits": 17
+        }
+      ]
+    },
+    "current_quality50/take100_reinvest": {
+      "summary": {
+        "cohorts": 43,
+        "mean_return_pct": 30.71,
+        "median_return_pct": 29.66,
+        "reached_double_pct": 2.33,
+        "ended_double_pct": 0.0,
+        "annual30_pct": 0.0,
+        "loss_pct": 18.6,
+        "worst_return_pct": -29.833,
+        "median_max_drawdown_pct": -35.98,
+        "worst_max_drawdown_pct": -49.56,
+        "mean_trades": 14.2
+      },
+      "cohorts": [
+        {
+          "start": "2020-01-30",
+          "return_pct": 28.243,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -40.501,
+          "trades": 17,
+          "exits": 7
+        },
+        {
+          "start": "2020-03-02",
+          "return_pct": 29.659,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -40.501,
+          "trades": 17,
+          "exits": 7
+        },
+        {
+          "start": "2020-03-31",
+          "return_pct": 47.76,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -36.08,
+          "trades": 18,
+          "exits": 8
+        },
+        {
+          "start": "2020-04-30",
+          "return_pct": 28.669,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.997,
+          "trades": 16,
+          "exits": 6
+        },
+        {
+          "start": "2020-06-01",
+          "return_pct": 19.165,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -36.017,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2020-06-30",
+          "return_pct": 25.441,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -35.981,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2020-07-30",
+          "return_pct": 31.208,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -35.718,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2020-08-31",
+          "return_pct": 18.494,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -39.823,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2020-09-29",
+          "return_pct": 1.675,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -45.344,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2020-10-29",
+          "return_pct": -8.521,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -46.272,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2020-11-30",
+          "return_pct": -7.123,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -47.824,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2020-12-29",
+          "return_pct": 4.649,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -45.754,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2021-01-28",
+          "return_pct": -0.57,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -45.75,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2021-03-01",
+          "return_pct": -1.133,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -45.749,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2021-03-30",
+          "return_pct": 0.732,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -46.106,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2021-04-29",
+          "return_pct": -16.572,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -49.56,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2021-06-01",
+          "return_pct": -29.833,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -49.464,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2021-06-29",
+          "return_pct": -25.632,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -49.26,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2021-07-29",
+          "return_pct": -8.947,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -45.03,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2021-08-30",
+          "return_pct": 2.432,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -42.724,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2021-09-28",
+          "return_pct": 18.752,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -41.754,
+          "trades": 12,
+          "exits": 3
+        },
+        {
+          "start": "2021-10-28",
+          "return_pct": 17.94,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -41.724,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2021-11-29",
+          "return_pct": 29.721,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -42.714,
+          "trades": 13,
+          "exits": 4
+        },
+        {
+          "start": "2021-12-28",
+          "return_pct": 17.399,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -40.482,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2022-01-27",
+          "return_pct": 41.316,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.32,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2022-02-28",
+          "return_pct": 60.069,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -32.835,
+          "trades": 16,
+          "exits": 6
+        },
+        {
+          "start": "2022-03-29",
+          "return_pct": 75.562,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.76,
+          "trades": 18,
+          "exits": 8
+        },
+        {
+          "start": "2022-04-28",
+          "return_pct": 88.874,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.015,
+          "trades": 19,
+          "exits": 9
+        },
+        {
+          "start": "2022-05-31",
+          "return_pct": 44.25,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -26.483,
+          "trades": 15,
+          "exits": 5
+        },
+        {
+          "start": "2022-06-28",
+          "return_pct": 66.301,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.487,
+          "trades": 16,
+          "exits": 6
+        },
+        {
+          "start": "2022-07-28",
+          "return_pct": 76.158,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -26.476,
+          "trades": 17,
+          "exits": 7
+        },
+        {
+          "start": "2022-08-29",
+          "return_pct": 83.373,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.917,
+          "trades": 18,
+          "exits": 8
+        },
+        {
+          "start": "2022-09-27",
+          "return_pct": 84.87,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.363,
+          "trades": 17,
+          "exits": 7
+        },
+        {
+          "start": "2022-10-27",
+          "return_pct": 71.383,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.483,
+          "trades": 17,
+          "exits": 7
+        },
+        {
+          "start": "2022-11-28",
+          "return_pct": 62.943,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.776,
+          "trades": 16,
+          "exits": 6
+        },
+        {
+          "start": "2022-12-28",
+          "return_pct": 63.189,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.233,
+          "trades": 17,
+          "exits": 7
+        },
+        {
+          "start": "2023-01-27",
+          "return_pct": 68.027,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.527,
+          "trades": 18,
+          "exits": 8
+        },
+        {
+          "start": "2023-02-28",
+          "return_pct": 38.559,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.911,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2023-03-30",
+          "return_pct": 30.997,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.149,
+          "trades": 15,
+          "exits": 6
+        },
+        {
+          "start": "2023-05-01",
+          "return_pct": 49.173,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.128,
+          "trades": 17,
+          "exits": 7
+        },
+        {
+          "start": "2023-05-31",
+          "return_pct": 36.885,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.015,
+          "trades": 15,
+          "exits": 5
+        },
+        {
+          "start": "2023-06-30",
+          "return_pct": 43.077,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.449,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2023-08-01",
+          "return_pct": 11.752,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.05,
+          "trades": 14,
+          "exits": 4
+        }
+      ]
+    },
+    "current_quality50/take100_stop30_reinvest": {
+      "summary": {
+        "cohorts": 43,
+        "mean_return_pct": 41.01,
+        "median_return_pct": 34.38,
+        "reached_double_pct": 13.95,
+        "ended_double_pct": 4.65,
+        "annual30_pct": 0.0,
+        "loss_pct": 9.3,
+        "worst_return_pct": -12.787,
+        "median_max_drawdown_pct": -36.85,
+        "worst_max_drawdown_pct": -47.878,
+        "mean_trades": 24.5
+      },
+      "cohorts": [
+        {
+          "start": "2020-01-30",
+          "return_pct": 38.562,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -35.336,
+          "trades": 25,
+          "exits": 15
+        },
+        {
+          "start": "2020-03-02",
+          "return_pct": 41.275,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -35.336,
+          "trades": 25,
+          "exits": 15
+        },
+        {
+          "start": "2020-03-31",
+          "return_pct": 51.692,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -35.364,
+          "trades": 24,
+          "exits": 14
+        },
+        {
+          "start": "2020-04-30",
+          "return_pct": 29.069,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -37.657,
+          "trades": 24,
+          "exits": 14
+        },
+        {
+          "start": "2020-06-01",
+          "return_pct": 21.316,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -38.78,
+          "trades": 22,
+          "exits": 12
+        },
+        {
+          "start": "2020-06-30",
+          "return_pct": 29.297,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -38.626,
+          "trades": 22,
+          "exits": 12
+        },
+        {
+          "start": "2020-07-30",
+          "return_pct": 35.936,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -37.904,
+          "trades": 23,
+          "exits": 13
+        },
+        {
+          "start": "2020-08-31",
+          "return_pct": 34.382,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -36.853,
+          "trades": 23,
+          "exits": 13
+        },
+        {
+          "start": "2020-09-29",
+          "return_pct": 18.861,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -43.981,
+          "trades": 20,
+          "exits": 10
+        },
+        {
+          "start": "2020-10-29",
+          "return_pct": -11.099,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -47.508,
+          "trades": 20,
+          "exits": 12
+        },
+        {
+          "start": "2020-11-30",
+          "return_pct": 13.159,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -47.878,
+          "trades": 24,
+          "exits": 14
+        },
+        {
+          "start": "2020-12-29",
+          "return_pct": 19.707,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -46.478,
+          "trades": 22,
+          "exits": 14
+        },
+        {
+          "start": "2021-01-28",
+          "return_pct": 18.599,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -46.756,
+          "trades": 25,
+          "exits": 15
+        },
+        {
+          "start": "2021-03-01",
+          "return_pct": 10.25,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -45.2,
+          "trades": 25,
+          "exits": 15
+        },
+        {
+          "start": "2021-03-30",
+          "return_pct": 22.497,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -46.663,
+          "trades": 27,
+          "exits": 17
+        },
+        {
+          "start": "2021-04-29",
+          "return_pct": -0.637,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -46.077,
+          "trades": 32,
+          "exits": 22
+        },
+        {
+          "start": "2021-06-01",
+          "return_pct": -12.787,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -46.01,
+          "trades": 31,
+          "exits": 21
+        },
+        {
+          "start": "2021-06-29",
+          "return_pct": -2.852,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -46.183,
+          "trades": 31,
+          "exits": 21
+        },
+        {
+          "start": "2021-07-29",
+          "return_pct": 7.048,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -46.484,
+          "trades": 30,
+          "exits": 21
+        },
+        {
+          "start": "2021-08-30",
+          "return_pct": 16.763,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -44.576,
+          "trades": 30,
+          "exits": 20
+        },
+        {
+          "start": "2021-09-28",
+          "return_pct": 22.692,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -42.468,
+          "trades": 30,
+          "exits": 21
+        },
+        {
+          "start": "2021-10-28",
+          "return_pct": 27.019,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -41.654,
+          "trades": 28,
+          "exits": 19
+        },
+        {
+          "start": "2021-11-29",
+          "return_pct": 41.515,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -42.752,
+          "trades": 29,
+          "exits": 20
+        },
+        {
+          "start": "2021-12-28",
+          "return_pct": 35.874,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -42.405,
+          "trades": 32,
+          "exits": 22
+        },
+        {
+          "start": "2022-01-27",
+          "return_pct": 34.737,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -35.949,
+          "trades": 23,
+          "exits": 13
+        },
+        {
+          "start": "2022-02-28",
+          "return_pct": 38.276,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -39.398,
+          "trades": 25,
+          "exits": 16
+        },
+        {
+          "start": "2022-03-29",
+          "return_pct": 60.981,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.857,
+          "trades": 27,
+          "exits": 17
+        },
+        {
+          "start": "2022-04-28",
+          "return_pct": 81.057,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.045,
+          "trades": 24,
+          "exits": 16
+        },
+        {
+          "start": "2022-05-31",
+          "return_pct": 83.202,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.039,
+          "trades": 22,
+          "exits": 13
+        },
+        {
+          "start": "2022-06-28",
+          "return_pct": 93.408,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.487,
+          "trades": 22,
+          "exits": 12
+        },
+        {
+          "start": "2022-07-28",
+          "return_pct": 104.203,
+          "reached_double": true,
+          "ended_double": true,
+          "annual30": false,
+          "max_drawdown_pct": -26.886,
+          "trades": 25,
+          "exits": 15
+        },
+        {
+          "start": "2022-08-29",
+          "return_pct": 99.853,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.211,
+          "trades": 24,
+          "exits": 14
+        },
+        {
+          "start": "2022-09-27",
+          "return_pct": 122.172,
+          "reached_double": true,
+          "ended_double": true,
+          "annual30": false,
+          "max_drawdown_pct": -21.92,
+          "trades": 23,
+          "exits": 13
+        },
+        {
+          "start": "2022-10-27",
+          "return_pct": 91.837,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.399,
+          "trades": 22,
+          "exits": 12
+        },
+        {
+          "start": "2022-11-28",
+          "return_pct": 72.078,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.038,
+          "trades": 22,
+          "exits": 12
+        },
+        {
+          "start": "2022-12-28",
+          "return_pct": 93.499,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.018,
+          "trades": 24,
+          "exits": 15
+        },
+        {
+          "start": "2023-01-27",
+          "return_pct": 90.655,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.218,
+          "trades": 21,
+          "exits": 11
+        },
+        {
+          "start": "2023-02-28",
+          "return_pct": 50.252,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.06,
+          "trades": 18,
+          "exits": 10
+        },
+        {
+          "start": "2023-03-30",
+          "return_pct": 30.485,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.566,
+          "trades": 19,
+          "exits": 10
+        },
+        {
+          "start": "2023-05-01",
+          "return_pct": 41.806,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.55,
+          "trades": 24,
+          "exits": 14
+        },
+        {
+          "start": "2023-05-31",
+          "return_pct": 33.416,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.923,
+          "trades": 21,
+          "exits": 12
+        },
+        {
+          "start": "2023-06-30",
+          "return_pct": 20.993,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.002,
+          "trades": 22,
+          "exits": 12
+        },
+        {
+          "start": "2023-08-01",
+          "return_pct": 12.589,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.35,
+          "trades": 22,
+          "exits": 12
+        }
+      ]
+    },
+    "discounted_cash_growth/hold_no_reinvestment": {
+      "summary": {
+        "cohorts": 43,
+        "mean_return_pct": 22.44,
+        "median_return_pct": 18.92,
+        "reached_double_pct": 2.33,
+        "ended_double_pct": 0.0,
+        "annual30_pct": 0.0,
+        "loss_pct": 16.28,
+        "worst_return_pct": -14.608,
+        "median_max_drawdown_pct": -31.62,
+        "worst_max_drawdown_pct": -45.158,
+        "mean_trades": 8.7
+      },
+      "cohorts": [
+        {
+          "start": "2020-01-30",
+          "return_pct": -11.878,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -14.492,
+          "trades": 2,
+          "exits": 0
+        },
+        {
+          "start": "2020-03-02",
+          "return_pct": 31.763,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -30.98,
+          "trades": 6,
+          "exits": 1
+        },
+        {
+          "start": "2020-03-31",
+          "return_pct": 91.227,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -29.576,
+          "trades": 8,
+          "exits": 1
+        },
+        {
+          "start": "2020-04-30",
+          "return_pct": 8.661,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -31.621,
+          "trades": 4,
+          "exits": 1
+        },
+        {
+          "start": "2020-06-01",
+          "return_pct": 23.533,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -29.667,
+          "trades": 8,
+          "exits": 1
+        },
+        {
+          "start": "2020-06-30",
+          "return_pct": 22.805,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.928,
+          "trades": 8,
+          "exits": 1
+        },
+        {
+          "start": "2020-07-30",
+          "return_pct": 34.004,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -31.304,
+          "trades": 10,
+          "exits": 2
+        },
+        {
+          "start": "2020-08-31",
+          "return_pct": 18.925,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -30.627,
+          "trades": 7,
+          "exits": 2
+        },
+        {
+          "start": "2020-09-29",
+          "return_pct": 26.602,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.596,
+          "trades": 10,
+          "exits": 3
+        },
+        {
+          "start": "2020-10-29",
+          "return_pct": 2.39,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -30.343,
+          "trades": 7,
+          "exits": 1
+        },
+        {
+          "start": "2020-11-30",
+          "return_pct": 6.639,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -32.379,
+          "trades": 7,
+          "exits": 1
+        },
+        {
+          "start": "2020-12-29",
+          "return_pct": 11.075,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -30.668,
+          "trades": 6,
+          "exits": 0
+        },
+        {
+          "start": "2021-01-28",
+          "return_pct": 33.653,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -36.746,
+          "trades": 9,
+          "exits": 0
+        },
+        {
+          "start": "2021-03-01",
+          "return_pct": 10.357,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -35.825,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2021-03-30",
+          "return_pct": 13.322,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -32.934,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2021-04-29",
+          "return_pct": 15.349,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -30.704,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2021-06-01",
+          "return_pct": -10.43,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -40.468,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2021-06-29",
+          "return_pct": 10.418,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.683,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2021-07-29",
+          "return_pct": -4.598,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -44.622,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2021-08-30",
+          "return_pct": -8.782,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -45.158,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2021-09-28",
+          "return_pct": 16.879,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -38.389,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2021-10-28",
+          "return_pct": 1.397,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -36.9,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2021-11-29",
+          "return_pct": -14.608,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.651,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2021-12-28",
+          "return_pct": 3.598,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -37.135,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2022-01-27",
+          "return_pct": 15.662,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.1,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2022-02-28",
+          "return_pct": 24.855,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.877,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2022-03-29",
+          "return_pct": -3.591,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -30.798,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2022-04-28",
+          "return_pct": 13.434,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -35.294,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2022-05-31",
+          "return_pct": -6.855,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -41.221,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2022-06-28",
+          "return_pct": 23.792,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -30.778,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2022-07-28",
+          "return_pct": 14.594,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -31.67,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2022-08-29",
+          "return_pct": 28.718,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -31.777,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2022-09-27",
+          "return_pct": 38.076,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.345,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2022-10-27",
+          "return_pct": 49.98,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -29.175,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2022-11-28",
+          "return_pct": 65.245,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -32.362,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2022-12-28",
+          "return_pct": 35.035,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -29.125,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2023-01-27",
+          "return_pct": 44.098,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.59,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2023-02-28",
+          "return_pct": 49.227,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -32.732,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2023-03-30",
+          "return_pct": 31.729,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.119,
+          "trades": 9,
+          "exits": 1
+        },
+        {
+          "start": "2023-05-01",
+          "return_pct": 93.299,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -18.2,
+          "trades": 5,
+          "exits": 1
+        },
+        {
+          "start": "2023-05-31",
+          "return_pct": 19.972,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.592,
+          "trades": 3,
+          "exits": 0
+        },
+        {
+          "start": "2023-06-30",
+          "return_pct": 54.094,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.335,
+          "trades": 6,
+          "exits": 0
+        },
+        {
+          "start": "2023-08-01",
+          "return_pct": 41.054,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.769,
+          "trades": 7,
+          "exits": 0
+        }
+      ]
+    },
+    "discounted_cash_growth/hold_add_to_empty_slots": {
+      "summary": {
+        "cohorts": 43,
+        "mean_return_pct": 28.76,
+        "median_return_pct": 24.26,
+        "reached_double_pct": 11.63,
+        "ended_double_pct": 2.33,
+        "annual30_pct": 0.0,
+        "loss_pct": 16.28,
+        "worst_return_pct": -17.551,
+        "median_max_drawdown_pct": -35.92,
+        "worst_max_drawdown_pct": -45.158,
+        "mean_trades": 10.9
+      },
+      "cohorts": [
+        {
+          "start": "2020-01-30",
+          "return_pct": 31.062,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -40.031,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2020-03-02",
+          "return_pct": 71.702,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -36.923,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2020-03-31",
+          "return_pct": 82.926,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -37.147,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2020-04-30",
+          "return_pct": 28.644,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -41.781,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2020-06-01",
+          "return_pct": 26.851,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -32.09,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2020-06-30",
+          "return_pct": 34.322,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -29.663,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2020-07-30",
+          "return_pct": 49.604,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -32.348,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2020-08-31",
+          "return_pct": 23.401,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -36.661,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2020-09-29",
+          "return_pct": 23.375,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -36.92,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2020-10-29",
+          "return_pct": -6.413,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -42.204,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2020-11-30",
+          "return_pct": 3.63,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -41.496,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2020-12-29",
+          "return_pct": 43.741,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -39.218,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2021-01-28",
+          "return_pct": 33.268,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -39.088,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2021-03-01",
+          "return_pct": 2.241,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -39.33,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2021-03-30",
+          "return_pct": 6.394,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -35.923,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2021-04-29",
+          "return_pct": 8.117,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.48,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2021-06-01",
+          "return_pct": -17.551,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -42.94,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2021-06-29",
+          "return_pct": 2.151,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.422,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2021-07-29",
+          "return_pct": -4.598,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -44.622,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2021-08-30",
+          "return_pct": -8.558,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -45.158,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2021-09-28",
+          "return_pct": 16.879,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -38.389,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2021-10-28",
+          "return_pct": 1.397,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -36.9,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2021-11-29",
+          "return_pct": -14.608,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.651,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2021-12-28",
+          "return_pct": 3.598,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -37.135,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2022-01-27",
+          "return_pct": 16.488,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.1,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2022-02-28",
+          "return_pct": 24.017,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.877,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2022-03-29",
+          "return_pct": -5.542,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -30.798,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2022-04-28",
+          "return_pct": 11.517,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -37.412,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2022-05-31",
+          "return_pct": -6.541,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -43.441,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2022-06-28",
+          "return_pct": 24.26,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.248,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2022-07-28",
+          "return_pct": 15.329,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.206,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2022-08-29",
+          "return_pct": 27.019,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.267,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2022-09-27",
+          "return_pct": 36.455,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -36.733,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2022-10-27",
+          "return_pct": 48.281,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -31.622,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2022-11-28",
+          "return_pct": 65.245,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -32.362,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2022-12-28",
+          "return_pct": 35.035,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -29.125,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2023-01-27",
+          "return_pct": 42.374,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -37.097,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2023-02-28",
+          "return_pct": 49.227,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -32.732,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2023-03-30",
+          "return_pct": 74.1,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -29.806,
+          "trades": 10,
+          "exits": 1
+        },
+        {
+          "start": "2023-05-01",
+          "return_pct": 144.253,
+          "reached_double": true,
+          "ended_double": true,
+          "annual30": false,
+          "max_drawdown_pct": -27.558,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2023-05-31",
+          "return_pct": 60.045,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -31.609,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2023-06-30",
+          "return_pct": 73.981,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -29.775,
+          "trades": 10,
+          "exits": 0
+        },
+        {
+          "start": "2023-08-01",
+          "return_pct": 59.469,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.963,
+          "trades": 10,
+          "exits": 0
+        }
+      ]
+    },
+    "discounted_cash_growth/take30_reinvest": {
+      "summary": {
+        "cohorts": 43,
+        "mean_return_pct": 34.11,
+        "median_return_pct": 32.27,
+        "reached_double_pct": 6.98,
+        "ended_double_pct": 4.65,
+        "annual30_pct": 0.0,
+        "loss_pct": 16.28,
+        "worst_return_pct": -28.719,
+        "median_max_drawdown_pct": -31.5,
+        "worst_max_drawdown_pct": -47.292,
+        "mean_trades": 25.8
+      },
+      "cohorts": [
+        {
+          "start": "2020-01-30",
+          "return_pct": 21.293,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.103,
+          "trades": 29,
+          "exits": 19
+        },
+        {
+          "start": "2020-03-02",
+          "return_pct": 48.493,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.932,
+          "trades": 34,
+          "exits": 24
+        },
+        {
+          "start": "2020-03-31",
+          "return_pct": 65.855,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -35.362,
+          "trades": 35,
+          "exits": 26
+        },
+        {
+          "start": "2020-04-30",
+          "return_pct": 58.269,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -29.795,
+          "trades": 34,
+          "exits": 25
+        },
+        {
+          "start": "2020-06-01",
+          "return_pct": 40.793,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -29.333,
+          "trades": 29,
+          "exits": 19
+        },
+        {
+          "start": "2020-06-30",
+          "return_pct": 27.023,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -40.051,
+          "trades": 25,
+          "exits": 16
+        },
+        {
+          "start": "2020-07-30",
+          "return_pct": 37.716,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -38.241,
+          "trades": 28,
+          "exits": 19
+        },
+        {
+          "start": "2020-08-31",
+          "return_pct": 51.184,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.812,
+          "trades": 33,
+          "exits": 23
+        },
+        {
+          "start": "2020-09-29",
+          "return_pct": 41.831,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -36.791,
+          "trades": 32,
+          "exits": 22
+        },
+        {
+          "start": "2020-10-29",
+          "return_pct": 27.623,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -31.497,
+          "trades": 31,
+          "exits": 21
+        },
+        {
+          "start": "2020-11-30",
+          "return_pct": 33.842,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.7,
+          "trades": 25,
+          "exits": 15
+        },
+        {
+          "start": "2020-12-29",
+          "return_pct": 29.539,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -39.469,
+          "trades": 21,
+          "exits": 12
+        },
+        {
+          "start": "2021-01-28",
+          "return_pct": 14.548,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -37.113,
+          "trades": 22,
+          "exits": 12
+        },
+        {
+          "start": "2021-03-01",
+          "return_pct": 8.08,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -38.971,
+          "trades": 20,
+          "exits": 10
+        },
+        {
+          "start": "2021-03-30",
+          "return_pct": 10.294,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -37.282,
+          "trades": 21,
+          "exits": 11
+        },
+        {
+          "start": "2021-04-29",
+          "return_pct": 0.004,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -41.453,
+          "trades": 15,
+          "exits": 5
+        },
+        {
+          "start": "2021-06-01",
+          "return_pct": -7.971,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -44.574,
+          "trades": 14,
+          "exits": 5
+        },
+        {
+          "start": "2021-06-29",
+          "return_pct": -23.156,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -43.495,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2021-07-29",
+          "return_pct": -16.547,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -47.292,
+          "trades": 13,
+          "exits": 4
+        },
+        {
+          "start": "2021-08-30",
+          "return_pct": -27.703,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -46.337,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2021-09-28",
+          "return_pct": -17.668,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -43.679,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2021-10-28",
+          "return_pct": -28.719,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -41.194,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2021-11-29",
+          "return_pct": -0.304,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.467,
+          "trades": 16,
+          "exits": 8
+        },
+        {
+          "start": "2021-12-28",
+          "return_pct": 4.489,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.234,
+          "trades": 19,
+          "exits": 10
+        },
+        {
+          "start": "2022-01-27",
+          "return_pct": 53.49,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.936,
+          "trades": 26,
+          "exits": 17
+        },
+        {
+          "start": "2022-02-28",
+          "return_pct": 47.324,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.075,
+          "trades": 29,
+          "exits": 19
+        },
+        {
+          "start": "2022-03-29",
+          "return_pct": 26.461,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.901,
+          "trades": 26,
+          "exits": 16
+        },
+        {
+          "start": "2022-04-28",
+          "return_pct": 14.459,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.425,
+          "trades": 26,
+          "exits": 16
+        },
+        {
+          "start": "2022-05-31",
+          "return_pct": 32.267,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.662,
+          "trades": 29,
+          "exits": 19
+        },
+        {
+          "start": "2022-06-28",
+          "return_pct": 41.35,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.771,
+          "trades": 31,
+          "exits": 21
+        },
+        {
+          "start": "2022-07-28",
+          "return_pct": 31.973,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.217,
+          "trades": 26,
+          "exits": 16
+        },
+        {
+          "start": "2022-08-29",
+          "return_pct": 21.24,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.608,
+          "trades": 24,
+          "exits": 14
+        },
+        {
+          "start": "2022-09-27",
+          "return_pct": 74.939,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.123,
+          "trades": 32,
+          "exits": 23
+        },
+        {
+          "start": "2022-10-27",
+          "return_pct": 132.068,
+          "reached_double": true,
+          "ended_double": true,
+          "annual30": false,
+          "max_drawdown_pct": -23.114,
+          "trades": 40,
+          "exits": 31
+        },
+        {
+          "start": "2022-11-28",
+          "return_pct": 88.333,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.327,
+          "trades": 35,
+          "exits": 25
+        },
+        {
+          "start": "2022-12-28",
+          "return_pct": 129.011,
+          "reached_double": true,
+          "ended_double": true,
+          "annual30": false,
+          "max_drawdown_pct": -21.742,
+          "trades": 41,
+          "exits": 32
+        },
+        {
+          "start": "2023-01-27",
+          "return_pct": 45.155,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.514,
+          "trades": 26,
+          "exits": 17
+        },
+        {
+          "start": "2023-02-28",
+          "return_pct": 45.752,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.696,
+          "trades": 29,
+          "exits": 19
+        },
+        {
+          "start": "2023-03-30",
+          "return_pct": 31.457,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.814,
+          "trades": 27,
+          "exits": 17
+        },
+        {
+          "start": "2023-05-01",
+          "return_pct": 79.786,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.596,
+          "trades": 32,
+          "exits": 22
+        },
+        {
+          "start": "2023-05-31",
+          "return_pct": 64.085,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.624,
+          "trades": 27,
+          "exits": 21
+        },
+        {
+          "start": "2023-06-30",
+          "return_pct": 55.437,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.537,
+          "trades": 29,
+          "exits": 19
+        },
+        {
+          "start": "2023-08-01",
+          "return_pct": 53.238,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.498,
+          "trades": 29,
+          "exits": 19
+        }
+      ]
+    },
+    "discounted_cash_growth/take100_reinvest": {
+      "summary": {
+        "cohorts": 43,
+        "mean_return_pct": 37.81,
+        "median_return_pct": 28.86,
+        "reached_double_pct": 16.28,
+        "ended_double_pct": 4.65,
+        "annual30_pct": 0.0,
+        "loss_pct": 11.63,
+        "worst_return_pct": -17.551,
+        "median_max_drawdown_pct": -30.18,
+        "worst_max_drawdown_pct": -45.888,
+        "mean_trades": 14.9
+      },
+      "cohorts": [
+        {
+          "start": "2020-01-30",
+          "return_pct": 10.166,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -39.784,
+          "trades": 18,
+          "exits": 8
+        },
+        {
+          "start": "2020-03-02",
+          "return_pct": 45.245,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -38.493,
+          "trades": 22,
+          "exits": 12
+        },
+        {
+          "start": "2020-03-31",
+          "return_pct": 85.69,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.365,
+          "trades": 23,
+          "exits": 13
+        },
+        {
+          "start": "2020-04-30",
+          "return_pct": 71.083,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -26.396,
+          "trades": 19,
+          "exits": 9
+        },
+        {
+          "start": "2020-06-01",
+          "return_pct": 42.357,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.04,
+          "trades": 17,
+          "exits": 7
+        },
+        {
+          "start": "2020-06-30",
+          "return_pct": 22.168,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -28.21,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2020-07-30",
+          "return_pct": 43.168,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -30.178,
+          "trades": 15,
+          "exits": 5
+        },
+        {
+          "start": "2020-08-31",
+          "return_pct": 72.923,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -32.299,
+          "trades": 17,
+          "exits": 7
+        },
+        {
+          "start": "2020-09-29",
+          "return_pct": 77.258,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -26.657,
+          "trades": 19,
+          "exits": 9
+        },
+        {
+          "start": "2020-10-29",
+          "return_pct": 19.103,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.768,
+          "trades": 15,
+          "exits": 5
+        },
+        {
+          "start": "2020-11-30",
+          "return_pct": 10.306,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -37.476,
+          "trades": 15,
+          "exits": 5
+        },
+        {
+          "start": "2020-12-29",
+          "return_pct": 18.812,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -40.353,
+          "trades": 13,
+          "exits": 4
+        },
+        {
+          "start": "2021-01-28",
+          "return_pct": 15.29,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -37.904,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2021-03-01",
+          "return_pct": 3.785,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -39.33,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2021-03-30",
+          "return_pct": 6.394,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -35.923,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2021-04-29",
+          "return_pct": 8.239,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.48,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2021-06-01",
+          "return_pct": -17.551,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -42.94,
+          "trades": 11,
+          "exits": 1
+        },
+        {
+          "start": "2021-06-29",
+          "return_pct": -11.048,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -38.594,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2021-07-29",
+          "return_pct": -15.038,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -45.888,
+          "trades": 11,
+          "exits": 2
+        },
+        {
+          "start": "2021-08-30",
+          "return_pct": -12.055,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -45.158,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2021-09-28",
+          "return_pct": 3.73,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -41.785,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2021-10-28",
+          "return_pct": 8.796,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -36.9,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2021-11-29",
+          "return_pct": 1.414,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -34.651,
+          "trades": 11,
+          "exits": 2
+        },
+        {
+          "start": "2021-12-28",
+          "return_pct": 16.087,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -37.135,
+          "trades": 12,
+          "exits": 2
+        },
+        {
+          "start": "2022-01-27",
+          "return_pct": 39.067,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.662,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2022-02-28",
+          "return_pct": 28.862,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.877,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2022-03-29",
+          "return_pct": -0.93,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -30.798,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2022-04-28",
+          "return_pct": 36.739,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.562,
+          "trades": 15,
+          "exits": 5
+        },
+        {
+          "start": "2022-05-31",
+          "return_pct": 13.306,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -30.93,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2022-06-28",
+          "return_pct": 22.828,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.309,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2022-07-28",
+          "return_pct": 16.37,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -26.81,
+          "trades": 13,
+          "exits": 3
+        },
+        {
+          "start": "2022-08-29",
+          "return_pct": 41.489,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -25.166,
+          "trades": 15,
+          "exits": 5
+        },
+        {
+          "start": "2022-09-27",
+          "return_pct": 63.029,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.938,
+          "trades": 15,
+          "exits": 5
+        },
+        {
+          "start": "2022-10-27",
+          "return_pct": 96.537,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.09,
+          "trades": 17,
+          "exits": 7
+        },
+        {
+          "start": "2022-11-28",
+          "return_pct": 104.721,
+          "reached_double": true,
+          "ended_double": true,
+          "annual30": false,
+          "max_drawdown_pct": -20.833,
+          "trades": 17,
+          "exits": 8
+        },
+        {
+          "start": "2022-12-28",
+          "return_pct": 49.808,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.467,
+          "trades": 14,
+          "exits": 4
+        },
+        {
+          "start": "2023-01-27",
+          "return_pct": 63.037,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -23.626,
+          "trades": 16,
+          "exits": 7
+        },
+        {
+          "start": "2023-02-28",
+          "return_pct": 57.437,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -20.902,
+          "trades": 16,
+          "exits": 6
+        },
+        {
+          "start": "2023-03-30",
+          "return_pct": 51.901,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.383,
+          "trades": 17,
+          "exits": 8
+        },
+        {
+          "start": "2023-05-01",
+          "return_pct": 135.756,
+          "reached_double": true,
+          "ended_double": true,
+          "annual30": false,
+          "max_drawdown_pct": -16.369,
+          "trades": 21,
+          "exits": 13
+        },
+        {
+          "start": "2023-05-31",
+          "return_pct": 89.174,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.127,
+          "trades": 16,
+          "exits": 6
+        },
+        {
+          "start": "2023-06-30",
+          "return_pct": 95.848,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.537,
+          "trades": 16,
+          "exits": 6
+        },
+        {
+          "start": "2023-08-01",
+          "return_pct": 94.53,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -15.147,
+          "trades": 17,
+          "exits": 7
+        }
+      ]
+    },
+    "discounted_cash_growth/take100_stop30_reinvest": {
+      "summary": {
+        "cohorts": 43,
+        "mean_return_pct": 57.67,
+        "median_return_pct": 57.74,
+        "reached_double_pct": 20.93,
+        "ended_double_pct": 9.3,
+        "annual30_pct": 0.0,
+        "loss_pct": 2.33,
+        "worst_return_pct": -2.868,
+        "median_max_drawdown_pct": -33.56,
+        "worst_max_drawdown_pct": -48.96,
+        "mean_trades": 26.6
+      },
+      "cohorts": [
+        {
+          "start": "2020-01-30",
+          "return_pct": 60.549,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -37.447,
+          "trades": 34,
+          "exits": 24
+        },
+        {
+          "start": "2020-03-02",
+          "return_pct": 83.384,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -37.454,
+          "trades": 32,
+          "exits": 22
+        },
+        {
+          "start": "2020-03-31",
+          "return_pct": 91.493,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -40.771,
+          "trades": 31,
+          "exits": 21
+        },
+        {
+          "start": "2020-04-30",
+          "return_pct": 89.845,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.855,
+          "trades": 25,
+          "exits": 16
+        },
+        {
+          "start": "2020-06-01",
+          "return_pct": 50.907,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.981,
+          "trades": 25,
+          "exits": 15
+        },
+        {
+          "start": "2020-06-30",
+          "return_pct": 25.182,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -37.68,
+          "trades": 24,
+          "exits": 14
+        },
+        {
+          "start": "2020-07-30",
+          "return_pct": 33.7,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -38.304,
+          "trades": 24,
+          "exits": 15
+        },
+        {
+          "start": "2020-08-31",
+          "return_pct": 58.041,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -37.382,
+          "trades": 26,
+          "exits": 16
+        },
+        {
+          "start": "2020-09-29",
+          "return_pct": 51.157,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.241,
+          "trades": 28,
+          "exits": 18
+        },
+        {
+          "start": "2020-10-29",
+          "return_pct": 13.654,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -42.9,
+          "trades": 29,
+          "exits": 19
+        },
+        {
+          "start": "2020-11-30",
+          "return_pct": 32.82,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -39.058,
+          "trades": 29,
+          "exits": 19
+        },
+        {
+          "start": "2020-12-29",
+          "return_pct": 52.051,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -35.978,
+          "trades": 23,
+          "exits": 14
+        },
+        {
+          "start": "2021-01-28",
+          "return_pct": 24.793,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -40.588,
+          "trades": 26,
+          "exits": 16
+        },
+        {
+          "start": "2021-03-01",
+          "return_pct": 18.394,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -43.939,
+          "trades": 23,
+          "exits": 13
+        },
+        {
+          "start": "2021-03-30",
+          "return_pct": 18.447,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -42.822,
+          "trades": 24,
+          "exits": 15
+        },
+        {
+          "start": "2021-04-29",
+          "return_pct": 8.533,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -42.092,
+          "trades": 28,
+          "exits": 18
+        },
+        {
+          "start": "2021-06-01",
+          "return_pct": -2.868,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -48.96,
+          "trades": 33,
+          "exits": 23
+        },
+        {
+          "start": "2021-06-29",
+          "return_pct": 20.18,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -39.243,
+          "trades": 34,
+          "exits": 24
+        },
+        {
+          "start": "2021-07-29",
+          "return_pct": 44.324,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -32.783,
+          "trades": 30,
+          "exits": 21
+        },
+        {
+          "start": "2021-08-30",
+          "return_pct": 18.135,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -44.363,
+          "trades": 29,
+          "exits": 19
+        },
+        {
+          "start": "2021-09-28",
+          "return_pct": 21.854,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -44.894,
+          "trades": 29,
+          "exits": 19
+        },
+        {
+          "start": "2021-10-28",
+          "return_pct": 51.646,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -40.602,
+          "trades": 29,
+          "exits": 20
+        },
+        {
+          "start": "2021-11-29",
+          "return_pct": 31.424,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -37.13,
+          "trades": 32,
+          "exits": 23
+        },
+        {
+          "start": "2021-12-28",
+          "return_pct": 38.334,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -36.622,
+          "trades": 32,
+          "exits": 22
+        },
+        {
+          "start": "2022-01-27",
+          "return_pct": 85.02,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -22.347,
+          "trades": 28,
+          "exits": 18
+        },
+        {
+          "start": "2022-02-28",
+          "return_pct": 36.793,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -29.569,
+          "trades": 25,
+          "exits": 16
+        },
+        {
+          "start": "2022-03-29",
+          "return_pct": 44.768,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -33.557,
+          "trades": 32,
+          "exits": 23
+        },
+        {
+          "start": "2022-04-28",
+          "return_pct": 79.694,
+          "reached_double": true,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -26.747,
+          "trades": 26,
+          "exits": 17
+        },
+        {
+          "start": "2022-05-31",
+          "return_pct": 78.687,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.262,
+          "trades": 27,
+          "exits": 17
+        },
+        {
+          "start": "2022-06-28",
+          "return_pct": 57.737,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -27.474,
+          "trades": 24,
+          "exits": 14
+        },
+        {
+          "start": "2022-07-28",
+          "return_pct": 75.252,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.721,
+          "trades": 25,
+          "exits": 15
+        },
+        {
+          "start": "2022-08-29",
+          "return_pct": 96.584,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.032,
+          "trades": 24,
+          "exits": 14
+        },
+        {
+          "start": "2022-09-27",
+          "return_pct": 124.019,
+          "reached_double": true,
+          "ended_double": true,
+          "annual30": false,
+          "max_drawdown_pct": -21.655,
+          "trades": 22,
+          "exits": 12
+        },
+        {
+          "start": "2022-10-27",
+          "return_pct": 127.225,
+          "reached_double": true,
+          "ended_double": true,
+          "annual30": false,
+          "max_drawdown_pct": -17.721,
+          "trades": 23,
+          "exits": 13
+        },
+        {
+          "start": "2022-11-28",
+          "return_pct": 113.728,
+          "reached_double": true,
+          "ended_double": true,
+          "annual30": false,
+          "max_drawdown_pct": -19.998,
+          "trades": 23,
+          "exits": 14
+        },
+        {
+          "start": "2022-12-28",
+          "return_pct": 62.897,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -24.761,
+          "trades": 21,
+          "exits": 12
+        },
+        {
+          "start": "2023-01-27",
+          "return_pct": 89.764,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.004,
+          "trades": 24,
+          "exits": 15
+        },
+        {
+          "start": "2023-02-28",
+          "return_pct": 75.681,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -19.082,
+          "trades": 20,
+          "exits": 12
+        },
+        {
+          "start": "2023-03-30",
+          "return_pct": 62.452,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -14.567,
+          "trades": 23,
+          "exits": 14
+        },
+        {
+          "start": "2023-05-01",
+          "return_pct": 124.321,
+          "reached_double": true,
+          "ended_double": true,
+          "annual30": false,
+          "max_drawdown_pct": -16.498,
+          "trades": 28,
+          "exits": 18
+        },
+        {
+          "start": "2023-05-31",
+          "return_pct": 66.223,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -21.127,
+          "trades": 22,
+          "exits": 12
+        },
+        {
+          "start": "2023-06-30",
+          "return_pct": 78.478,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -17.537,
+          "trades": 23,
+          "exits": 13
+        },
+        {
+          "start": "2023-08-01",
+          "return_pct": 64.37,
+          "reached_double": false,
+          "ended_double": false,
+          "annual30": false,
+          "max_drawdown_pct": -14.965,
+          "trades": 23,
+          "exits": 13
+        }
+      ]
+    }
+  },
+  "spy_benchmark": {
+    "cohorts": 43,
+    "mean_return_pct": 49.8,
+    "median_return_pct": 39.61,
+    "ended_double_pct": 0.0,
+    "worst_return_pct": 25.43
+  }
+}
