@@ -88,10 +88,10 @@ Only factors marked **tested** may affect the verdict.
 
 Every condition below must pass; any missing required value blocks Buy:
 
-- Business Quality, Financial Strength, and Growth each >= 70.
+- Required category scores: Business Quality >= 50, Financial Strength & Survival >= 70, Growth & Operating Momentum >= 70.
 - Current price is at or below the fair-value base from at least 1 tested valuation method.
 - Moving-average proximity is an optional dashboard filter, not a Buy requirement.
-- Weekly OBV is above its 20-week EMA.
+- Weekly OBV confirmation is an optional Buy positive; missing or unconfirmed data does not block Buy or change the score.
 - No tested hard veto is active.
 - Recent ROIC direction must pass; missing or stale history blocks Buy.
 - See the generated Screening & Buy criteria page for current eligibility and evidence limitations.

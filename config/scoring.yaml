@@ -93,7 +93,9 @@ vetoes:
 # the entry alignment and leaves an otherwise eligible name at Watch.
 buy_entry_alignment:
   monthly_ema_required: false
+  weekly_obv_required: false
   category_minimum: 70
+  category_minimums: {quality: 50}
   categories: [quality, survival, growth]
   fair_value_method_minimum: 1
   ema_proximity_pct: 5

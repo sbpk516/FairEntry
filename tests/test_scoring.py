@@ -134,7 +134,7 @@ def test_reproducible():
     assert r1["base_score"] > 0
 
 
-def test_buy_requires_complete_entry_alignment_and_accepts_either_monthly_ema():
+def test_optional_entry_signals_do_not_block_buy():
     cfg = load_config()
     aligned = score_ticker(cfg, _SEC, _strong_metrics(), _MED, _SETTINGS)
     assert aligned["verdict"] == "Buy"
@@ -145,8 +145,27 @@ def test_buy_requires_complete_entry_alignment_and_accepts_either_monthly_ema():
     no_obv = score_ticker(
         cfg, _SEC, _strong_metrics(obv_above_20week_ema=0), _MED, _SETTINGS
     )
-    assert no_obv["verdict"] == "Watch"
-    assert any(g["id"] == "weekly_obv_not_confirmed" for g in no_obv["soft_gates"])
+    assert no_obv["verdict"] == "Buy"
+    assert not any(g["id"] == "weekly_obv_not_confirmed" for g in no_obv["soft_gates"])
+    assert no_obv["score"] == aligned["score"]
+    weak_quality = score_ticker(cfg, _SEC, _strong_metrics(
+        gross_margin=10, oper_margin=7, roic=10
+    ), _MED, _SETTINGS)
+    assert weak_quality["verdict"] == "Watch"
+    assert all(row["status"] == "confirmed" for row in
+               weak_quality["buy_entry_alignment"]["optional_positives"])
+    for value, status in [(None, "missing"), (0, "not_confirmed"), (1, "confirmed")]:
+        rec = score_ticker(cfg, _SEC, _strong_metrics(
+            ema_9month=None, ema_20month=None, obv_above_20week_ema=value
+        ), _MED, _SETTINGS)
+        assert rec["verdict"] == "Buy"
+        positives = rec["buy_entry_alignment"]["optional_positives"]
+        assert positives[0]["status"] == "missing"
+        assert positives[1]["status"] == status
+    cfg.scoring["buy_entry_alignment"]["weekly_obv_required"] = True
+    required = score_ticker(cfg, _SEC, _strong_metrics(obv_above_20week_ema=None), _MED, _SETTINGS)
+    assert required["verdict"] == "Watch"
+    assert any(g["id"] == "weekly_obv_not_confirmed" for g in required["soft_gates"])
 
 
 def test_buy_requires_price_at_or_below_replayable_fair_value_base():
@@ -176,6 +195,22 @@ def test_missing_calculated_fair_value_cannot_use_price_fallback_to_buy():
     )
     assert result["valuation"]["passes"] is False
     assert result["passes"] is False
+
+
+def test_quality_minimum_is_50_without_lowering_growth_or_survival():
+    cfg = load_config()
+    flat = {"price": 100}
+    valuation = {"fair_base": 120, "method_count": 1}
+    for quality, survival, growth, expected in [
+        (50, 70, 70, True), (49, 70, 70, False),
+        (50, 69, 70, False), (50, 70, 69, False),
+        (None, 70, 70, False),
+    ]:
+        result = buy_entry_alignment(cfg.scoring, {
+            "quality": quality, "survival": survival, "growth": growth,
+        }, flat, valuation)
+        assert result["passes"] is expected
+        assert result["categories"]["quality"]["minimum"] == 50
 
 
 def test_sfa_percent_weights_preserve_the_previous_display_scale_decision():

@@ -36,9 +36,10 @@ def catalog(cfg):
                            type='threshold', default=value, unit=unit,
                            help='Used only when a screening route is selected. Blank restores the production default.'))
     minimum = cfg.scoring['buy_entry_alignment']['category_minimum']
+    minimums = cfg.scoring['buy_entry_alignment'].get('category_minimums') or {}
     for key, c in cfg.categories.items():
         number('category_'+key, c['label']+' score', 'Business scores',
-               minimum if key in ('quality', 'survival', 'growth') else None, '/100',
+               minimums.get(key, minimum) if key in ('quality', 'survival', 'growth') else None, '/100',
                'Official category score. Filtering does not rescore it.')
     number('price_to_fair', 'Price / central fair value', 'Valuation', 1, '×', 'At most 1 means price is at or below central fair value.')
     number('method_count', 'Usable valuation methods', 'Valuation', cfg.scoring['buy_entry_alignment']['fair_value_method_minimum'])
@@ -66,10 +67,12 @@ def catalog(cfg):
             number('factor_'+item['id'], item['label']+' score', group, None, '/100',
                    (item.get('definition') or item.get('expected','')) + (' Information only: does not affect recommendations.' if group == 'Information only' else ''))
     universe = {k: {'op':'min','value':u[v] if k == 'price' else u[v]/1_000_000} for k,v in [('market_cap','market_cap_min_usd'), ('price','price_min_usd'), ('avg_dollar_volume','avg_dollar_volume_min')]}
-    strong = {'category_'+k: {'op':'min','value':minimum} for k in ('quality','survival','growth')}
+    strong = {'category_'+k: {'op':'min','value':minimums.get(k, minimum)} for k in ('quality','survival','growth')}
     buy = dict(universe, **strong, screen='either', price_to_fair={'op':'max','value':1},
                method_count={'op':'min','value':cfg.scoring['buy_entry_alignment']['fair_value_method_minimum']},
-               obv='yes', veto='no', verdict='Buy')
+               veto='no', verdict='Buy')
+    if cfg.scoring['buy_entry_alignment'].get('weekly_obv_required', True):
+        buy['obv'] = 'yes'
     if cfg.scoring.get('roic_direction_gate'):
         buy['roic'] = 'pass'
     return {'fields':fields, 'presets':[

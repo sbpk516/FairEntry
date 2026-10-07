@@ -7,7 +7,8 @@ def test_catalog_covers_all_factors_and_uses_active_defaults():
     cfg.scoring['buy_entry_alignment']['category_minimum'] = 79
     data = catalog(cfg)
     fields = {f['id']: f for f in data['fields']}
-    assert fields['category_quality']['default'] == 79
+    assert fields['category_quality']['default'] == 50
+    assert fields['category_survival']['default'] == 79
     assert not any(k.startswith('distance_ema_') for k in fields)
     for c in cfg.categories.values():
         for item in c['items']:
@@ -16,6 +17,8 @@ def test_catalog_covers_all_factors_and_uses_active_defaults():
     assert buy['verdict'] == 'Buy'
     assert not any(k.startswith('distance_') for k in buy)
     assert buy['category_growth']['value'] == 79
+    assert buy['category_quality']['value'] == 50
+    assert 'obv' not in buy
 
 
 def test_export_does_not_turn_missing_metrics_into_zero_or_pass():

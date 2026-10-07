@@ -120,6 +120,7 @@ def buy_entry_alignment(scoring: dict, cat_scores: dict, flat: dict,
     """Evaluate the complete, configurable production Buy-entry rule."""
     policy = scoring.get("buy_entry_alignment") or {}
     category_minimum = float(policy.get("category_minimum", 70))
+    minimums = policy.get("category_minimums") or {}
     category_ids = policy.get("categories") or ["quality", "survival", "growth"]
     method_minimum = int(policy.get("fair_value_method_minimum", 1))
     proximity = float(policy.get("ema_proximity_pct", 5))
@@ -131,9 +132,9 @@ def buy_entry_alignment(scoring: dict, cat_scores: dict, flat: dict,
     category_checks = {
         cid: {
             "value": cat_scores.get(cid),
-            "minimum": category_minimum,
+            "minimum": float(minimums.get(cid, category_minimum)),
             "passes": isinstance(cat_scores.get(cid), (int, float))
-            and cat_scores[cid] >= category_minimum,
+            and cat_scores[cid] >= float(minimums.get(cid, category_minimum)),
         }
         for cid in category_ids
     }
@@ -170,7 +171,7 @@ def buy_entry_alignment(scoring: dict, cat_scores: dict, flat: dict,
         "fundamentals": fundamentals_pass,
         "valuation": valuation_pass,
         "monthly_ema": ema_pass if policy.get('monthly_ema_required', True) else True,
-        "weekly_obv": obv_pass,
+        "weekly_obv": obv_pass if policy.get('weekly_obv_required', True) else True,
     }
     return {
         "passes": all(checks.values()),
@@ -186,8 +187,29 @@ def buy_entry_alignment(scoring: dict, cat_scores: dict, flat: dict,
         "monthly_emas": ema_checks,
         "ema_policy": ema_policy,
         "weekly_obv": {"metric": obv_metric, "value": obv_value, "passes": obv_pass},
+        "optional_positives": [
+            {
+                "id": "monthly_ema", "label": "Near a monthly EMA",
+                "status": "confirmed" if ema_pass else (
+                    "missing" if all(row["value"] is None for row in ema_checks.values())
+                    else "not_confirmed"),
+                "description": f"Price within {proximity:g}% of the configured monthly EMAs ({ema_policy}).",
+                "score_effect": 0, "verdict_effect": "none",
+            }
+            for _ in [0] if not policy.get('monthly_ema_required', True)
+        ] + [
+            {
+                "id": "weekly_obv", "label": "Weekly volume confirmation",
+                "status": "confirmed" if obv_pass else (
+                    "missing" if obv_value is None else "not_confirmed"),
+                "description": "Weekly OBV above its 20-week EMA.",
+                "score_effect": 0, "verdict_effect": "none",
+            }
+            for _ in [0] if not policy.get('weekly_obv_required', True)
+        ],
         "policy": {
             "category_minimum": category_minimum,
+            "category_minimums": minimums,
             "ema_proximity_pct": proximity,
             "valuation_rule": "current price <= calculated fair-value base",
         },
@@ -314,7 +336,9 @@ def score_ticker(cfg, sec, metrics_raw, medians, settings) -> dict:
 
     alignment = buy_entry_alignment(cfg.scoring, cat_scores, flat, fv)
     alignment_gate_specs = (
-        ("fundamentals_below_minimum", "Quality, Financial Strength, and Growth must each be at least 70", "fundamentals"),
+        ("fundamentals_below_minimum", "Required category scores: " + ", ".join(
+            f"{cfg.categories[cid]['label']} >= {check['minimum']:g}"
+            for cid, check in alignment["categories"].items()), "fundamentals"),
         ("price_above_fair_value_base", "Current price must be at or below a calculated fair-value base", "valuation"),
         ("monthly_ema_not_aligned", "Price must be within 5% of either the 9-month or 20-month EMA", "monthly_ema"),
         ("weekly_obv_not_confirmed", "Weekly OBV must be above its 20-week EMA", "weekly_obv"),

@@ -15,9 +15,13 @@ def generate(cfg=None):
     a = cfg.scoring['buy_entry_alignment']
     u = cfg.sectors['universe_filter']
     proximity = cfg.defaults.get('moving_average_zone_threshold_pct', 5)
-    items = [f"Quality, financial strength and growth scores each at least {a['category_minimum']} out of 100.",
-             f"Price at or below central fair value, with at least {a['fair_value_method_minimum']} usable valuation method(s).",
-             "Weekly OBV above its 20-week exponential moving average."]
+    minimums = a.get("category_minimums") or {}
+    items = ["Required scores out of 100: " + ", ".join(
+                 f"{cfg.categories[cid]['label']} at least {minimums.get(cid, a['category_minimum'])}"
+                 for cid in a.get("categories", ["quality", "survival", "growth"])) + ".",
+             f"Price at or below central fair value, with at least {a['fair_value_method_minimum']} usable valuation method(s)."]
+    if a.get("weekly_obv_required", True):
+        items.append("Weekly OBV above its 20-week exponential moving average.")
     if a.get('monthly_ema_required', True):
         items.append(f"Price within {a['ema_proximity_pct']}% of either monthly EMA.")
     if cfg.scoring.get('roic_direction_gate'):
@@ -33,7 +37,9 @@ def generate(cfg=None):
 <section><h2>2. Candidate screens</h2><p><b>Quality Growth:</b> reported quarterly revenue growth versus a year earlier ≥ {Q['revenue_growth_min']}%; gross margin ≥ {Q['gross_margin_min']}% when available. Missing gross margin does not block this initial screen.</p><p><b>Deep Value:</b> P/B ≤ {D['pb_max']}, or P/S ≤ {D['ps_max']}, or positive P/FCF ≤ {D['pfcf_max']}; one-year price performance ≤ {D['performance_max']}%; debt/equity ≤ {D['debt_equity_max']} when available. Missing debt/equity does not block this initial screen.</p></section>
 <section><h2>3. Buy requirements</h2>{li(items)}<p><b>Hard Avoid conditions:</b></p>{li(vetoes)}<p>Otherwise eligible stocks that miss a required entry condition remain Watch. Low-scoring stocks may remain Avoid. The displayed overall Buy score band is not a mandatory Buy threshold, and the +30% performance goal is not a guaranteed return or required valuation upside.</p></section>
 <section><h2>4. Optional SMA filter</h2><p>Proximity is {'a required gate' if a.get('monthly_ema_required',True) else 'not a Buy gate'}. The dashboard filter shows fundamentally strong Buy/Watch stocks within ±{proximity}% of a selected average. It changes the displayed list, not the verdict.</p>{li([label for _,label in _MOVING_AVERAGE_ZONES])}<p>SMA gives each sampled closing price equal weight. Weekly averages use weekly closes, not daily closes. In-progress periods use only prices known so far.</p></section>
-<section><h2>5. What does weekly volume confirm?</h2><p>OBV means On-Balance Volume. Each week, add that week's trading volume if the closing price rose versus the previous week; subtract it if the price fell; add zero if unchanged. Keep a running total.</p><p>The current gate requires that weekly running total to be above its 20-week EMA. This is a price-and-volume momentum signal, not proof of institutional buying, more buyers than sellers, or a future price increase. It does not require volume to be above average. Missing confirmation blocks Buy. The current partial week can affect the reading.</p></section>
+<section><h2>5. What does weekly volume confirm?</h2><p>OBV means On-Balance Volume. Each week, add that week's trading volume if the closing price rose versus the previous week; subtract it if the price fell; add zero if unchanged. Keep a running total.</p><p>{'The Buy gate requires' if a.get('weekly_obv_required', True) else 'An optional Buy positive is'} that weekly running total to be above its 20-week EMA. This is a price-and-volume momentum signal, not proof of institutional buying, more buyers than sellers, or a future price increase. It does not require volume to be above average. {'Missing confirmation blocks Buy.' if a.get('weekly_obv_required', True) else 'Missing or unconfirmed OBV does not block Buy and adds no score points.'} The current partial week can affect the reading.</p></section>
+<section><h2>Optional Buy positives</h2><p>When configured as optional, price within {a["ema_proximity_pct"]}% of the 9- or 20-month EMA and weekly OBV confirmation are displayed as supporting positives. Missing or unconfirmed signals do not block Buy, upgrade Watch, or add score points.</p></section>
+<section><h2>Quality threshold backtest</h2><p><a href="research/quality-threshold-50-vs-70.html">Read the Quality 50 versus 70 comparison</a>: full historical monthly sample, target success, returns, downside and sector results. More qualifying opportunities did not establish better performance.</p></section>
 <section><h2>Evidence limitations</h2><p>Live ROIC uses a dated assessment built from the local Sharadar history. It is not refreshed automatically by the live quote feed. Evidence older than {MAX_EVIDENCE_AGE_DAYS} days, an annual period older than {MAX_ANNUAL_AGE_DAYS} days, or missing evidence means Watch. Historical backtest reports retain their original rule versions; they are not automatically evidence for today's modified rules.</p></section>
 </main></body></html>'''
 

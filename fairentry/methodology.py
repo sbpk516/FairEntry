@@ -53,11 +53,14 @@ def generate() -> str:
         "",
         "Every condition below must pass; any missing required value blocks Buy:",
         "",
-        f"- Business Quality, Financial Strength, and Growth each >= {alignment.get('category_minimum', 70)}.",
+        "- Required category scores: " + ", ".join(
+            f"{cfg.categories[cid]['label']} >= {(alignment.get('category_minimums') or {}).get(cid, alignment.get('category_minimum', 70))}"
+            for cid in alignment.get("categories", ["quality", "survival", "growth"])) + ".",
         f"- Current price is at or below the fair-value base from at least {alignment.get('fair_value_method_minimum', 1)} tested valuation method.",
         (f"- Current price is within +/-{alignment.get('ema_proximity_pct', 5)}% of either the 9-month or 20-month EMA."
          if alignment.get('monthly_ema_required', True) else "- Moving-average proximity is an optional dashboard filter, not a Buy requirement."),
-        "- Weekly OBV is above its 20-week EMA.",
+        ("- Weekly OBV is above its 20-week EMA." if alignment.get("weekly_obv_required", True)
+         else "- Weekly OBV confirmation is an optional Buy positive; missing or unconfirmed data does not block Buy or change the score."),
         "- No tested hard veto is active.",
         "- Recent ROIC direction must pass; missing or stale history blocks Buy." if cfg.scoring.get('roic_direction_gate') else "- Recent ROIC direction gate is disabled.",
         "- See the generated Screening & Buy criteria page for current eligibility and evidence limitations.",

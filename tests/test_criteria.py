@@ -13,7 +13,8 @@ def test_criteria_reflects_active_configuration():
     cfg.scoring['buy_entry_alignment']['category_minimum'] = 81
     cfg.defaults['moving_average_zone_threshold_pct'] = 7
     page = generate(cfg)
-    assert 'each at least 81 out of 100' in page
+    assert 'Business Quality at least 50' in page
+    assert 'Growth &amp; Operating Momentum at least 81' in page
     assert '±7%' in page
 
 

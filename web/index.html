@@ -709,8 +709,8 @@ function baseScore(s){ var num=0,den=0; s.cats.forEach(function(c){
   if(c.score==null||!isFinite(Number(c.score)))return; var w=S.weights[c.id]; num+=w*c.score; den+=w; }); return den?num/den:0; }
 function thesisMod(){ return 0; }
 // Buy is now an all-or-nothing entry alignment calculated by the backend:
-// Quality/Financial Strength/Growth >=70, price <= calculated fair-value base,
-// weekly OBV confirmation, recent ROIC direction, and no veto. MA proximity is optional.
+// Configured category minimums, price <= calculated fair-value base,
+// recent ROIC direction, and no veto. MA proximity and weekly OBV are optional positives.
 function softGates(s){
   return (s.soft||[]).map(function(g){return g.reason||g.id||'Buy entry condition not aligned';});
 }
@@ -1409,6 +1409,16 @@ function emergingResearchHTML(s){ var e=s.emerging_candidate;if(!e)return '';
   return '<div class="sub-h">Emerging-candidate research <span class="lab warn">BACKTEST ADVANTAGE NOT PROVEN</span></div><div class="bizbox"><div class="biztop"><div class="bizplain"><b>'+esc(e.label)+'</b><br>'+esc(e.source_description)+'<br><span class="meta">Official universe: '+(e.in_official_universe?'yes':'no')+' · official verdict: '+esc(e.official_verdict||'none')+' · research score effect: 0</span>'+lifecycle+'</div><div class="bizexample"><b>Liquidity band</b><br>'+esc((e.liquidity_band||'unavailable').replace(/_/g,' '))+'<br><b>Strict Match checks still missing</b><br>'+esc((e.blockers||[]).join(' · ')||'None')+'</div></div><div class="sub-h" style="margin-top:12px">Three match levels</div>'+variantRows+'<div class="sub-h" style="margin-top:12px">Highest passing level checks</div>'+rows(e.checks)+'<div class="sub-h" style="margin-top:12px">Strict Match checks</div>'+rows(e.confirmation_checks)+'<div class="vg-explain"><b>Liquidity milestones are independent.</b> '+esc(e.graduation_rule)+' '+esc(e.disclaimer)+'</div></div>';
 }
 
+function optionalBuyPositivesHTML(s){
+  var rows=(s.buy_entry_alignment||{}).optional_positives||[];
+  if(!rows.length)return '';
+  return '<div class="sub-h">Optional Buy positives</div><div class="bizbox"><p>Supporting signals only. They do not change the score, block Buy, or upgrade Watch.</p>'+rows.map(function(row){
+    var confirmed=row.status==='confirmed';
+    var status=confirmed?'+ Confirmed':row.status==='missing'?'Data unavailable':'Not confirmed';
+    return '<p><span class="lab '+(confirmed?'good':'info')+'">'+esc(status)+'</span> <b>'+esc(row.label)+'</b> — '+esc(row.description)+'</p>';
+  }).join('')+'</div>';
+}
+
 function openDetail(tk){ var s=STOCKS.find(function(x){return x.ticker===tk;}); if(!s)return; var c=compute(s), em=s.emerging_candidate||null, vk=em?'watch':c.verdict.toLowerCase();
   $('#d-title').innerHTML=esc(s.ticker)+' <span style="font-size:13px;color:var(--ink-faint);font-weight:500">'+esc(s.company)+'</span>';
   var vetoHTML=c.vetoed?'<div style="margin-top:10px"><span class="lab bad">VETO</span> '+s.vetoes.map(esc).join(' - ')+'</div>':'';
@@ -1424,7 +1434,7 @@ function openDetail(tk){ var s=STOCKS.find(function(x){return x.ticker===tk;}); 
     .map(function(a){return '<div class="acard"><div class="l">'+a[0]+'</div><div class="v">'+esc(a[1])+'</div></div>';}).join('')+'</div>';
   var mathSec='<div class="sub-h">How the '+Math.round(c.prelim)+' was computed</div>'+scoreMathHTML(s,c);
   var scorecard='<div class="sub-h">Scorecard - official factors and separate research notes</div>'+(s.categories||s.cats).map(function(cat){return catHTML(cat,s);}).join('');
-  $('#d-body').innerHTML=hero+emergingResearchHTML(s)+confidenceHTML(s,c)+highConvictionResearchHTML(s)+businessHTML(s)+durabilityResearchHTML(s)+growthQualificationHTML(s)+debtDirectionHTML(s)+mathSec+scorecard+demandMomentumHTML(s)+entryExitEvidenceHTML(s)+setupHTML(s)+targetPlanHTML(s)+valHTML(s)+valuationContextHTML(s)+growthEntryHTML(s)+contextHTML(s)+situationHTML(s)+newsHTML(s)+watchHTML(s)+action;
+  $('#d-body').innerHTML=hero+optionalBuyPositivesHTML(s)+emergingResearchHTML(s)+confidenceHTML(s,c)+highConvictionResearchHTML(s)+businessHTML(s)+durabilityResearchHTML(s)+growthQualificationHTML(s)+debtDirectionHTML(s)+mathSec+scorecard+demandMomentumHTML(s)+entryExitEvidenceHTML(s)+setupHTML(s)+targetPlanHTML(s)+valHTML(s)+valuationContextHTML(s)+growthEntryHTML(s)+contextHTML(s)+situationHTML(s)+newsHTML(s)+watchHTML(s)+action;
   openDrawer('#detail');
 }
 
